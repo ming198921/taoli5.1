@@ -1,0 +1,435 @@
+# 部署环境配置
+# 生产环境部署的完整配置
+
+[deployment]
+environment = "production"
+deployment_strategy = "blue_green"
+health_check_enabled = true
+graceful_shutdown_timeout_seconds = 30
+
+[system_requirements]
+# 最低系统要求
+min_cpu_cores = 8
+min_memory_gb = 16
+min_storage_gb = 100
+required_cpu_features = ["avx512f", "avx512dq", "avx512bw"]
+
+# 推荐系统配置
+recommended_cpu_cores = 16
+recommended_memory_gb = 32
+recommended_storage_gb = 500
+recommended_network_bandwidth_gbps = 10
+
+[container]
+# 容器配置 (Docker/Podman)
+base_image = "rust:1.70-alpine"
+working_directory = "/app"
+user = "celue"
+expose_ports = [8080, 9090]
+
+# 容器资源限制
+cpu_limit = "8"
+memory_limit = "16Gi"
+memory_request = "8Gi"
+cpu_request = "4"
+
+# 容器优化
+enable_huge_pages = true
+privileged_mode = false
+security_context = "strict"
+
+[kubernetes]
+# Kubernetes部署配置
+namespace = "celue-arbitrage"
+replicas = 2
+rolling_update_strategy = "RollingUpdate"
+max_unavailable = 1
+max_surge = 1
+
+# 资源配置
+cpu_request = "4"
+memory_request = "8Gi"
+cpu_limit = "8"
+memory_limit = "16Gi"
+
+# 健康检查
+liveness_probe_path = "/health"
+liveness_probe_port = 8080
+liveness_initial_delay_seconds = 30
+liveness_period_seconds = 10
+
+readiness_probe_path = "/ready"
+readiness_probe_port = 8080
+readiness_initial_delay_seconds = 5
+readiness_period_seconds = 5
+
+[networking]
+# 网络配置
+service_type = "ClusterIP"
+port = 8080
+target_port = 8080
+protocol = "TCP"
+
+# 网络策略
+network_policy_enabled = true
+ingress_enabled = false
+load_balancer_enabled = false
+
+[storage]
+# 存储配置
+persistent_volume_enabled = true
+storage_class = "fast-ssd"
+volume_size = "100Gi"
+access_mode = "ReadWriteOnce"
+
+# 挂载点
+config_mount_path = "/app/config"
+logs_mount_path = "/app/logs"
+data_mount_path = "/app/data"
+
+[monitoring]
+# 监控集成
+prometheus_enabled = true
+metrics_endpoint = "/metrics"
+metrics_port = 9090
+
+# 告警规则
+alerting_enabled = true
+alert_manager_url = "http://alertmanager:9093"
+
+# 监控标签
+app_label = "celue-arbitrage-monitor"
+component_label = "trading"
+environment_label = "production"
+
+[logging]
+# 日志配置
+log_level = "info"
+log_format = "json"
+log_aggregation = "fluentd"
+
+# 日志收集
+fluentd_host = "fluentd.logging.svc.cluster.local"
+fluentd_port = 24224
+log_buffer_size = "64MB"
+
+[security]
+# 安全配置
+run_as_non_root = true
+run_as_user = 1000
+run_as_group = 1000
+fs_group = 1000
+
+# 安全策略
+pod_security_policy = "restricted"
+network_security_enabled = true
+secrets_management = "kubernetes"
+
+[backup]
+# 备份配置
+backup_enabled = true
+backup_schedule = "0 2 * * *"  # 每天凌晨2点
+backup_retention_days = 30
+
+# 备份内容
+backup_configs = true
+backup_logs = true
+backup_metrics = false  # 通常不需要
+
+[scaling]
+# 自动扩缩容
+hpa_enabled = true
+hpa_min_replicas = 2
+hpa_max_replicas = 10
+hpa_target_cpu_utilization = 70
+hpa_target_memory_utilization = 80
+
+# 垂直扩缩容
+vpa_enabled = false  # 通常与HPA二选一
+vpa_update_mode = "Auto"
+
+[service_mesh]
+# 服务网格 (Istio)
+istio_enabled = false
+sidecar_injection = false
+traffic_management = false
+
+# 如果启用服务网格
+mutual_tls = "STRICT"
+traffic_policy = "round_robin"
+
+[environment_variables]
+# 环境变量
+RUST_LOG = "info"
+RUST_BACKTRACE = "1"
+MALLOC_ARENA_MAX = "4"
+MALLOC_MMAP_THRESHOLD = "128000"
+
+# 应用特定环境变量
+CELUE_CONFIG_PATH = "/app/config"
+CELUE_LOG_PATH = "/app/logs"
+CELUE_DATA_PATH = "/app/data"
+CELUE_PERFORMANCE_MODE = "production"
+
+[init_containers]
+# 初始化容器配置
+config_validator_enabled = true
+config_validator_image = "celue/config-validator:latest"
+config_validator_command = "validate-config"
+
+system_checker_enabled = true
+system_checker_image = "celue/system-checker:latest"
+system_checker_command = "check-avx512"
+system_checker_privileged = true
+
+[sidecars]
+# 边车容器配置
+log_shipper_enabled = true
+log_shipper_image = "fluentd:latest"
+log_shipper_cpu = "100m"
+log_shipper_memory = "128Mi"
+
+metrics_exporter_enabled = true
+metrics_exporter_image = "prometheus/node-exporter:latest"
+metrics_exporter_cpu = "50m"
+metrics_exporter_memory = "64Mi"
+
+[maintenance]
+# 维护配置
+maintenance_enabled = true
+maintenance_schedule = "0 3 * * 0"  # 每周日凌晨3点
+maintenance_duration_hours = 2
+
+# 维护操作
+auto_update_enabled = false
+config_refresh_enabled = true
+performance_optimization = true
+
+[disaster_recovery]
+# 灾难恢复
+backup_to_remote = true
+remote_backup_location = "s3://celue-backups/arbitrage-monitor/"
+recovery_time_objective_minutes = 15
+recovery_point_objective_minutes = 5
+
+# 故障转移
+failover_enabled = true
+secondary_region = "us-west-2"
+cross_region_replication = true 
+# 生产环境部署的完整配置
+
+[deployment]
+environment = "production"
+deployment_strategy = "blue_green"
+health_check_enabled = true
+graceful_shutdown_timeout_seconds = 30
+
+[system_requirements]
+# 最低系统要求
+min_cpu_cores = 8
+min_memory_gb = 16
+min_storage_gb = 100
+required_cpu_features = ["avx512f", "avx512dq", "avx512bw"]
+
+# 推荐系统配置
+recommended_cpu_cores = 16
+recommended_memory_gb = 32
+recommended_storage_gb = 500
+recommended_network_bandwidth_gbps = 10
+
+[container]
+# 容器配置 (Docker/Podman)
+base_image = "rust:1.70-alpine"
+working_directory = "/app"
+user = "celue"
+expose_ports = [8080, 9090]
+
+# 容器资源限制
+cpu_limit = "8"
+memory_limit = "16Gi"
+memory_request = "8Gi"
+cpu_request = "4"
+
+# 容器优化
+enable_huge_pages = true
+privileged_mode = false
+security_context = "strict"
+
+[kubernetes]
+# Kubernetes部署配置
+namespace = "celue-arbitrage"
+replicas = 2
+rolling_update_strategy = "RollingUpdate"
+max_unavailable = 1
+max_surge = 1
+
+# 资源配置
+cpu_request = "4"
+memory_request = "8Gi"
+cpu_limit = "8"
+memory_limit = "16Gi"
+
+# 健康检查
+liveness_probe_path = "/health"
+liveness_probe_port = 8080
+liveness_initial_delay_seconds = 30
+liveness_period_seconds = 10
+
+readiness_probe_path = "/ready"
+readiness_probe_port = 8080
+readiness_initial_delay_seconds = 5
+readiness_period_seconds = 5
+
+[networking]
+# 网络配置
+service_type = "ClusterIP"
+port = 8080
+target_port = 8080
+protocol = "TCP"
+
+# 网络策略
+network_policy_enabled = true
+ingress_enabled = false
+load_balancer_enabled = false
+
+[storage]
+# 存储配置
+persistent_volume_enabled = true
+storage_class = "fast-ssd"
+volume_size = "100Gi"
+access_mode = "ReadWriteOnce"
+
+# 挂载点
+config_mount_path = "/app/config"
+logs_mount_path = "/app/logs"
+data_mount_path = "/app/data"
+
+[monitoring]
+# 监控集成
+prometheus_enabled = true
+metrics_endpoint = "/metrics"
+metrics_port = 9090
+
+# 告警规则
+alerting_enabled = true
+alert_manager_url = "http://alertmanager:9093"
+
+# 监控标签
+app_label = "celue-arbitrage-monitor"
+component_label = "trading"
+environment_label = "production"
+
+[logging]
+# 日志配置
+log_level = "info"
+log_format = "json"
+log_aggregation = "fluentd"
+
+# 日志收集
+fluentd_host = "fluentd.logging.svc.cluster.local"
+fluentd_port = 24224
+log_buffer_size = "64MB"
+
+[security]
+# 安全配置
+run_as_non_root = true
+run_as_user = 1000
+run_as_group = 1000
+fs_group = 1000
+
+# 安全策略
+pod_security_policy = "restricted"
+network_security_enabled = true
+secrets_management = "kubernetes"
+
+[backup]
+# 备份配置
+backup_enabled = true
+backup_schedule = "0 2 * * *"  # 每天凌晨2点
+backup_retention_days = 30
+
+# 备份内容
+backup_configs = true
+backup_logs = true
+backup_metrics = false  # 通常不需要
+
+[scaling]
+# 自动扩缩容
+hpa_enabled = true
+hpa_min_replicas = 2
+hpa_max_replicas = 10
+hpa_target_cpu_utilization = 70
+hpa_target_memory_utilization = 80
+
+# 垂直扩缩容
+vpa_enabled = false  # 通常与HPA二选一
+vpa_update_mode = "Auto"
+
+[service_mesh]
+# 服务网格 (Istio)
+istio_enabled = false
+sidecar_injection = false
+traffic_management = false
+
+# 如果启用服务网格
+mutual_tls = "STRICT"
+traffic_policy = "round_robin"
+
+[environment_variables]
+# 环境变量
+RUST_LOG = "info"
+RUST_BACKTRACE = "1"
+MALLOC_ARENA_MAX = "4"
+MALLOC_MMAP_THRESHOLD = "128000"
+
+# 应用特定环境变量
+CELUE_CONFIG_PATH = "/app/config"
+CELUE_LOG_PATH = "/app/logs"
+CELUE_DATA_PATH = "/app/data"
+CELUE_PERFORMANCE_MODE = "production"
+
+[init_containers]
+# 初始化容器配置
+config_validator_enabled = true
+config_validator_image = "celue/config-validator:latest"
+config_validator_command = "validate-config"
+
+system_checker_enabled = true
+system_checker_image = "celue/system-checker:latest"
+system_checker_command = "check-avx512"
+system_checker_privileged = true
+
+[sidecars]
+# 边车容器配置
+log_shipper_enabled = true
+log_shipper_image = "fluentd:latest"
+log_shipper_cpu = "100m"
+log_shipper_memory = "128Mi"
+
+metrics_exporter_enabled = true
+metrics_exporter_image = "prometheus/node-exporter:latest"
+metrics_exporter_cpu = "50m"
+metrics_exporter_memory = "64Mi"
+
+[maintenance]
+# 维护配置
+maintenance_enabled = true
+maintenance_schedule = "0 3 * * 0"  # 每周日凌晨3点
+maintenance_duration_hours = 2
+
+# 维护操作
+auto_update_enabled = false
+config_refresh_enabled = true
+performance_optimization = true
+
+[disaster_recovery]
+# 灾难恢复
+backup_to_remote = true
+remote_backup_location = "s3://celue-backups/arbitrage-monitor/"
+recovery_time_objective_minutes = 15
+recovery_point_objective_minutes = 5
+
+# 故障转移
+failover_enabled = true
+secondary_region = "us-west-2"
+cross_region_replication = true 

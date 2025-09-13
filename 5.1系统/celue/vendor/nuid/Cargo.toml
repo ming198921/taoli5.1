@@ -1,0 +1,11 @@
+[package]
+name = "nuid"
+version = "0.3.2"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "nuid"
+path = "src/lib.rs"
+
+[dependencies] 

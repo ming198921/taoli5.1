@@ -1,0 +1,49 @@
+[metadata]
+version = "1.0.0"
+last_updated = "2024-01-15T10:30:00Z"
+auto_reload = true
+exchange = "okx"
+
+[slippage]
+# OKX通常流动性中等，滑点稍高于Binance
+base_slippage = 5
+max_slippage = 20
+volume_impact_factor = 0.00002
+volatility_multiplier = 1.6
+depth_weight = 0.75
+update_interval_ms = 1000
+
+[market_conditions]
+high_volatility_threshold = 0.06
+low_liquidity_threshold = 40000.0
+emergency_slippage = 40
+emergency_spread_threshold_bps = 600
+
+[optimization]
+learning_rate = 0.0015
+history_window = 800
+min_samples = 80
+retrain_interval_seconds = 3600
+
+[validation]
+min_slippage = 1
+max_slippage = 1000
+required_fields = ["base_slippage", "max_slippage", "volume_impact_factor"]
+
+[[validation.range_checks]]
+field = "volatility_multiplier"
+min = 1.0
+max = 5.0
+
+[[validation.range_checks]]
+field = "depth_weight"
+min = 0.1
+max = 1.0
+
+[exchange_specific]
+# OKX的衍生品优势
+derivatives_multiplier = 0.8
+# API延迟补偿
+api_latency_compensation = 50
+# 深度聚合优化
+depth_aggregation_enabled = true

@@ -1,0 +1,17 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# 统一类型定义 (最高优先级)
+common_types = { path = "../../common_types" }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+# atomic = { workspace = true }  # 未在workspace中定义
+parking_lot = { workspace = true }
+tracing = { workspace = true }

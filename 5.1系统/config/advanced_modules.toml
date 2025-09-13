@@ -1,0 +1,213 @@
+# 🚀 高级模块配置文件
+# 多级审批工作流、What-if场景推演平台、第三方数据源集成
+
+[approval_workflow]
+# 审批工作流配置
+enabled = true
+default_timeout_hours = 24
+allow_self_approval = false
+require_digital_signature = true
+audit_log_retention_days = 365
+
+# 审批规则配置
+[[approval_workflow.rules]]
+rule_id = "high_risk_config"
+name = "高风险配置变更"
+description = "涉及核心交易参数的变更"
+config_type_pattern = "trading|execution|risk"
+change_types = ["update", "create", "delete"]
+required_levels = ["SeniorApprover", "Administrator"]
+min_approvers = 2
+all_levels_required = true
+timeout_seconds = 86400  # 24小时
+
+[[approval_workflow.rules]]
+rule_id = "medium_risk_config"
+name = "中等风险配置变更"
+description = "涉及策略参数的变更"
+config_type_pattern = "strategy|opportunity"
+change_types = ["update", "create"]
+required_levels = ["JuniorApprover"]
+min_approvers = 1
+all_levels_required = false
+timeout_seconds = 43200  # 12小时
+
+[[approval_workflow.rules]]
+rule_id = "low_risk_config"
+name = "低风险配置变更"
+description = "监控和日志配置变更"
+config_type_pattern = "monitoring|logging"
+change_types = ["update"]
+required_levels = []
+min_approvers = 0
+all_levels_required = false
+# 自动批准
+
+# 审批者配置
+[[approval_workflow.approvers]]
+id = "admin001"
+name = "系统管理员"
+email = "admin@arbitrage.com"
+level = "Administrator"
+department = "技术部"
+active = true
+
+[[approval_workflow.approvers]]
+id = "senior001"
+name = "高级审批员"
+email = "senior@arbitrage.com"
+level = "SeniorApprover"
+department = "风控部"
+active = true
+
+[[approval_workflow.approvers]]
+id = "junior001"
+name = "初级审批员"
+email = "junior@arbitrage.com"
+level = "JuniorApprover"
+department = "交易部"
+active = true
+
+[whatif_platform]
+# What-if场景推演平台配置
+enabled = true
+max_concurrent_simulations = 10
+simulation_timeout_minutes = 60
+historical_data_retention_days = 90
+
+# 预定义场景配置
+[[whatif_platform.scenarios]]
+scenario_id = "high_volatility"
+name = "高波动性场景"
+description = "模拟极端市场波动情况"
+scenario_type = "VolatilityShock"
+multiplier = 3.0
+duration_minutes = 60
+severity = "High"
+probability = 0.05
+
+[[whatif_platform.scenarios]]
+scenario_id = "liquidity_crisis"
+name = "流动性危机"
+description = "模拟主要交易所流动性枯竭"
+scenario_type = "LiquidityDrain"
+reduction_percentage = 80.0
+affected_exchanges = ["binance", "okx", "huobi"]
+severity = "Critical"
+probability = 0.01
+
+[[whatif_platform.scenarios]]
+scenario_id = "exchange_outage"
+name = "交易所故障"
+description = "模拟主要交易所服务中断"
+scenario_type = "ExchangeOutage"
+exchange = "binance"
+duration_minutes = 120
+severity = "High"
+probability = 0.02
+
+[[whatif_platform.scenarios]]
+scenario_id = "network_latency"
+name = "网络延迟激增"
+description = "模拟网络基础设施问题"
+scenario_type = "NetworkLatency"
+additional_ms = 500
+affected_routes = ["binance", "okx"]
+severity = "Medium"
+probability = 0.1
+
+[third_party_integration]
+# 第三方数据源集成配置
+enabled = true
+max_concurrent_sources = 20
+data_fusion_algorithm = "weighted_average"
+quality_monitoring_interval_minutes = 5
+cache_ttl_seconds = 300
+
+# CoinGecko配置
+[third_party_integration.coingecko]
+enabled = true
+priority = 8
+reliability_score = 0.95
+base_url = "https://api.coingecko.com"
+rate_limit_per_minute = 50
+timeout_seconds = 10
+max_latency_ms = 5000
+min_update_frequency_ms = 30000
+max_price_deviation_percentage = 2.0
+
+# CoinMarketCap配置
+[third_party_integration.coinmarketcap]
+enabled = true
+priority = 7
+reliability_score = 0.9
+base_url = "https://pro-api.coinmarketcap.com"
+rate_limit_per_minute = 333
+timeout_seconds = 15
+max_latency_ms = 8000
+min_update_frequency_ms = 60000
+max_price_deviation_percentage = 3.0
+# api_key = "${CMC_API_KEY}"  # 从环境变量获取
+
+# Messari配置
+[third_party_integration.messari]
+enabled = false
+priority = 6
+reliability_score = 0.85
+base_url = "https://data.messari.io"
+rate_limit_per_minute = 20
+timeout_seconds = 20
+
+# CryptoCompare配置
+[third_party_integration.cryptocompare]
+enabled = false
+priority = 5
+reliability_score = 0.8
+base_url = "https://min-api.cryptocompare.com"
+rate_limit_per_minute = 100
+timeout_seconds = 15
+
+# 数据融合权重配置
+[third_party_integration.fusion_weights]
+binance = 0.3
+coinbase = 0.25
+kraken = 0.2
+coingecko = 0.15
+coinmarketcap = 0.1
+
+# 质量阈值配置
+[third_party_integration.quality_thresholds]
+min_overall_quality_score = 0.8
+max_acceptable_latency_ms = 10000
+min_data_freshness_seconds = 60
+max_price_deviation_from_consensus = 0.05  # 5%
+
+# 新闻情感分析配置
+[third_party_integration.sentiment_analysis]
+enabled = false
+providers = ["newsapi", "twitter_api"]
+sentiment_threshold = 0.6
+impact_weight = 0.1
+update_frequency_minutes = 15
+
+# 链上数据配置
+[third_party_integration.onchain_data]
+enabled = false
+blockchains = ["ethereum", "bitcoin", "binance_smart_chain"]
+data_types = ["transaction_volume", "whale_movements", "exchange_inflows"]
+update_frequency_minutes = 10
+
+# 宏观经济数据配置
+[third_party_integration.macro_economic]
+enabled = false
+indicators = ["DXY", "VIX", "GOLD", "US10Y"]
+providers = ["fred", "yahoo_finance"]
+update_frequency_hours = 1
+
+# 监管新闻配置
+[third_party_integration.regulatory_news]
+enabled = false
+jurisdictions = ["US", "EU", "CN", "JP"]
+alert_keywords = ["ban", "regulation", "compliance", "legal"]
+providers = ["reuters", "bloomberg"]
+update_frequency_hours = 6 

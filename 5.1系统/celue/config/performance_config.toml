@@ -1,0 +1,347 @@
+# 性能优化专用配置
+# 专门针对高频处理的性能调优
+
+[cpu]
+# CPU优化配置
+enable_cpu_affinity = true
+performance_cores = [0, 1, 2, 3]
+efficiency_cores = [4, 5, 6, 7]
+isolated_cores = [8, 9, 10, 11]  # 如果可用
+numa_awareness = true
+
+# CPU频率管理
+governor = "performance"
+min_frequency_mhz = 2000
+max_frequency_mhz = 5000
+turbo_boost = true
+
+[simd]
+# SIMD指令集优化
+instruction_set_preference = ["avx512", "avx2", "sse4_2"]
+force_avx512 = true  # 根据用户要求强制使用AVX512
+simd_width = 512
+vector_alignment = 64
+
+# SIMD算法选择
+profit_calculation_method = "avx512_parallel"
+batch_processing_method = "simd_vectorized"
+data_conversion_method = "simd_optimized"
+
+[memory]
+# 内存优化
+memory_pool_enabled = true
+pool_size_mb = 1024
+pool_alignment = 64
+huge_pages = true
+transparent_huge_pages = "always"
+
+# 内存布局优化
+cache_line_size = 64
+false_sharing_prevention = true
+memory_prefetch = true
+prefetch_distance = 3
+
+# 垃圾回收优化
+gc_strategy = "low_latency"
+max_heap_size_mb = 4096
+young_gen_size_mb = 1024
+
+[threading]
+# 线程池配置
+worker_threads = 16
+io_threads = 4
+background_threads = 2
+thread_stack_size_kb = 512
+
+# 线程优先级
+worker_priority = "high"
+io_priority = "normal"
+background_priority = "low"
+
+# 线程亲和性
+pin_threads_to_cores = true
+thread_migration_cost = "high"
+
+[network]
+# 网络性能优化
+socket_buffer_size_kb = 1024
+tcp_window_size_kb = 2048
+tcp_congestion_control = "bbr"
+tcp_fast_open = true
+
+# 网络中断优化
+interrupt_coalescing = true
+napi_budget = 300
+rx_ring_buffer_size = 4096
+tx_ring_buffer_size = 4096
+
+[io]
+# I/O性能优化
+io_scheduler = "mq-deadline"
+read_ahead_kb = 1024
+queue_depth = 64
+direct_io = true
+
+# 异步I/O
+async_io_enabled = true
+io_uring_enabled = true
+io_uring_entries = 1024
+
+[compiler]
+# 编译器优化设置
+optimization_level = "aggressive"
+target_cpu = "native"
+enable_lto = true
+enable_pgo = false  # 可在生产环境启用
+
+# 特定优化标志
+fast_math = true
+unroll_loops = true
+vectorize = true
+inline_aggressive = true
+
+[profiling]
+# 性能分析配置
+enable_runtime_profiling = false
+profiling_frequency_hz = 1000
+profile_duration_seconds = 60
+profile_memory_allocations = false
+
+# 性能计数器
+perf_counters = [
+    "cpu-cycles",
+    "instructions",
+    "cache-misses",
+    "branch-misses"
+]
+
+[benchmarking]
+# 基准测试配置
+benchmark_mode = false
+benchmark_duration_seconds = 300
+benchmark_warmup_seconds = 30
+benchmark_iterations = 1000000
+
+# 基准测试指标
+target_latency_p99_us = 1000
+target_throughput_ops_per_sec = 100000
+target_cpu_utilization_pct = 80
+target_memory_utilization_pct = 70
+
+[monitoring]
+# 性能监控
+enable_performance_monitoring = true
+metrics_collection_overhead = "minimal"
+metrics_export_format = "prometheus"
+
+# 关键性能指标
+track_latency_percentiles = true
+track_throughput = true
+track_cpu_usage = true
+track_memory_usage = true
+track_cache_hit_ratio = true
+
+[optimization_targets]
+# 优化目标设定
+primary_target = "latency"  # latency, throughput, or balanced
+latency_target_microseconds = 100
+throughput_target_msg_per_sec = 100000
+cpu_utilization_target_pct = 75
+
+# 约束条件
+max_memory_usage_mb = 8192
+max_cpu_cores = 16
+power_consumption_limit = "unlimited"
+
+[experimental_optimizations]
+# 实验性优化功能
+enable_experimental = false
+custom_memory_allocator = false
+lock_free_data_structures = false
+zero_copy_networking = false
+kernel_bypass_networking = false
+
+[runtime_tuning]
+# 运行时自动调优
+auto_tuning_enabled = true
+tuning_interval_seconds = 300
+tuning_aggressiveness = "conservative"
+
+# 自适应参数
+adaptive_batch_size = true
+adaptive_thread_count = false  # 保持固定以确保一致性
+adaptive_memory_allocation = true
+adaptive_network_buffers = true 
+# 专门针对高频处理的性能调优
+
+[cpu]
+# CPU优化配置
+enable_cpu_affinity = true
+performance_cores = [0, 1, 2, 3]
+efficiency_cores = [4, 5, 6, 7]
+isolated_cores = [8, 9, 10, 11]  # 如果可用
+numa_awareness = true
+
+# CPU频率管理
+governor = "performance"
+min_frequency_mhz = 2000
+max_frequency_mhz = 5000
+turbo_boost = true
+
+[simd]
+# SIMD指令集优化
+instruction_set_preference = ["avx512", "avx2", "sse4_2"]
+force_avx512 = true  # 根据用户要求强制使用AVX512
+simd_width = 512
+vector_alignment = 64
+
+# SIMD算法选择
+profit_calculation_method = "avx512_parallel"
+batch_processing_method = "simd_vectorized"
+data_conversion_method = "simd_optimized"
+
+[memory]
+# 内存优化
+memory_pool_enabled = true
+pool_size_mb = 1024
+pool_alignment = 64
+huge_pages = true
+transparent_huge_pages = "always"
+
+# 内存布局优化
+cache_line_size = 64
+false_sharing_prevention = true
+memory_prefetch = true
+prefetch_distance = 3
+
+# 垃圾回收优化
+gc_strategy = "low_latency"
+max_heap_size_mb = 4096
+young_gen_size_mb = 1024
+
+[threading]
+# 线程池配置
+worker_threads = 16
+io_threads = 4
+background_threads = 2
+thread_stack_size_kb = 512
+
+# 线程优先级
+worker_priority = "high"
+io_priority = "normal"
+background_priority = "low"
+
+# 线程亲和性
+pin_threads_to_cores = true
+thread_migration_cost = "high"
+
+[network]
+# 网络性能优化
+socket_buffer_size_kb = 1024
+tcp_window_size_kb = 2048
+tcp_congestion_control = "bbr"
+tcp_fast_open = true
+
+# 网络中断优化
+interrupt_coalescing = true
+napi_budget = 300
+rx_ring_buffer_size = 4096
+tx_ring_buffer_size = 4096
+
+[io]
+# I/O性能优化
+io_scheduler = "mq-deadline"
+read_ahead_kb = 1024
+queue_depth = 64
+direct_io = true
+
+# 异步I/O
+async_io_enabled = true
+io_uring_enabled = true
+io_uring_entries = 1024
+
+[compiler]
+# 编译器优化设置
+optimization_level = "aggressive"
+target_cpu = "native"
+enable_lto = true
+enable_pgo = false  # 可在生产环境启用
+
+# 特定优化标志
+fast_math = true
+unroll_loops = true
+vectorize = true
+inline_aggressive = true
+
+[profiling]
+# 性能分析配置
+enable_runtime_profiling = false
+profiling_frequency_hz = 1000
+profile_duration_seconds = 60
+profile_memory_allocations = false
+
+# 性能计数器
+perf_counters = [
+    "cpu-cycles",
+    "instructions",
+    "cache-misses",
+    "branch-misses"
+]
+
+[benchmarking]
+# 基准测试配置
+benchmark_mode = false
+benchmark_duration_seconds = 300
+benchmark_warmup_seconds = 30
+benchmark_iterations = 1000000
+
+# 基准测试指标
+target_latency_p99_us = 1000
+target_throughput_ops_per_sec = 100000
+target_cpu_utilization_pct = 80
+target_memory_utilization_pct = 70
+
+[monitoring]
+# 性能监控
+enable_performance_monitoring = true
+metrics_collection_overhead = "minimal"
+metrics_export_format = "prometheus"
+
+# 关键性能指标
+track_latency_percentiles = true
+track_throughput = true
+track_cpu_usage = true
+track_memory_usage = true
+track_cache_hit_ratio = true
+
+[optimization_targets]
+# 优化目标设定
+primary_target = "latency"  # latency, throughput, or balanced
+latency_target_microseconds = 100
+throughput_target_msg_per_sec = 100000
+cpu_utilization_target_pct = 75
+
+# 约束条件
+max_memory_usage_mb = 8192
+max_cpu_cores = 16
+power_consumption_limit = "unlimited"
+
+[experimental_optimizations]
+# 实验性优化功能
+enable_experimental = false
+custom_memory_allocator = false
+lock_free_data_structures = false
+zero_copy_networking = false
+kernel_bypass_networking = false
+
+[runtime_tuning]
+# 运行时自动调优
+auto_tuning_enabled = true
+tuning_interval_seconds = 300
+tuning_aggressiveness = "conservative"
+
+# 自适应参数
+adaptive_batch_size = true
+adaptive_thread_count = false  # 保持固定以确保一致性
+adaptive_memory_allocation = true
+adaptive_network_buffers = true 

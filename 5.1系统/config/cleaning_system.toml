@@ -1,0 +1,58 @@
+# 🚀 数据清洗层配置文件 - 支持硬件自适应和性能优化
+
+[system]
+name = "ArbitrageSystem"
+version = "5.1.0"
+environment = "production"
+log_level = "info"
+max_concurrent_opportunities = 10000
+health_check_interval_seconds = 30
+metrics_collection_interval_seconds = 5
+graceful_shutdown_timeout_seconds = 30
+enable_hot_reload = true
+enable_telemetry = true
+enable_profiling = true
+
+[monitoring.performance]
+enable_performance_monitoring = true
+profiling_enabled = true
+sampling_rate = 0.1
+memory_monitoring = true
+cpu_monitoring = true
+network_monitoring = true
+latency_monitoring = true
+
+# 🚀 数据清洗核心配置 - 解决硬编码问题
+[monitoring.performance.data_cleaning.v3_optimization]
+# 内存池配置 - 基于硬件自适应
+memory_pool_size = 131072        # 128K 支持大规模交易对
+vec_pool_capacity = 16384        # 16K 增强并发能力  
+orderbook_capacity = 2000        # 2K档 深度订单簿支持
+zero_alloc_buffer_count = 131072 # 128K 零分配缓冲区
+o1_sort_bucket_count = 262144    # 256K O(1)排序桶 - 最高性能
+entries_per_bucket = 16          # 16个条目/桶 - 高性能服务器配置
+
+# 优化开关
+enable_intel_optimizations = true
+enable_o1_sorting = true
+enable_realtime_monitoring = true
+
+[monitoring.performance.data_cleaning.simd_optimization]
+# SIMD批处理配置 - 自动检测最优值
+batch_size = 1024               # 高性能批处理
+enable_avx512 = true
+enable_avx2 = true  
+enable_sse4 = true
+auto_detect_simd = true
+
+[monitoring.performance.data_cleaning.performance_targets]
+# 性能目标配置
+target_latency_ns = 50000       # 50μs 极限延迟目标
+max_cpu_usage_percent = 80.0
+target_throughput_per_second = 160000  # 16万条/秒
+
+[monitoring.performance.data_cleaning.auto_configuration]
+# 硬件自适应配置
+enable_hardware_detection = true
+enable_performance_adaptation = true
+max_auto_scale_factor = 4.0     # 最大4倍硬件自适应缩放 

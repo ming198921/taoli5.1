@@ -1,0 +1,141 @@
+# 运行时动态配置
+# 支持热重载的运行时参数
+
+[runtime]
+# 动态调整参数
+current_batch_size = 2048
+current_worker_threads = 8
+current_memory_limit_mb = 2048
+dynamic_tuning_enabled = true
+
+# 实时性能调节
+auto_batch_size_adjustment = true
+min_batch_size = 512
+max_batch_size = 4096
+batch_size_step = 256
+
+# 负载均衡
+load_balancing_strategy = "round_robin"
+circuit_breaker_enabled = true
+circuit_breaker_threshold = 0.5
+circuit_breaker_timeout_ms = 30000
+
+[thresholds]
+# 动态阈值配置
+profit_threshold_adjustment = "auto"
+current_min_profit_pct = 0.5
+profit_threshold_history_window = 3600  # 1小时
+
+# 风险阈值
+risk_multiplier = 1.0
+volatility_adjustment = true
+market_condition_factor = 1.0
+
+[features]
+# 功能开关
+simd_processing = true
+avx512_enabled = true
+batch_processing = true
+async_pipeline = true
+memory_optimization = true
+
+# 策略开关
+inter_exchange_arbitrage = true
+triangular_arbitrage = false  # 预留
+statistical_arbitrage = false  # 预留
+
+[monitoring_runtime]
+# 运行时监控
+real_time_metrics = true
+performance_alerts = true
+health_check_interval_ms = 5000
+metrics_collection_interval_ms = 1000
+
+# 自适应调整
+auto_performance_tuning = true
+latency_target_ms = 100
+throughput_target_msg_per_sec = 100000
+auto_scaling_enabled = false
+
+[hot_reload]
+# 热重载配置
+config_file_watch = true
+reload_check_interval_ms = 5000
+graceful_reload = true
+backup_config_on_reload = true
+
+# 重载范围
+reload_performance_settings = true
+reload_risk_settings = true
+reload_strategy_settings = false  # 需要重启
+reload_network_settings = false   # 需要重启 
+# 支持热重载的运行时参数
+
+[runtime]
+# 动态调整参数
+current_batch_size = 2048
+current_worker_threads = 8
+current_memory_limit_mb = 2048
+dynamic_tuning_enabled = true
+
+# 实时性能调节
+auto_batch_size_adjustment = true
+min_batch_size = 512
+max_batch_size = 4096
+batch_size_step = 256
+
+# 负载均衡
+load_balancing_strategy = "round_robin"
+circuit_breaker_enabled = true
+circuit_breaker_threshold = 0.5
+circuit_breaker_timeout_ms = 30000
+
+[thresholds]
+# 动态阈值配置
+profit_threshold_adjustment = "auto"
+current_min_profit_pct = 0.5
+profit_threshold_history_window = 3600  # 1小时
+
+# 风险阈值
+risk_multiplier = 1.0
+volatility_adjustment = true
+market_condition_factor = 1.0
+
+[features]
+# 功能开关
+simd_processing = true
+avx512_enabled = true
+batch_processing = true
+async_pipeline = true
+memory_optimization = true
+
+# 策略开关
+inter_exchange_arbitrage = true
+triangular_arbitrage = false  # 预留
+statistical_arbitrage = false  # 预留
+
+[monitoring_runtime]
+# 运行时监控
+real_time_metrics = true
+performance_alerts = true
+health_check_interval_ms = 5000
+metrics_collection_interval_ms = 1000
+
+# 自适应调整
+auto_performance_tuning = true
+latency_target_ms = 100
+throughput_target_msg_per_sec = 100000
+auto_scaling_enabled = false
+
+[hot_reload]
+# 热重载配置
+config_file_watch = true
+reload_check_interval_ms = 5000
+graceful_reload = true
+backup_config_on_reload = true
+
+# 重载范围
+reload_performance_settings = true
+reload_risk_settings = true
+reload_strategy_settings = false  # 需要重启
+reload_network_settings = false   # 需要重启 

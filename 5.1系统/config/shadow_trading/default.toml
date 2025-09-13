@@ -1,0 +1,108 @@
+# 影子交易系统配置文件
+# 用于完整的模拟交易环境
+
+[account]
+# 虚拟账户配置
+base_currency = "USDT"
+max_positions = 100
+min_balance_threshold = 0.01
+enable_margin = false
+max_leverage = 1.0
+
+[account.fee_rates]
+maker = 0.0008  # 0.08% maker费率
+taker = 0.001   # 0.10% taker费率
+
+[execution]
+# 执行引擎配置
+max_concurrent_orders = 1000
+order_timeout_seconds = 3600
+partial_fill_interval_ms = 100
+enable_slippage_simulation = true
+average_slippage_bps = 3.0
+max_slippage_bps = 25.0
+market_order_immediate_fill_prob = 0.95
+limit_order_fill_model = "Probability"
+
+[market_simulation]
+# 市场模拟配置
+supported_symbols = [
+    "BTC/USDT",
+    "ETH/USDT", 
+    "BNB/USDT",
+    "ADA/USDT",
+    "SOL/USDT",
+    "DOT/USDT",
+    "LINK/USDT",
+    "UNI/USDT"
+]
+price_update_interval_ms = 200
+volatility_model = "GBM"
+base_volatility = 0.015  # 1.5% daily volatility
+trend_duration_seconds = 1800  # 30分钟趋势持续
+enable_jump_simulation = true
+jump_probability = 0.008  # 0.8%跳跃概率
+average_jump_size = 0.004  # 0.4%平均跳跃幅度
+
+[performance]
+# 性能分析配置
+benchmark_return = 0.06  # 6% 基准年化收益率
+risk_free_rate = 0.015   # 1.5% 无风险利率
+lookback_window_days = 180  # 6个月回测窗口
+calculation_interval_seconds = 180  # 3分钟计算间隔
+enable_realtime_var = true
+var_confidence_level = 0.95
+max_drawdown_window_days = 730  # 2年最大回撤窗口
+
+[risk_limits]
+# 风险限制配置
+max_daily_loss_pct = 0.03        # 3% 日损失限制
+max_total_loss_pct = 0.15        # 15% 总损失限制
+max_position_concentration_pct = 0.25  # 25% 持仓集中度限制
+max_order_value = 100000.0       # $100,000 最大订单
+max_var_limit = 0.08             # 8% VaR限制
+auto_stop_on_violation = true
+risk_check_interval_seconds = 30
+enable_dynamic_limits = false
+
+[matching]
+# 订单匹配配置
+matching_algorithm = "PriceTimePriority"
+max_orderbook_depth = 2000
+enable_self_trade_prevention = true
+
+[matching.tick_sizes]
+"BTC/USDT" = 0.01
+"ETH/USDT" = 0.01
+"BNB/USDT" = 0.001
+"default" = 0.0001
+
+[matching.min_quantities]
+"BTC/USDT" = 0.0001
+"ETH/USDT" = 0.001
+"BNB/USDT" = 0.01
+"default" = 0.01
+
+[matching.latency_simulation]
+enabled = true
+base_latency_us = 2000          # 2ms基础延迟
+jitter_range_us = 1000          # ±1ms抖动
+enable_congestion = true
+congestion_probability = 0.03   # 3%拥塞概率
+congestion_extra_latency_us = 15000  # 15ms额外延迟
+
+[metrics]
+# 指标收集配置
+enabled = true
+push_interval_seconds = 60
+retention_days = 30
+job_name = "shadow_trading_system"
+instance_id = "shadow_trading_primary"
+
+[metrics.labels]
+environment = "production"
+region = "asia-east-1"
+version = "0.1.0"
+
+# Prometheus推送网关配置（可选）
+# prometheus_pushgateway_url = "http://pushgateway.monitoring.svc:9091"

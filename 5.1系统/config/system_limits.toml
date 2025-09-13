@@ -1,0 +1,25 @@
+[limits]
+max_supported_exchanges = 20
+max_supported_symbols = 50
+max_concurrent_opportunities = 1000
+max_order_batch_size = 50
+
+[performance]
+target_latency_microseconds = 500
+target_throughput_ops_per_sec = 10000
+target_success_rate_percent = 99.9
+
+[monitoring]
+health_check_interval_seconds = 30
+api_health_check_interval_seconds = 10
+metrics_collection_interval_seconds = 5
+
+[paths]
+default_config_path = "./config/system.toml"
+default_secrets_path = "./config/secrets.toml"
+default_exchanges_path = "./config/exchanges.toml"
+
+[version]
+version = "5.1.0"
+build_timestamp = "2024-08-25T14:30:00Z"
+git_sha = "development"

@@ -1,0 +1,72 @@
+[metadata]
+version = "1.0.0"
+last_updated = "2024-01-15T10:30:00Z"
+auto_reload = true
+exchange = "bybit"
+
+[slippage]
+# 基础滑点（基点，万分之一） - Bybit合约平台，滑点相对较低
+base_slippage = 2
+# 最大滑点（基点）
+max_slippage = 12
+# 交易量影响因子 - Bybit流动性良好
+volume_impact_factor = 0.000008
+# 波动率乘数
+volatility_multiplier = 1.4
+# 市场深度权重 - Bybit深度较好
+depth_weight = 0.85
+# 更新间隔（毫秒）
+update_interval_ms = 800
+
+[market_conditions]
+# 高波动率阈值
+high_volatility_threshold = 0.04
+# 低流动性阈值（USD） - Bybit主要做合约，流动性要求较高
+low_liquidity_threshold = 80000.0
+# 紧急滑点（基点）
+emergency_slippage = 25
+# 紧急情况价差阈值（基点）
+emergency_spread_threshold_bps = 400
+
+[optimization]
+# 学习率
+learning_rate = 0.0015
+# 历史数据窗口大小
+history_window = 1200
+# 最小样本数
+min_samples = 150
+# 模型重训练间隔（秒）
+retrain_interval_seconds = 3000
+
+[validation]
+# 最小滑点（基点）
+min_slippage = 0.5
+# 最大滑点（基点）
+max_slippage = 800
+# 必填字段
+required_fields = ["base_slippage", "max_slippage", "volume_impact_factor"]
+
+[[validation.range_checks]]
+field = "volatility_multiplier"
+min = 1.0
+max = 2.5
+
+[[validation.range_checks]]
+field = "depth_weight"
+min = 0.5
+max = 1.0
+
+# Bybit特定设置
+[exchange_specific]
+# VIP等级影响 - Bybit VIP优惠较好
+vip_discount_factor = 0.85
+# 现货vs合约滑点差异 - Bybit主要做合约
+spot_futures_multiplier = 0.8
+# 高频交易优化 - Bybit支持高频交易
+hft_optimization_enabled = true
+# 合约特定设置
+leverage_impact_factor = 1.1
+# 资金费率影响
+funding_rate_impact = 0.05
+# Bybit特有的双向持仓模式
+dual_position_mode = true

@@ -1,0 +1,97 @@
+[package]
+name = "arbitrage-architecture"
+version = "5.1.0"
+edition = "2021"
+authors = ["ArbitrageSystem Team"]
+description = "高频虚拟货币套利系统5.1++ 核心架构"
+
+[dependencies]
+# 统一类型定义 (最高优先级)
+common_types = { path = "../common_types" }
+
+# 异步运行时和并发
+tokio = { workspace = true, features = ["full"] }
+async-trait = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+
+# 序列化和反序列化
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+toml = { workspace = true }
+bincode = { workspace = true }
+
+# 网络和HTTP
+actix-web = "4.4"
+reqwest = { workspace = true }
+bytes = { workspace = true }
+url = { workspace = true }
+
+# 消息队列和事件总线
+async-nats = { workspace = true }
+
+# 数据库和缓存
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+clickhouse = { version = "0.11", features = ["watch"] }
+
+# 配置管理
+config = { workspace = true }
+notify = { workspace = true }
+
+# 日志和追踪
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+
+# 监控和指标
+metrics = { workspace = true }
+prometheus = { workspace = true }
+
+# 时间处理
+chrono = { workspace = true }
+
+# 错误处理
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# 实用工具
+uuid = { workspace = true }
+once_cell = { workspace = true }
+parking_lot = { workspace = true }
+crossbeam = { workspace = true }
+num_cpus = "1.16"
+
+# 数值计算
+ndarray = { workspace = true }
+statrs = { workspace = true }
+
+# 加密和安全
+blake3 = { workspace = true }
+sha2 = { workspace = true }
+
+# 随机数生成
+rand = { workspace = true }
+
+# WebSocket支持
+tokio-tungstenite = { workspace = true }
+tungstenite = { workspace = true }
+
+# TLS支持
+native-tls = { workspace = true }
+tokio-native-tls = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.11"
+tempfile = "3.8"
+
+[features]
+default = ["redis-cluster", "postgres", "clickhouse", "metrics"]
+redis-cluster = []
+postgres = []
+clickhouse = []
+metrics = []
+testing = [] 

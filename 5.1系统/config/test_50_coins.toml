@@ -1,0 +1,138 @@
+# 🚀 5.1套利系统50币种测试配置 - CLI控制器启动
+# 测试目标: 数据获取层→清洗层→策略层→AI风控→订单执行
+
+[system]
+name = "ArbitrageSystem51"
+version = "5.1.0"
+environment = "test"
+log_level = "info"
+max_concurrent_opportunities = 1000
+health_check_interval_seconds = 15
+metrics_collection_interval_seconds = 3
+graceful_shutdown_timeout_seconds = 30
+enable_hot_reload = true
+enable_telemetry = true
+enable_profiling = true
+
+[monitoring.performance]
+enable_performance_monitoring = true
+profiling_enabled = true
+sampling_rate = 0.1
+memory_monitoring = true
+cpu_monitoring = true
+network_monitoring = true
+latency_monitoring = true
+
+# 🚀 优化后的数据清洗层配置 - SIMD+零拷贝+内存池
+[monitoring.performance.data_cleaning.v3_optimization]
+memory_pool_size = 131072
+vec_pool_capacity = 16384
+orderbook_capacity = 2000
+zero_alloc_buffer_count = 131072
+o1_sort_bucket_count = 262144
+entries_per_bucket = 16
+enable_intel_optimizations = true
+enable_o1_sorting = true
+enable_realtime_monitoring = true
+
+[monitoring.performance.data_cleaning.simd_optimization]
+batch_size = 1024
+enable_avx512 = true
+enable_avx2 = true
+enable_sse4 = true
+auto_detect_simd = true
+
+[monitoring.performance.data_cleaning.memory_management]
+max_memory_usage_mb = 1024
+enable_zero_allocation = true
+enable_pool_preallocation = true
+enable_numa_affinity = true
+
+[monitoring.performance.data_cleaning.performance_targets]
+target_latency_ns = 50000
+max_cpu_usage_percent = 80.0
+target_throughput_per_second = 160000
+
+# 🏛️ 主要交易所配置 - 50个核心币种
+[[exchanges]]
+name = "binance"
+enabled = true
+api_key = "test_binance_key"
+api_secret = "test_binance_secret"
+api_passphrase = ""
+sandbox_mode = true
+rate_limit_per_second = 10
+websocket_url = "wss://stream.binance.com:9443/ws"
+rest_api_url = "https://api.binance.com"
+# 币安 25个主要交易对
+trading_pairs = [
+    "BTC/USDT", "ETH/USDT", "BNB/USDT", "ADA/USDT", "XRP/USDT",
+    "SOL/USDT", "DOT/USDT", "DOGE/USDT", "AVAX/USDT", "SHIB/USDT",
+    "MATIC/USDT", "LTC/USDT", "UNI/USDT", "LINK/USDT", "ATOM/USDT",
+    "ETC/USDT", "XLM/USDT", "BCH/USDT", "ALGO/USDT", "VET/USDT",
+    "ICP/USDT", "FIL/USDT", "TRX/USDT", "EOS/USDT", "AAVE/USDT"
+]
+
+[[exchanges]]
+name = "huobi"
+enabled = true
+api_key = "test_huobi_key"
+api_secret = "test_huobi_secret"
+api_passphrase = ""
+sandbox_mode = true
+rate_limit_per_second = 8
+websocket_url = "wss://api.huobi.pro/ws"
+rest_api_url = "https://api.huobi.pro"
+# 火币 25个主要交易对
+trading_pairs = [
+    "BTC/USDT", "ETH/USDT", "HT/USDT", "ADA/USDT", "XRP/USDT",
+    "SOL/USDT", "DOT/USDT", "DOGE/USDT", "AVAX/USDT", "SHIB/USDT",
+    "MATIC/USDT", "LTC/USDT", "UNI/USDT", "LINK/USDT", "ATOM/USDT",
+    "ETC/USDT", "XLM/USDT", "BCH/USDT", "ALGO/USDT", "VET/USDT",
+    "ICP/USDT", "FIL/USDT", "TRX/USDT", "EOS/USDT", "AAVE/USDT"
+]
+
+# 🎯 跨所套利策略配置
+[strategy]
+enabled = true
+min_profit_threshold = 0.2      # 降低阈值便于测试
+max_position_size = 5000        # 测试仓位
+risk_limit_per_trade = 0.01
+max_concurrent_trades = 25
+
+[strategy.inter_exchange]
+enabled = true
+min_profit_bps = 20            # 20个基点
+max_latency_ms = 200           # 增加延迟容忍度
+slippage_tolerance = 0.1
+
+[strategy.triangular]
+enabled = true
+min_profit_bps = 15            # 15个基点
+max_cycles_per_second = 500
+base_currencies = ["BTC", "ETH", "USDT"]
+
+# 🛡️ AI风控配置
+[ai_risk]
+enabled = true
+risk_model_version = "v2.1"
+max_drawdown_percent = 3.0     # 测试限制
+position_size_limit = 0.05
+volatility_threshold = 0.12
+
+[ai_risk.market_conditions]
+extreme_volatility_threshold = 0.2
+liquidity_threshold = 50000
+correlation_threshold = 0.75
+
+# 📊 监控配置
+[monitoring]
+enable_real_time_metrics = true
+metrics_interval_seconds = 3
+alert_thresholds = { latency_ms = 150, error_rate = 0.005, cpu_usage = 85.0 }
+
+[logging]
+level = "info"
+enable_structured_logging = true
+log_to_file = true
+max_file_size_mb = 50

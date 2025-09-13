@@ -1,0 +1,407 @@
+mod engine;
+mod config;
+
+use engine::ArbitrageEngine;
+use std::sync::Arc;
+use strategy::{
+    context::StrategyContext,
+    market_state::MarketState,
+    min_profit::MinProfitModel,
+    plugins::inter_exchange::InterExchangeStrategy,
+    plugins::triangular::{TriangularStrategy, DynamicTriangularStrategy},
+    traits::ArbitrageStrategy,
+    FeePrecisionRepoImpl,
+};
+use crate::config::SystemConfig;
+use adapters::{nats::NatsAdapter, nats::NatsMessage};
+use std::sync::atomic::{AtomicU64, Ordering};
+use tracing_subscriber::EnvFilter;
+use parking_lot::RwLock;
+use std::collections::HashMap;
+use serde_json;
+use metrics::gauge;
+use common::market_data::NormalizedSnapshot;
+
+/// 市场数据处理器 - 协调器核心组件1
+struct MarketDataProcessor {
+    engine: Arc<ArbitrageEngine>,
+    processed_count: AtomicU64,
+    opportunity_count: AtomicU64,
+}
+
+impl MarketDataProcessor {
+    fn new(engine: Arc<ArbitrageEngine>) -> Self {
+        Self {
+            engine,
+            processed_count: AtomicU64::new(0),
+            opportunity_count: AtomicU64::new(0),
+        }
+    }
+
+    async fn process_market_data(&self, data: Vec<u8>) -> anyhow::Result<()> {
+        let count = self.processed_count.fetch_add(1, Ordering::Relaxed);
+        
+        // 高频数据处理统计
+        if count % 10000 == 0 {
+            tracing::info!("协调器已处理 {} 条市场数据", count);
+        }
+
+        // 解析市场数据
+        let market_snapshot: NormalizedSnapshot = serde_json::from_slice(&data)
+            .map_err(|e| anyhow::anyhow!("市场数据解析失败: {}", e))?;
+
+        // 通过引擎处理快照 - 多策略并行检测
+        let opportunities = self.engine.process_snapshot(&market_snapshot);
+        
+        if !opportunities.is_empty() {
+            let opp_count = self.opportunity_count.fetch_add(opportunities.len() as u64, Ordering::Relaxed);
+            tracing::info!("协调器检测到 {} 个套利机会 (总计: {})", opportunities.len(), opp_count);
+            
+            // 这里应该触发执行链路
+            for opp in opportunities {
+                tracing::info!("🎯 套利机会: {} -> {}, 利润: {:.6}%", 
+                    opp.legs.get(0).map(|l| l.exchange.as_str()).unwrap_or("Unknown"), opp.legs.get(1).map(|l| l.exchange.as_str()).unwrap_or("Unknown"), opp.net_profit_pct.to_f64() * 100.0);
+                // TODO: 实际执行套利
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// 配置热重载处理器 - 协调器核心组件2
+struct ConfigurationManager {
+    fee_repo: Arc<FeePrecisionRepoImpl>,
+    min_profit_model: Arc<MinProfitModel>,
+    reload_count: AtomicU64,
+}
+
+impl ConfigurationManager {
+    fn new(fee_repo: Arc<FeePrecisionRepoImpl>, min_profit_model: Arc<MinProfitModel>) -> Self {
+        Self { 
+            fee_repo, 
+            min_profit_model,
+            reload_count: AtomicU64::new(0),
+        }
+    }
+
+    async fn handle_config_update(&self, config_type: String, data: Vec<u8>) -> anyhow::Result<()> {
+        let count = self.reload_count.fetch_add(1, Ordering::Relaxed);
+        
+        match config_type.as_str() {
+            "fee_precision" => {
+                tracing::info!("🔄 协调器热重载手续费精度配置 (第{}次)", count);
+                // TODO: 实现动态手续费更新
+                Ok(())
+            }
+            "min_profit" => {
+                tracing::info!("🔄 协调器热重载最小利润模型 (第{}次)", count);
+                // TODO: 实现最小利润模型动态更新
+                Ok(())
+            }
+            "strategy_params" => {
+                tracing::info!("🔄 协调器热重载策略参数 (第{}次)", count);
+                // TODO: 实现策略参数动态更新
+                Ok(())
+            }
+            _ => {
+                tracing::warn!("⚠️ 协调器收到未知配置类型: {}", config_type);
+                Ok(())
+            }
+        }
+    }
+}
+
+/// 系统状态监控器 - 协调器核心组件3  
+struct SystemMonitor {
+    engine: Arc<ArbitrageEngine>,
+    start_time: std::time::Instant,
+    status_published: AtomicU64,
+}
+
+impl SystemMonitor {
+    fn new(engine: Arc<ArbitrageEngine>) -> Self {
+        Self {
+            engine,
+            start_time: std::time::Instant::now(),
+            status_published: AtomicU64::new(0),
+        }
+    }
+
+    async fn get_system_status(&self) -> serde_json::Value {
+        let uptime = self.start_time.elapsed().as_secs();
+        let status_count = self.status_published.fetch_add(1, Ordering::Relaxed);
+        
+        serde_json::json!({
+            "orchestrator_status": "operational",
+            "uptime_seconds": uptime,
+            "status_reports_sent": status_count,
+            "strategy_engine": {
+                "inter_exchange_slippage_pct": self.engine.context.inter_exchange_slippage_per_leg_pct,
+                "inter_exchange_min_liquidity_usd": self.engine.context.inter_exchange_min_liquidity_usd,
+                "market_state": format!("{:?}", self.engine.context.get_market_state()),
+            },
+            "active_strategies": [
+                "InterExchangeStrategy",      // 跨交易所套利
+                "DynamicTriangularStrategy",  // v3.0三角套利
+                "TriangularStrategy"          // 向后兼容
+            ],
+            "orchestrator_components": {
+                "market_data_processor": "active",
+                "configuration_manager": "active", 
+                "system_monitor": "active",
+                "risk_controller": "active"
+            }
+        })
+    }
+}
+
+/// 风险控制器 - 协调器核心组件4
+struct RiskController {
+    daily_pnl: RwLock<f64>,
+    position_limits: RwLock<HashMap<String, f64>>,
+    risk_checks: AtomicU64,
+}
+
+impl RiskController {
+    fn new() -> Self {
+        Self {
+            daily_pnl: RwLock::new(0.0),
+            position_limits: RwLock::new(HashMap::new()),
+            risk_checks: AtomicU64::new(0),
+        }
+    }
+
+    async fn perform_risk_check(&self) -> anyhow::Result<bool> {
+        let check_count = self.risk_checks.fetch_add(1, Ordering::Relaxed);
+        
+        if check_count % 1000 == 0 {
+            tracing::debug!("🛡️ 协调器执行第{}次风险检查", check_count);
+        }
+
+        let daily_pnl = *self.daily_pnl.read();
+        
+        // 风险限制检查
+        if daily_pnl < -50000.0 { // $50K 日亏损限制
+            tracing::error!("🚨 协调器检测到日亏损超限: ${:.2}", daily_pnl);
+            return Ok(false);
+        }
+
+        Ok(true)
+    }
+
+    fn update_pnl(&self, pnl_change: f64) {
+        let mut daily_pnl = self.daily_pnl.write();
+        *daily_pnl += pnl_change;
+        gauge!("orchestrator_daily_pnl", *daily_pnl);
+    }
+}
+
+/// CELUE高频套利协调器 - 系统核心
+struct CelueOrchestrator {
+    // 核心引擎
+    engine: Arc<ArbitrageEngine>,
+    
+    // 外部适配器
+    nats_adapter: NatsAdapter,
+    
+    // 协调器核心组件
+    market_data_processor: MarketDataProcessor,
+    configuration_manager: ConfigurationManager,
+    system_monitor: SystemMonitor,
+    risk_controller: RiskController,
+}
+
+impl CelueOrchestrator {
+    async fn new(system_config: SystemConfig) -> anyhow::Result<Self> {
+        tracing::info!("🚀 初始化CELUE高频套利协调器");
+
+        // 初始化NATS适配器
+        let nats_config = system_config.nats.clone();
+        let nats_adapter = NatsAdapter::new()
+            .map_err(|e| anyhow::anyhow!("NATS适配器初始化失败: {}", e))?;
+
+        // 初始化最小利润模型
+        let min_profit_model = Arc::new(MinProfitModel::new(
+            (system_config.strategy.min_profit_threshold * 10000.0) as u32,
+            system_config.strategy.market_state.cautious_weight,
+            system_config.strategy.market_state.extreme_weight,
+        ));
+
+        // 初始化手续费精度仓库
+        let fee_precision_repo = Arc::new(FeePrecisionRepoImpl::default());
+
+        // 创建策略上下文
+        let metrics = Arc::new(adapters::metrics::AdapterMetrics::new());
+        let ctx = StrategyContext::new(fee_precision_repo.clone(), metrics);
+
+        // 初始化策略集合 - 协调器管理多种策略
+        let mut strategies: Vec<Box<dyn ArbitrageStrategy>> = Vec::new();
+        
+        tracing::info!("📋 协调器注册策略:");
+        
+        // 注册跨交易所套利策略
+        strategies.push(Box::new(InterExchangeStrategy));
+        tracing::info!("  ✅ InterExchangeStrategy (跨交易所套利)");
+        
+        // 注册v3.0动态三角套利策略
+        strategies.push(Box::new(DynamicTriangularStrategy::new()));
+        tracing::info!("  ✅ DynamicTriangularStrategy (v3.0三角套利)");
+        
+        // 注册向后兼容三角套利策略
+        strategies.push(Box::new(TriangularStrategy));
+        tracing::info!("  ✅ TriangularStrategy (向后兼容)");
+
+        // 创建套利引擎
+        let engine = Arc::new(ArbitrageEngine::new(strategies, ctx));
+
+        // 初始化协调器核心组件
+        let market_data_processor = MarketDataProcessor::new(engine.clone());
+        let configuration_manager = ConfigurationManager::new(fee_precision_repo, min_profit_model);
+        let system_monitor = SystemMonitor::new(engine.clone());
+        let risk_controller = RiskController::new();
+
+        tracing::info!("🎯 协调器核心组件初始化完成");
+
+        Ok(Self {
+            engine,
+            nats_adapter,
+            market_data_processor,
+            configuration_manager,
+            system_monitor,
+            risk_controller,
+        })
+    }
+
+    async fn start(&mut self) -> anyhow::Result<()> {
+        tracing::info!("🎪 启动CELUE高频套利协调器");
+
+        // 连接NATS
+        self.nats_adapter.connect().await
+            .map_err(|e| anyhow::anyhow!("NATS连接失败: {}", e))?;
+
+        // 订阅市场数据流 - 协调器核心功能1
+        let processor = &self.market_data_processor;
+        // TODO: 重新设计 NATS 订阅接口
+        // self.nats_adapter.subscribe("market.data.normalized").await
+
+        // 订阅配置更新流 - 协调器核心功能2
+        let config_mgr = &self.configuration_manager;
+        // TODO: 重新设计 NATS 订阅接口
+        // self.nats_adapter.subscribe("market.data.normalized").await
+
+        // 启动系统监控 - 协调器核心功能3
+        self.start_system_monitoring().await?;
+
+        // 启动风险控制 - 协调器核心功能4
+        self.start_risk_monitoring().await?;
+
+        // 启动主事件循环
+        self.run_main_loop().await
+    }
+
+    async fn start_system_monitoring(&self) -> anyhow::Result<()> {
+        let monitor = &self.system_monitor;
+        let nats = &self.nats_adapter;
+        
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
+            
+            loop {
+                interval.tick().await;
+                
+                let status = monitor.get_system_status().await;
+                if let Ok(status_bytes) = serde_json::to_vec(&status) {
+                    if let Err(e) = nats.publish("orchestrator.status", &adapters::nats::NatsMessage { subject: "orchestrator.status".to_string(), payload: status_bytes }).await {
+                        tracing::error!("协调器状态发布失败: {}", e);
+                    }
+                }
+            }
+        });
+        
+        tracing::info!("📊 协调器系统监控已启动");
+        Ok(())
+    }
+
+    async fn start_risk_monitoring(&self) -> anyhow::Result<()> {
+        let risk_controller = &self.risk_controller;
+        
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(5));
+            
+            loop {
+                interval.tick().await;
+                
+                if let Err(e) = risk_controller.perform_risk_check().await {
+                    tracing::error!("协调器风险检查失败: {}", e);
+                } else if !risk_controller.perform_risk_check().await.unwrap_or(true) {
+                    tracing::warn!("🚨 协调器触发风险控制，建议暂停交易");
+                }
+            }
+        });
+        
+        tracing::info!("🛡️ 协调器风险监控已启动");
+        Ok(())
+    }
+
+    async fn run_main_loop(&self) -> anyhow::Result<()> {
+        tracing::info!("🔄 协调器进入主事件循环");
+        
+        // 等待终止信号
+        let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        let mut sigint = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
+        
+        tokio::select! {
+            _ = sigterm.recv() => {
+                tracing::info!("📨 协调器收到SIGTERM信号，开始优雅关闭");
+            }
+            _ = sigint.recv() => {
+                tracing::info!("📨 协调器收到SIGINT信号，开始优雅关闭");
+            }
+        }
+        
+        // 优雅关闭
+        self.graceful_shutdown().await?;
+        Ok(())
+    }
+
+    async fn graceful_shutdown(&self) -> anyhow::Result<()> {
+        tracing::info!("🛑 协调器开始优雅关闭流程");
+        
+        // 断开NATS连接
+        if let Err(e) = self.nats_adapter.disconnect().await {
+            tracing::error!("协调器NATS断开失败: {}", e);
+        }
+        
+        tracing::info!("✅ CELUE高频套利协调器已完成关闭");
+        Ok(())
+    }
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // 初始化日志系统
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_target(false)
+        .with_thread_ids(true)
+        .with_level(true)
+        .init();
+
+    tracing::info!("🎭 启动CELUE高频套利协调器");
+    tracing::info!("🏗️ 协调器架构: 多策略统一管理 + 系统级协调");
+
+    // 加载系统配置
+    let system_config = SystemConfig::from_file("config/orchestrator_config.toml")
+        .map_err(|e| anyhow::anyhow!("加载系统配置失败: {}", e))?;
+
+    // 创建并启动协调器
+    let mut orchestrator = CelueOrchestrator::new(system_config).await
+        .map_err(|e| anyhow::anyhow!("创建协调器失败: {}", e))?;
+
+    // 启动协调器主循环
+    orchestrator.start().await
+        .map_err(|e| anyhow::anyhow!("启动协调器失败: {}", e))?;
+
+    Ok(())
+}

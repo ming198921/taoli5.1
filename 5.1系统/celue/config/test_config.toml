@@ -1,0 +1,341 @@
+# 测试环境配置
+# 专用于测试和验证的配置文件
+
+[test_environment]
+name = "arbitrage_monitor_test"
+test_mode = true
+mock_data = true
+fast_execution = true
+detailed_logging = true
+
+[test_scenarios]
+# 基础功能测试
+basic_functionality = true
+simd_processing = true
+batch_processing = true
+memory_management = true
+error_handling = true
+
+# 性能测试
+high_frequency_test = true
+target_messages_per_second = 100000
+test_duration_minutes = 30
+warmup_duration_minutes = 2
+
+# 压力测试
+stress_test = true
+max_load_multiplier = 2.0
+memory_pressure_test = true
+cpu_saturation_test = true
+
+[test_data]
+# 测试数据配置
+synthetic_data = true
+market_pairs_count = 14497
+exchanges = ["binance", "okx", "bybit", "kucoin", "gate"]
+data_generation_rate = 100000  # 消息/秒
+
+# 数据特征
+price_volatility = 0.1
+volume_variation = 0.5
+anomaly_injection_rate = 0.01
+missing_data_rate = 0.001
+
+# 高难度测试数据
+high_difficulty_pairs = 50000
+mixed_currency_pairs = true
+exotic_trading_pairs = true
+order_book_exhaustion_scenarios = true
+
+[performance_targets]
+# 性能目标
+max_latency_microseconds = 100
+min_throughput_msg_per_sec = 100000
+max_memory_usage_mb = 4096
+max_cpu_utilization_pct = 90
+
+# 成功标准
+[performance_targets.success_criteria]
+latency_p95_us = 500
+latency_p99_us = 1000
+throughput_sustained = 95000
+error_rate = 0.001
+memory_efficiency = 0.8
+
+[simd_testing]
+# SIMD功能测试
+avx512_mandatory = true  # 强制AVX512测试
+avx2_fallback_test = true
+scalar_fallback_test = true
+simd_alignment_test = true
+
+# SIMD性能验证
+simd_speedup_target = 8.0  # 8倍加速目标
+vectorization_efficiency = 0.95
+memory_bandwidth_utilization = 0.8
+
+[ai_testing]
+# AI异常检测测试
+anomaly_detection = true
+detection_accuracy_target = 0.95
+false_positive_rate_max = 0.05
+detection_latency_max_ms = 10
+
+# AI模型测试场景
+price_manipulation_detection = true
+wash_trading_detection = true
+pump_dump_detection = true
+market_making_detection = true
+
+[risk_testing]
+# 风控系统测试
+risk_control_validation = true
+risk_interception_rate_target = 0.2
+risk_response_time_max_ms = 50
+
+# 风控测试场景
+excessive_profit_scenarios = true
+suspicious_volume_patterns = true
+rapid_price_movements = true
+correlation_anomalies = true
+
+[triangular_arbitrage_testing]
+# 三角套利测试
+triangular_detection = true
+currency_path_validation = true
+profit_calculation_accuracy = true
+execution_feasibility_check = true
+
+# 复杂交易对测试
+multi_hop_arbitrage = true
+cross_exchange_triangular = true
+similar_profit_detection = true
+
+[load_testing]
+# 负载测试配置
+concurrent_connections = 100
+message_burst_size = 10000
+sustained_load_duration_minutes = 60
+peak_load_duration_minutes = 10
+
+# 负载测试模式
+gradual_ramp_up = true
+sudden_spike_test = true
+sustained_high_load = true
+graceful_degradation_test = true
+
+[monitoring_during_test]
+# 测试期间监控
+real_time_metrics = true
+performance_tracking = true
+memory_leak_detection = true
+cpu_usage_tracking = true
+
+# 监控告警
+performance_regression_alert = true
+memory_threshold_alert = true
+latency_spike_alert = true
+throughput_drop_alert = true
+
+[test_outputs]
+# 测试输出配置
+generate_report = true
+report_format = "json"
+detailed_metrics = true
+performance_graphs = true
+
+# 报告内容
+include_latency_distribution = true
+include_throughput_timeline = true
+include_error_analysis = true
+include_resource_utilization = true
+
+[validation]
+# 验证标准
+functional_correctness = true
+performance_compliance = true
+stability_verification = true
+scalability_assessment = true
+
+# 验证阈值
+min_detection_accuracy = 0.90
+max_false_positive_rate = 0.10
+min_system_uptime = 0.999
+max_recovery_time_seconds = 30
+
+[cleanup]
+# 测试清理
+auto_cleanup = true
+preserve_logs = true
+preserve_metrics = true
+cleanup_timeout_seconds = 300 
+# 专用于测试和验证的配置文件
+
+[test_environment]
+name = "arbitrage_monitor_test"
+test_mode = true
+mock_data = true
+fast_execution = true
+detailed_logging = true
+
+[test_scenarios]
+# 基础功能测试
+basic_functionality = true
+simd_processing = true
+batch_processing = true
+memory_management = true
+error_handling = true
+
+# 性能测试
+high_frequency_test = true
+target_messages_per_second = 100000
+test_duration_minutes = 30
+warmup_duration_minutes = 2
+
+# 压力测试
+stress_test = true
+max_load_multiplier = 2.0
+memory_pressure_test = true
+cpu_saturation_test = true
+
+[test_data]
+# 测试数据配置
+synthetic_data = true
+market_pairs_count = 14497
+exchanges = ["binance", "okx", "bybit", "kucoin", "gate"]
+data_generation_rate = 100000  # 消息/秒
+
+# 数据特征
+price_volatility = 0.1
+volume_variation = 0.5
+anomaly_injection_rate = 0.01
+missing_data_rate = 0.001
+
+# 高难度测试数据
+high_difficulty_pairs = 50000
+mixed_currency_pairs = true
+exotic_trading_pairs = true
+order_book_exhaustion_scenarios = true
+
+[performance_targets]
+# 性能目标
+max_latency_microseconds = 100
+min_throughput_msg_per_sec = 100000
+max_memory_usage_mb = 4096
+max_cpu_utilization_pct = 90
+
+# 成功标准
+[performance_targets.success_criteria]
+latency_p95_us = 500
+latency_p99_us = 1000
+throughput_sustained = 95000
+error_rate = 0.001
+memory_efficiency = 0.8
+
+[simd_testing]
+# SIMD功能测试
+avx512_mandatory = true  # 强制AVX512测试
+avx2_fallback_test = true
+scalar_fallback_test = true
+simd_alignment_test = true
+
+# SIMD性能验证
+simd_speedup_target = 8.0  # 8倍加速目标
+vectorization_efficiency = 0.95
+memory_bandwidth_utilization = 0.8
+
+[ai_testing]
+# AI异常检测测试
+anomaly_detection = true
+detection_accuracy_target = 0.95
+false_positive_rate_max = 0.05
+detection_latency_max_ms = 10
+
+# AI模型测试场景
+price_manipulation_detection = true
+wash_trading_detection = true
+pump_dump_detection = true
+market_making_detection = true
+
+[risk_testing]
+# 风控系统测试
+risk_control_validation = true
+risk_interception_rate_target = 0.2
+risk_response_time_max_ms = 50
+
+# 风控测试场景
+excessive_profit_scenarios = true
+suspicious_volume_patterns = true
+rapid_price_movements = true
+correlation_anomalies = true
+
+[triangular_arbitrage_testing]
+# 三角套利测试
+triangular_detection = true
+currency_path_validation = true
+profit_calculation_accuracy = true
+execution_feasibility_check = true
+
+# 复杂交易对测试
+multi_hop_arbitrage = true
+cross_exchange_triangular = true
+similar_profit_detection = true
+
+[load_testing]
+# 负载测试配置
+concurrent_connections = 100
+message_burst_size = 10000
+sustained_load_duration_minutes = 60
+peak_load_duration_minutes = 10
+
+# 负载测试模式
+gradual_ramp_up = true
+sudden_spike_test = true
+sustained_high_load = true
+graceful_degradation_test = true
+
+[monitoring_during_test]
+# 测试期间监控
+real_time_metrics = true
+performance_tracking = true
+memory_leak_detection = true
+cpu_usage_tracking = true
+
+# 监控告警
+performance_regression_alert = true
+memory_threshold_alert = true
+latency_spike_alert = true
+throughput_drop_alert = true
+
+[test_outputs]
+# 测试输出配置
+generate_report = true
+report_format = "json"
+detailed_metrics = true
+performance_graphs = true
+
+# 报告内容
+include_latency_distribution = true
+include_throughput_timeline = true
+include_error_analysis = true
+include_resource_utilization = true
+
+[validation]
+# 验证标准
+functional_correctness = true
+performance_compliance = true
+stability_verification = true
+scalability_assessment = true
+
+# 验证阈值
+min_detection_accuracy = 0.90
+max_false_positive_rate = 0.10
+min_system_uptime = 0.999
+max_recovery_time_seconds = 30
+
+[cleanup]
+# 测试清理
+auto_cleanup = true
+preserve_logs = true
+preserve_metrics = true
+cleanup_timeout_seconds = 300 

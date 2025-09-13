@@ -1,0 +1,50 @@
+[Unit]
+Description=5.1套利系统核心服务
+Documentation=https://github.com/your-org/arbitrage-system
+After=network.target network-online.target
+Wants=network-online.target
+Requires=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/5.1xitong/5.1系统
+
+# 二进制文件路径
+ExecStart=/home/ubuntu/5.1xitong/5.1系统/target/release/arbitrage-system
+ExecReload=/bin/kill -USR1 $MAINPID
+
+# 环境变量
+Environment="RUST_LOG=info"
+Environment="RUST_MIN_STACK=104857600"
+
+# 重启策略
+Restart=always
+RestartSec=10
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# 资源限制
+LimitNOFILE=65536
+LimitNPROC=32768
+
+# 安全设置
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/ubuntu/5.1xitong/5.1系统/logs
+ReadWritePaths=/home/ubuntu/5.1xitong/5.1系统/data
+ReadWritePaths=/tmp/qingxi_cache
+
+# 网络设置
+PrivateNetwork=false
+
+# 日志设置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=arbitrage-system
+
+[Install]
+WantedBy=multi-user.target

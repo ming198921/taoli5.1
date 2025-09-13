@@ -1,0 +1,70 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# Logs
+*.log
+logs/
+rizhi/
+
+# Test results and reports
+test_results_*.json
+test_report_*.txt
+*_report_*.json
+diagnostic.log
+exchange_sim.log
+exchange_server.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Large data files
+*.rlib
+*.bin
+
+# Temporary files
+*.tmp
+*.temp

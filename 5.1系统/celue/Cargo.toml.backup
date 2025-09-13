@@ -1,0 +1,79 @@
+[workspace]
+members = [
+    "strategy",
+    "orchestrator",
+    "adapters",
+    "common",
+]
+
+[workspace.dependencies]
+# Async Runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-util = "0.7"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# NATS
+async-nats = "0.33"
+bytes = "1.5"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Metrics
+prometheus = "0.13"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Atomic operations
+atomic = "0.5"
+crossbeam = "0.8"
+
+# Configuration
+config = "0.13"
+notify = "6.1"
+
+# UUID
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Memory management
+parking_lot = "0.12"
+
+# Network
+reqwest = { version = "0.11", features = ["json"] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+
+[package]
+name = "celue"
+version = "5.1.0"
+edition = "2021"
+
+[dependencies]
+common = { path = "common" }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "detect_bench"
+harness = false
+
+[dev-dependencies.strategy]
+path = "strategy"
+
+[patch.crates-io]
+nuid = { path = "vendor/nuid" }

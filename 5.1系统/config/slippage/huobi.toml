@@ -1,0 +1,70 @@
+[metadata]
+version = "1.0.0"
+last_updated = "2024-01-15T10:30:00Z"
+auto_reload = true
+exchange = "huobi"
+
+[slippage]
+# 基础滑点（基点，万分之一） - Huobi通常滑点较高
+base_slippage = 5
+# 最大滑点（基点）
+max_slippage = 20
+# 交易量影响因子 - Huobi流动性相对较低
+volume_impact_factor = 0.00002
+# 波动率乘数
+volatility_multiplier = 1.8
+# 市场深度权重 - Huobi深度相对较浅
+depth_weight = 0.6
+# 更新间隔（毫秒）
+update_interval_ms = 1500
+
+[market_conditions]
+# 高波动率阈值
+high_volatility_threshold = 0.06
+# 低流动性阈值（USD） - Huobi流动性门槛较低
+low_liquidity_threshold = 30000.0
+# 紧急滑点（基点）
+emergency_slippage = 40
+# 紧急情况价差阈值（基点）
+emergency_spread_threshold_bps = 600
+
+[optimization]
+# 学习率 - 较保守的学习率
+learning_rate = 0.0005
+# 历史数据窗口大小
+history_window = 800
+# 最小样本数
+min_samples = 80
+# 模型重训练间隔（秒）
+retrain_interval_seconds = 4800
+
+[validation]
+# 最小滑点（基点）
+min_slippage = 2
+# 最大滑点（基点）
+max_slippage = 2000
+# 必填字段
+required_fields = ["base_slippage", "max_slippage", "volume_impact_factor"]
+
+[[validation.range_checks]]
+field = "volatility_multiplier"
+min = 1.2
+max = 3.0
+
+[[validation.range_checks]]
+field = "depth_weight"
+min = 0.2
+max = 0.8
+
+# Huobi特定设置
+[exchange_specific]
+# VIP等级影响 - Huobi VIP优惠相对较少
+vip_discount_factor = 0.95
+# 现货vs合约滑点差异
+spot_futures_multiplier = 1.3
+# 高频交易优化
+hft_optimization_enabled = false
+# Huobi特有的手续费返佣机制
+rebate_factor = 0.9
+# API响应延迟补偿
+api_latency_compensation_ms = 50

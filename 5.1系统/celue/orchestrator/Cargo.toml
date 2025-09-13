@@ -1,0 +1,46 @@
+[package]
+name = "orchestrator"
+version = "0.1.0"
+edition = "2021"
+authors = ["Strategy Team"]
+description = "High-performance arbitrage orchestrator"
+
+[[bin]]
+name = "celue-orchestrator"
+path = "src/main.rs"
+
+[dependencies]
+# 统一类型定义 (最高优先级)
+common_types = { path = "../../common_types" }
+
+arbitrage-architecture = { path = "../../architecture" }
+strategy = { path = "../strategy" }
+common = { path = "../common" }
+adapters = { path = "../adapters" }
+
+# QingXi数据模块用于真实数据获取
+market_data_module = { path = "../../qingxi/qingxi" }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+rayon = "1.5"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+dashmap = "5.5"
+toml = "0.8"
+async-nats = "0.32"
+parking_lot = "0.12"
+thiserror = "1.0"
+async-trait = "0.1"
+
+# Additional dependencies
+metrics = "0.21"
+notify = "6.1"
+blake3 = "1.5"
+
+[dev-dependencies]
+tokio-test = "0.4"
+

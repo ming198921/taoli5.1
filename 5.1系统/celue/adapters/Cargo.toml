@@ -1,0 +1,48 @@
+[package]
+name = "adapters"
+version = "0.1.0"
+edition = "2021"
+authors = ["Qingxi Strategy Team"]
+description = "High-frequency arbitrage adapters for external system integration"
+
+[dependencies]
+# Workspace dependencies
+common = { path = "../common" }
+common_types = { path = "../../common_types" }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+reqwest = { workspace = true }
+parking_lot = { workspace = true }
+bincode = { workspace = true }
+bytes = { workspace = true }
+url = { workspace = true }
+zstd = { workspace = true }
+tungstenite = { workspace = true }
+futures-util = { workspace = true }
+async-nats = { workspace = true }
+metrics = { workspace = true }
+prometheus = { workspace = true }
+
+# Additional dependencies
+dashmap = "5.5"
+clap = "4.4"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.5"
+
+[lib]
+name = "adapters"
+path = "src/lib.rs"
+
+[[bin]]
+name = "nats_adapter"
+path = "src/bin/nats_adapter.rs"

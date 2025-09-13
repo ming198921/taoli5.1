@@ -1,0 +1,153 @@
+[strategy]
+min_profit_threshold = 0.002
+max_slippage = 0.001
+enabled_strategies = ["inter_exchange"]
+
+[strategy.inter_exchange]
+max_price_diff_pct = 0.01
+min_profit_pct = 0.002
+max_slippage_pct = 0.001
+
+[strategy.triangular]
+min_liquidity_usd = 100.0
+max_slippage_per_leg = 0.001
+
+[[strategy.triangular.triangle_paths]]
+base = "BTC"
+intermediate = "ETH"
+quote = "USDT"
+exchange = "binance"
+
+[strategy.market_state]
+cautious_weight = 1.4
+extreme_weight = 2.5
+
+[market_data]
+snapshot_interval = { secs = 1, nanos = 0 }
+heartbeat_interval = { secs = 30, nanos = 0 }
+max_age = { secs = 300, nanos = 0 }
+
+[market_data.exchanges.binance]
+enabled = true
+api_url = "https://api.binance.com"
+symbols = ["BTC/USDT", "ETH/USDT"]
+
+[market_data.exchanges.okx]
+enabled = true
+api_url = "https://www.okx.com"
+symbols = ["BTC/USDT", "ETH/USDT"]
+
+[nats]
+urls = ["nats://localhost:4222"]
+client_id = "test_orchestrator"
+max_reconnect_attempts = 5
+reconnect_delay = { secs = 1, nanos = 0 }
+connection_timeout = { secs = 5, nanos = 0 }
+request_timeout = { secs = 3, nanos = 0 }
+
+[risk]
+max_position_size = 10000.0
+max_daily_loss = 1000.0
+enabled_strategies = ["inter_exchange"]
+max_daily_trades = 100
+max_single_loss_pct = 5.0
+max_fund_utilization = 80.0
+abnormal_price_deviation_pct = 20.0
+max_consecutive_failures = 5
+
+[execution]
+dry_run = true
+max_concurrent = 10
+timeout = { secs = 5, nanos = 0 }
+retry_count = 3
+
+[metrics]
+enabled = true
+endpoint = "0.0.0.0:9090"
+update_interval = { secs = 1, nanos = 0 }
+
+[performance]
+target_opportunities_per_sec = 100
+max_detection_latency_us = 100
+max_execution_latency_ms = 50
+
+[logging]
+level = "info"
+json = false
+file = "orchestrator_test.log" 
+min_profit_threshold = 0.002
+max_slippage = 0.001
+enabled_strategies = ["inter_exchange"]
+
+[strategy.inter_exchange]
+max_price_diff_pct = 0.01
+min_profit_pct = 0.002
+max_slippage_pct = 0.001
+
+[strategy.triangular]
+min_liquidity_usd = 100.0
+max_slippage_per_leg = 0.001
+
+[[strategy.triangular.triangle_paths]]
+base = "BTC"
+intermediate = "ETH"
+quote = "USDT"
+exchange = "binance"
+
+[strategy.market_state]
+cautious_weight = 1.4
+extreme_weight = 2.5
+
+[market_data]
+snapshot_interval = { secs = 1, nanos = 0 }
+heartbeat_interval = { secs = 30, nanos = 0 }
+max_age = { secs = 300, nanos = 0 }
+
+[market_data.exchanges.binance]
+enabled = true
+api_url = "https://api.binance.com"
+symbols = ["BTC/USDT", "ETH/USDT"]
+
+[market_data.exchanges.okx]
+enabled = true
+api_url = "https://www.okx.com"
+symbols = ["BTC/USDT", "ETH/USDT"]
+
+[nats]
+urls = ["nats://localhost:4222"]
+client_id = "test_orchestrator"
+max_reconnect_attempts = 5
+reconnect_delay = { secs = 1, nanos = 0 }
+connection_timeout = { secs = 5, nanos = 0 }
+request_timeout = { secs = 3, nanos = 0 }
+
+[risk]
+max_position_size = 10000.0
+max_daily_loss = 1000.0
+enabled_strategies = ["inter_exchange"]
+max_daily_trades = 100
+max_single_loss_pct = 5.0
+max_fund_utilization = 80.0
+abnormal_price_deviation_pct = 20.0
+max_consecutive_failures = 5
+
+[execution]
+dry_run = true
+max_concurrent = 10
+timeout = { secs = 5, nanos = 0 }
+retry_count = 3
+
+[metrics]
+enabled = true
+endpoint = "0.0.0.0:9090"
+update_interval = { secs = 1, nanos = 0 }
+
+[performance]
+target_opportunities_per_sec = 100
+max_detection_latency_us = 100
+max_execution_latency_ms = 50
+
+[logging]
+level = "info"
+json = false
+file = "orchestrator_test.log" 

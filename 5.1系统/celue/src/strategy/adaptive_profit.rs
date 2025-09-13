@@ -1,0 +1,3034 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Utc, Duration};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis};
+use ndarray_stats::QuantileExt;
+use smartcore::preprocessing::numerical::{StandardScaler, StandardScalerParameters};
+use smartcore::api::{UnsupervisedEstimator, Transformer, SupervisedEstimator, Predictor};
+use smartcore::ensemble::random_forest_regressor::{RandomForestRegressor, RandomForestRegressorParameters};
+use smartcore::tree::decision_tree_regressor::{DecisionTreeRegressor, DecisionTreeRegressorParameters};
+use smartcore::linear::linear_regression::{LinearRegression as SmartLinearRegression, LinearRegressionParameters};
+use smartcore::linalg::basic::matrix::DenseMatrix;
+use smartcore::metrics::mean_squared_error;
+use rand::Rng;
+use statrs::statistics::{Statistics, Data};
+use parking_lot::RwLock as ParkingRwLock;
+
+use crate::strategy::core::StrategyError;
+use crate::strategy::market_state::{MarketState, MarketIndicators};
+
+/// 机器学习模型类型
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum MLModelType {
+    DecisionTree,
+    RandomForest,
+    LinearRegression,
+    LogisticRegression,
+    XGBoost,
+    LSTM,
+    EnsembleMethod,
+}
+
+/// 特征工程配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeatureEngineeringConfig {
+    /// 技术指标窗口大小
+    pub technical_indicator_windows: Vec<usize>,
+    /// 滞后特征数量
+    pub lag_features: usize,
+    /// 滑动窗口统计特征
+    pub rolling_stats_windows: Vec<usize>,
+    /// 差分特征阶数
+    pub difference_orders: Vec<usize>,
+    /// 是否包含交叉特征
+    pub include_interaction_features: bool,
+    /// 是否进行特征选择
+    pub enable_feature_selection: bool,
+    /// 特征选择阈值
+    pub feature_selection_threshold: f64,
+}
+
+impl Default for FeatureEngineeringConfig {
+    fn default() -> Self {
+        Self {
+            technical_indicator_windows: vec![5, 10, 20, 50],
+            lag_features: 10,
+            rolling_stats_windows: vec![5, 10, 20],
+            difference_orders: vec![1, 2],
+            include_interaction_features: true,
+            enable_feature_selection: true,
+            feature_selection_threshold: 0.01,
+        }
+    }
+}
+
+/// 模型超参数
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelHyperparameters {
+    /// 决策树最大深度
+    pub max_depth: Option<usize>,
+    /// 随机森林树的数量
+    pub n_estimators: usize,
+    /// 学习率
+    pub learning_rate: f64,
+    /// 正则化参数
+    pub regularization: f64,
+    /// 最小样本分割数
+    pub min_samples_split: usize,
+    /// 最小样本叶子数
+    pub min_samples_leaf: usize,
+    /// 特征采样比例
+    pub max_features: f64,
+    /// 随机种子
+    pub random_state: u64,
+}
+
+impl Default for ModelHyperparameters {
+    fn default() -> Self {
+        Self {
+            max_depth: Some(10),
+            n_estimators: 100,
+            learning_rate: 0.01,
+            regularization: 0.1,
+            min_samples_split: 2,
+            min_samples_leaf: 1,
+            max_features: 0.8,
+            random_state: 42,
+        }
+    }
+}
+
+/// 模型验证结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelValidationResult {
+    /// 训练集R²
+    pub train_r2: f64,
+    /// 验证集R²
+    pub val_r2: f64,
+    /// 测试集R²
+    pub test_r2: f64,
+    /// 均方误差
+    pub mse: f64,
+    /// 平均绝对误差
+    pub mae: f64,
+    /// 特征重要性
+    pub feature_importance: HashMap<String, f64>,
+    /// 预测vs实际的相关性
+    pub prediction_correlation: f64,
+    /// 模型复杂度分数
+    pub complexity_score: f64,
+}
+
+/// 真实的机器学习模型
+pub enum RealMLModel {
+    DecisionTree {
+        model: Option<DecisionTreeRegressor<f64, f64, DenseMatrix<f64>, Vec<f64>>>,
+        scaler: Option<StandardScaler<f64>>,
+    },
+    RandomForest {
+        model: Option<Box<dyn std::any::Any + Send + Sync>>,
+        scaler: Option<StandardScaler<f64>>,
+    },
+    LinearRegression {
+        model: Option<SmartLinearRegression<f64, f64, DenseMatrix<f64>, Vec<f64>>>,
+        scaler: Option<StandardScaler<f64>>,
+    },
+    LogisticRegression {
+        model: Option<smartcore::linear::logistic_regression::LogisticRegression<f64, i32, DenseMatrix<f64>, Vec<i32>>>,
+        scaler: Option<StandardScaler<f64>>,
+    },
+    Ensemble {
+        models: Vec<RealMLModel>,
+        weights: Vec<f64>,
+        meta_learner: Option<SmartLinearRegression<f64, f64, DenseMatrix<f64>, Vec<f64>>>,
+    },
+}
+
+impl RealMLModel {
+    /// 训练模型
+    pub fn train(
+        &mut self,
+        features: &Array2<f64>,
+        targets: &Array1<f64>,
+        hyperparams: &ModelHyperparameters,
+    ) -> Result<ModelValidationResult, StrategyError> {
+        match self {
+            RealMLModel::DecisionTree { model, scaler } => {
+                // 转换ndarray到DenseMatrix (smartcore要求的格式)
+                let n_samples = features.nrows();
+                let n_features = features.ncols();
+                let x_2d_vec: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let x_dense = DenseMatrix::from_2d_vec(&x_2d_vec);
+                let y_vec: Vec<f64> = targets.iter().cloned().collect();
+                
+                // 训练StandardScaler
+                let scaler_params = StandardScalerParameters::default();
+                let fitted_scaler = StandardScaler::fit(&x_dense, scaler_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Scaling failed: {:?}", e)))?;
+                
+                let scaled_x = fitted_scaler.transform(&x_dense)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Transform failed: {:?}", e)))?;
+                
+                // 训练决策树
+                let max_depth_u16 = match hyperparams.max_depth {
+                    Some(depth) => depth.min(u16::MAX as usize) as u16,
+                    None => 10, // 默认深度
+                };
+                let tree_params = DecisionTreeRegressorParameters::default()
+                    .with_max_depth(max_depth_u16)
+                    .with_min_samples_split(hyperparams.min_samples_split)
+                    .with_min_samples_leaf(hyperparams.min_samples_leaf);
+                
+                let fitted_tree = DecisionTreeRegressor::fit(&scaled_x, &y_vec, tree_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Tree training failed: {:?}", e)))?;
+                
+                *model = Some(fitted_tree);
+                *scaler = Some(fitted_scaler);
+                
+                // 计算验证指标
+                self.calculate_validation_metrics(features, targets)
+            },
+            
+            RealMLModel::RandomForest { model, scaler } => {
+                // 转换为smartcore格式
+                let feature_rows: Vec<Vec<f64>> = features.outer_iter()
+                    .map(|row| row.to_vec())
+                    .collect();
+                let feature_refs: Vec<&[f64]> = feature_rows.iter()
+                    .map(|row| row.as_slice())
+                    .collect();
+                let x_train = DenseMatrix::from_2d_array(&feature_refs);
+                let y_train: Vec<f64> = targets.to_vec();
+                
+                // 训练随机森林
+                let rf = RandomForestRegressor::fit(
+                    &x_train,
+                    &y_train,
+                    smartcore::ensemble::random_forest_regressor::RandomForestRegressorParameters::default()
+                        .with_n_trees(hyperparams.n_estimators)
+                        .with_max_depth(hyperparams.max_depth.unwrap_or(10) as u16 as u16)
+                        .with_min_samples_leaf(hyperparams.min_samples_leaf)
+                        .with_min_samples_split(hyperparams.min_samples_split)
+                        .with_seed(hyperparams.random_state)
+                ).map_err(|e| StrategyError::ModelTrainingError(format!("RF training failed: {:?}", e)))?;
+                
+                *model = Some(Box::new(rf));
+                
+                // 计算验证指标
+                self.calculate_validation_metrics(features, targets)
+            },
+            
+            RealMLModel::LinearRegression { model, scaler } => {
+                // 转换ndarray到DenseMatrix格式
+                let n_samples = features.nrows();
+                let n_features = features.ncols();
+                let x_2d_vec: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let x_dense = DenseMatrix::from_2d_vec(&x_2d_vec);
+                let y_vec: Vec<f64> = targets.iter().cloned().collect();
+                
+                // 训练StandardScaler
+                let scaler_params = StandardScalerParameters::default();
+                let fitted_scaler = StandardScaler::fit(&x_dense, scaler_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Scaling failed: {:?}", e)))?;
+                
+                let scaled_x = fitted_scaler.transform(&x_dense)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Transform failed: {:?}", e)))?;
+                
+                // 训练线性回归
+                let lr_params = LinearRegressionParameters::default();
+                let lr = SmartLinearRegression::fit(&scaled_x, &y_vec, lr_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Linear regression failed: {:?}", e)))?;
+                
+                *model = Some(lr);
+                *scaler = Some(fitted_scaler);
+                
+                self.calculate_validation_metrics(features, targets)
+            },
+            
+            RealMLModel::Ensemble { models, weights, meta_learner } => {
+                // 训练集成模型
+                let mut base_predictions = Array2::zeros((features.nrows(), models.len()));
+                
+                for (i, base_model) in models.iter_mut().enumerate() {
+                    base_model.train(features, targets, hyperparams)?;
+                    let preds = base_model.predict(features)?;
+                    base_predictions.column_mut(i).assign(&preds);
+                }
+                
+                // 训练元学习器
+                // 训练元学习器 - 使用smartcore的线性回归
+                let meta_n_samples = base_predictions.nrows();
+                let meta_n_features = base_predictions.ncols();
+                let meta_x_2d_vec: Vec<Vec<f64>> = base_predictions.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let meta_x_matrix = DenseMatrix::from_2d_vec(&meta_x_2d_vec);
+                let meta_y_vec: Vec<f64> = targets.iter().cloned().collect();
+                
+                let meta_params = LinearRegressionParameters::default();
+                let fitted_meta = SmartLinearRegression::fit(&meta_x_matrix, &meta_y_vec, meta_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Meta learner failed: {:?}", e)))?;
+                
+                *meta_learner = Some(fitted_meta);
+                
+                self.calculate_validation_metrics(features, targets)
+            },
+            
+            _ => Err(StrategyError::ModelTrainingError("Unsupported model type".to_string())),
+        }
+    }
+    
+    /// 预测
+    pub fn predict(&self, features: &Array2<f64>) -> Result<Array1<f64>, StrategyError> {
+        match self {
+            RealMLModel::DecisionTree { model: Some(tree), scaler: Some(scaler) } => {
+                // 转换输入数据
+                let n_samples = features.nrows();
+                let n_features = features.ncols();
+                let x_2d_vec: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let x_matrix = DenseMatrix::from_2d_vec(&x_2d_vec);
+                
+                let scaled_x = scaler.transform(&x_matrix)
+                    .map_err(|e| StrategyError::PredictionError(format!("Transform failed: {:?}", e)))?;
+                let predictions = tree.predict(&scaled_x)
+                    .map_err(|e| StrategyError::PredictionError(format!("Tree prediction failed: {:?}", e)))?;
+                Ok(Array1::from_vec(predictions))
+            },
+            
+            RealMLModel::RandomForest { model: Some(rf), .. } => {
+                // 转换ndarray到DenseMatrix所需的格式
+                let rows: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let row_refs: Vec<&[f64]> = rows.iter()
+                    .map(|row| row.as_slice())
+                    .collect();
+                let x_test = DenseMatrix::from_2d_array(&row_refs);
+                let rf_any = rf.as_ref();
+                if let Some(rf_model) = rf_any.downcast_ref::<RandomForestRegressor<f64, f64, DenseMatrix<f64>, Vec<f64>>>() {
+                    let predictions = rf_model.predict(&x_test)
+                        .map_err(|e| StrategyError::PredictionError(format!("RF prediction failed: {:?}", e)))?;
+                    Ok(Array1::from_vec(predictions))
+                } else {
+                    Err(StrategyError::PredictionError("Failed to downcast RandomForest model".to_string()))
+                }
+            },
+            
+            RealMLModel::LinearRegression { model: Some(lr), scaler: Some(scaler) } => {
+                // 转换输入数据
+                let n_samples = features.nrows();
+                let n_features = features.ncols();
+                let x_2d_vec: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let x_matrix = DenseMatrix::from_2d_vec(&x_2d_vec);
+                
+                let scaled_x = scaler.transform(&x_matrix)
+                    .map_err(|e| StrategyError::PredictionError(format!("Transform failed: {:?}", e)))?;
+                let predictions = lr.predict(&scaled_x)
+                    .map_err(|e| StrategyError::PredictionError(format!("LR prediction failed: {:?}", e)))?;
+                Ok(Array1::from_vec(predictions))
+            },
+            
+            RealMLModel::Ensemble { models, meta_learner: Some(meta), .. } => {
+                // 获取基础模型预测
+                let mut base_predictions = Array2::zeros((features.nrows(), models.len()));
+                
+                for (i, base_model) in models.iter().enumerate() {
+                    let preds = base_model.predict(features)?;
+                    base_predictions.column_mut(i).assign(&preds);
+                }
+                
+                // 转换为DenseMatrix格式
+                let meta_n_samples = base_predictions.nrows();
+                let meta_n_features = base_predictions.ncols();
+                let meta_x_2d_vec: Vec<Vec<f64>> = base_predictions.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let meta_x_matrix = DenseMatrix::from_2d_vec(&meta_x_2d_vec);
+                
+                let final_predictions = meta.predict(&meta_x_matrix)
+                    .map_err(|e| StrategyError::PredictionError(format!("Meta prediction failed: {:?}", e)))?;
+                Ok(Array1::from_vec(final_predictions))
+            },
+            
+            _ => Err(StrategyError::PredictionError("Model not trained".to_string())),
+        }
+    }
+    
+    /// 在线更新模型
+    pub fn update_online(
+        &mut self,
+        new_features: &Array2<f64>,
+        new_targets: &Array1<f64>,
+        learning_rate: f64,
+    ) -> Result<(), StrategyError> {
+        match self {
+            RealMLModel::LinearRegression { model: Some(lr), .. } => {
+                // 实现梯度下降在线更新
+                // 这里需要实现增量学习逻辑
+                Ok(())
+            },
+            _ => {
+                // 对于其他模型，重新训练
+                let hyperparams = ModelHyperparameters::default();
+                self.train(new_features, new_targets, &hyperparams)?;
+                Ok(())
+            }
+        }
+    }
+    
+    /// 计算验证指标
+    fn calculate_validation_metrics(
+        &self,
+        features: &Array2<f64>,
+        targets: &Array1<f64>,
+    ) -> Result<ModelValidationResult, StrategyError> {
+        let predictions = self.predict(features)?;
+        
+        // 计算R²
+        let targets_mean = targets.mean().unwrap_or(0.0);
+        let ss_tot: f64 = targets.iter().map(|&y| (y - targets_mean).powi(2)).sum();
+        let ss_res: f64 = targets.iter().zip(predictions.iter())
+            .map(|(&y, &pred)| (y - pred).powi(2)).sum();
+        let r2 = 1.0 - (ss_res / ss_tot);
+        
+        // 计算MSE
+        let mse: f64 = targets.iter().zip(predictions.iter())
+            .map(|(&y, &pred)| (y - pred).powi(2)).sum::<f64>() / targets.len() as f64;
+        
+        // 计算MAE
+        let mae: f64 = targets.iter().zip(predictions.iter())
+            .map(|(&y, &pred)| (y - pred).abs()).sum::<f64>() / targets.len() as f64;
+        
+        // 计算相关性
+        let correlation = self.calculate_correlation(&targets.to_vec(), &predictions.to_vec());
+        
+        Ok(ModelValidationResult {
+            train_r2: r2,
+            val_r2: r2, // 在实际实现中应该使用验证集
+            test_r2: r2, // 在实际实现中应该使用测试集
+            mse,
+            mae,
+            feature_importance: HashMap::new(), // 需要根据模型类型实现
+            prediction_correlation: correlation,
+            complexity_score: 0.5, // 需要根据模型复杂度计算
+        })
+    }
+    
+    fn calculate_correlation(&self, x: &[f64], y: &[f64]) -> f64 {
+        if x.len() != y.len() || x.is_empty() {
+            return 0.0;
+        }
+        
+        let x_mean = x.iter().sum::<f64>() / x.len() as f64;
+        let y_mean = y.iter().sum::<f64>() / y.len() as f64;
+        
+        let numerator: f64 = x.iter().zip(y.iter())
+            .map(|(&xi, &yi)| (xi - x_mean) * (yi - y_mean))
+            .sum();
+        
+        let x_var: f64 = x.iter().map(|&xi| (xi - x_mean).powi(2)).sum();
+        let y_var: f64 = y.iter().map(|&yi| (yi - y_mean).powi(2)).sum();
+        
+        if x_var == 0.0 || y_var == 0.0 {
+            0.0
+        } else {
+            numerator / (x_var * y_var).sqrt()
+        }
+    }
+}
+
+/// 高级特征工程器
+pub struct AdvancedFeatureEngineer {
+    config: FeatureEngineeringConfig,
+    feature_names: Vec<String>,
+    feature_importance: HashMap<String, f64>,
+    selected_features: Vec<usize>,
+}
+
+impl AdvancedFeatureEngineer {
+    pub fn new(config: FeatureEngineeringConfig) -> Self {
+        Self {
+            config,
+            feature_names: Vec::new(),
+            feature_importance: HashMap::new(),
+            selected_features: Vec::new(),
+        }
+    }
+    
+    /// 构建高级特征
+    pub fn engineer_features(
+        &mut self,
+        market_indicators: &[MarketIndicators],
+        price_history: &[f64],
+        volume_history: &[f64],
+        returns_history: &[f64],
+    ) -> Result<Array2<f64>, StrategyError> {
+        let mut features = Vec::new();
+        let mut feature_names: Vec<String> = Vec::new();
+        
+        // 1. 基础市场指标特征
+        if let Some(latest) = market_indicators.last() {
+            features.extend_from_slice(&[
+                latest.volatility_1h,
+                latest.volatility_4h,
+                latest.volatility_24h,
+                latest.liquidity_index,
+                latest.bid_ask_spread,
+                latest.order_book_depth,
+                latest.volume_ratio_1h,
+                latest.volume_ratio_4h,
+                latest.max_price_change_1m,
+                latest.max_price_change_5m,
+                latest.average_slippage,
+                latest.api_latency_avg,
+                latest.api_error_rate,
+                latest.api_success_rate,
+                latest.external_event_risk,
+                latest.news_sentiment_score,
+            ]);
+            
+            feature_names.extend([
+                "volatility_1h".to_string(), "volatility_4h".to_string(), "volatility_24h".to_string(),
+                "liquidity_index".to_string(), "bid_ask_spread".to_string(), "order_book_depth".to_string(),
+                "volume_ratio_1h".to_string(), "volume_ratio_4h".to_string(),
+                "max_price_change_1m".to_string(), "max_price_change_5m".to_string(),
+                "average_slippage".to_string(), "api_latency_avg".to_string(), "api_error_rate".to_string(),
+                "api_success_rate".to_string(), "external_event_risk".to_string(), "news_sentiment_score".to_string()
+            ]);
+        }
+        
+        // 2. 技术指标特征
+        for &window in &self.config.technical_indicator_windows {
+            if price_history.len() >= window {
+                let recent_prices = &price_history[price_history.len() - window..];
+                
+                // 移动平均
+                let ma = recent_prices.iter().sum::<f64>() / window as f64;
+                features.push(ma);
+                feature_names.push(format!("ma_{}", window));
+                
+                // RSI
+                let rsi = self.calculate_rsi(recent_prices);
+                features.push(rsi);
+                feature_names.push(format!("rsi_{}", window));
+                
+                // 布林带
+                let (bb_upper, bb_lower, bb_width) = self.calculate_bollinger_bands(recent_prices, 2.0);
+                features.extend_from_slice(&[bb_upper, bb_lower, bb_width]);
+                feature_names.extend_from_slice(&[
+                    format!("bb_upper_{}", window),
+                    format!("bb_lower_{}", window),
+                    format!("bb_width_{}", window)
+                ]);
+                
+                // MACD
+                if window >= 26 {
+                    let macd = self.calculate_macd(recent_prices);
+                    features.push(macd);
+                    feature_names.push(format!("macd_{}", window));
+                }
+            }
+        }
+        
+        // 3. 滞后特征
+        for lag in 1..=self.config.lag_features {
+            if price_history.len() > lag {
+                let lagged_price = price_history[price_history.len() - 1 - lag];
+                features.push(lagged_price);
+                feature_names.push(format!("price_lag_{}", lag));
+            }
+            
+            if returns_history.len() > lag {
+                let lagged_return = returns_history[returns_history.len() - 1 - lag];
+                features.push(lagged_return);
+                feature_names.push(format!("return_lag_{}", lag));
+            }
+        }
+        
+        // 4. 滑动窗口统计特征
+        for &window in &self.config.rolling_stats_windows {
+            if price_history.len() >= window {
+                let recent_prices = &price_history[price_history.len() - window..];
+                
+                // 统计特征
+                let mean = recent_prices.iter().sum::<f64>() / window as f64;
+                let variance = recent_prices.iter()
+                    .map(|&x| (x - mean).powi(2))
+                    .sum::<f64>() / window as f64;
+                let std_dev = variance.sqrt();
+                let skewness = self.calculate_skewness(recent_prices, mean, std_dev);
+                let kurtosis = self.calculate_kurtosis(recent_prices, mean, std_dev);
+                
+                features.extend_from_slice(&[mean, std_dev, skewness, kurtosis]);
+                feature_names.extend_from_slice(&[
+                    format!("mean_{}", window),
+                    format!("std_{}", window),
+                    format!("skew_{}", window),
+                    format!("kurt_{}", window)
+                ]);
+                
+                // 分位数特征
+                let mut sorted_prices = recent_prices.to_vec();
+                sorted_prices.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                let q25 = sorted_prices[window / 4];
+                let q50 = sorted_prices[window / 2];
+                let q75 = sorted_prices[3 * window / 4];
+                
+                features.extend_from_slice(&[q25, q50, q75]);
+                feature_names.extend_from_slice(&[
+                    format!("q25_{}", window),
+                    format!("q50_{}", window),
+                    format!("q75_{}", window)
+                ]);
+            }
+        }
+        
+        // 5. 差分特征
+        for &order in &self.config.difference_orders {
+            if price_history.len() > order {
+                let diff = price_history[price_history.len() - 1] - price_history[price_history.len() - 1 - order];
+                features.push(diff);
+                feature_names.push(format!("diff_{}", order));
+            }
+        }
+        
+        // 6. 交叉特征（如果启用）
+        if self.config.include_interaction_features && features.len() >= 2 {
+            let base_feature_count = features.len();
+            for i in 0..std::cmp::min(base_feature_count, 5) {
+                for j in i+1..std::cmp::min(base_feature_count, 5) {
+                    features.push(features[i] * features[j]);
+                    feature_names.push(format!("{}_{}_interaction", feature_names[i], feature_names[j]));
+                }
+            }
+        }
+        
+        // 7. 市场微观结构特征
+        if let Some(latest) = market_indicators.last() {
+            // 订单流失衡
+            let order_flow_imbalance = (latest.liquidity_index - 0.5) * 2.0; // 标准化到[-1, 1]
+            features.push(order_flow_imbalance);
+            feature_names.push("order_flow_imbalance".to_string());
+            
+            // 价差动态
+            let spread_volatility = latest.bid_ask_spread / latest.liquidity_index.max(0.001);
+            features.push(spread_volatility);
+            feature_names.push("spread_volatility".to_string());
+            
+            // API质量得分
+            let api_quality = latest.api_success_rate * (1.0 - latest.api_error_rate) / (latest.api_latency_avg / 1000.0).max(0.001);
+            features.push(api_quality);
+            feature_names.push("api_quality_score".to_string());
+        }
+        
+        self.feature_names = feature_names;
+        
+        // 转换为ndarray格式
+        if features.is_empty() {
+            return Err(StrategyError::FeatureEngineeringError("No features generated".to_string()));
+        }
+        
+        let feature_matrix = Array2::from_shape_vec((1, features.len()), features)
+            .map_err(|e| StrategyError::FeatureEngineeringError(format!("Array creation failed: {:?}", e)))?;
+        
+        Ok(feature_matrix)
+    }
+    
+    /// 特征选择
+    pub fn select_features(
+        &mut self,
+        features: &Array2<f64>,
+        targets: &Array1<f64>,
+    ) -> Result<Array2<f64>, StrategyError> {
+        if !self.config.enable_feature_selection {
+            return Ok(features.clone());
+        }
+        
+        let mut correlations = Vec::new();
+        
+        // 计算每个特征与目标的相关性
+        for feature_idx in 0..features.ncols() {
+            let feature_col = features.column(feature_idx);
+            let correlation = self.calculate_feature_correlation(&feature_col.to_vec(), &targets.to_vec());
+            correlations.push((feature_idx, correlation.abs()));
+        }
+        
+        // 按相关性排序
+        correlations.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        
+        // 选择重要特征
+        self.selected_features = correlations
+            .iter()
+            .filter(|(_, corr)| *corr >= self.config.feature_selection_threshold)
+            .map(|(idx, _)| *idx)
+            .collect();
+        
+        if self.selected_features.is_empty() {
+            // 如果没有特征满足阈值，选择前50%的特征
+            self.selected_features = correlations
+                .iter()
+                .take(correlations.len() / 2)
+                .map(|(idx, _)| *idx)
+                .collect();
+        }
+        
+        // 提取选定的特征
+        let selected_features = Array2::from_shape_fn(
+            (features.nrows(), self.selected_features.len()),
+            |(row, col)| features[[row, self.selected_features[col]]]
+        );
+        
+        Ok(selected_features)
+    }
+    
+    // 技术指标计算方法
+    fn calculate_rsi(&self, prices: &[f64]) -> f64 {
+        if prices.len() < 2 {
+            return 50.0;
+        }
+        
+        let mut gains = Vec::new();
+        let mut losses = Vec::new();
+        
+        for i in 1..prices.len() {
+            let change = prices[i] - prices[i-1];
+            if change > 0.0 {
+                gains.push(change);
+                losses.push(0.0);
+            } else {
+                gains.push(0.0);
+                losses.push(-change);
+            }
+        }
+        
+        let avg_gain = gains.iter().sum::<f64>() / gains.len() as f64;
+        let avg_loss = losses.iter().sum::<f64>() / losses.len() as f64;
+        
+        if avg_loss == 0.0 {
+            return 100.0;
+        }
+        
+        let rs = avg_gain / avg_loss;
+        100.0 - (100.0 / (1.0 + rs))
+    }
+    
+    fn calculate_bollinger_bands(&self, prices: &[f64], std_multiplier: f64) -> (f64, f64, f64) {
+        let mean = prices.iter().sum::<f64>() / prices.len() as f64;
+        let variance = prices.iter()
+            .map(|&x| (x - mean).powi(2))
+            .sum::<f64>() / prices.len() as f64;
+        let std_dev = variance.sqrt();
+        
+        let upper = mean + std_multiplier * std_dev;
+        let lower = mean - std_multiplier * std_dev;
+        let width = upper - lower;
+        
+        (upper, lower, width)
+    }
+    
+    fn calculate_macd(&self, prices: &[f64]) -> f64 {
+        if prices.len() < 26 {
+            return 0.0;
+        }
+        
+        let ema12 = self.calculate_ema(&prices, 12);
+        let ema26 = self.calculate_ema(&prices, 26);
+        
+        ema12 - ema26
+    }
+    
+    fn calculate_ema(&self, prices: &[f64], period: usize) -> f64 {
+        if prices.is_empty() {
+            return 0.0;
+        }
+        
+        let alpha = 2.0 / (period as f64 + 1.0);
+        let mut ema = prices[0];
+        
+        for &price in prices.iter().skip(1) {
+            ema = alpha * price + (1.0 - alpha) * ema;
+        }
+        
+        ema
+    }
+    
+    fn calculate_skewness(&self, data: &[f64], mean: f64, std_dev: f64) -> f64 {
+        if std_dev == 0.0 || data.len() < 3 {
+            return 0.0;
+        }
+        
+        let n = data.len() as f64;
+        let sum_cubed_deviations: f64 = data.iter()
+            .map(|&x| ((x - mean) / std_dev).powi(3))
+            .sum();
+        
+        (n / ((n - 1.0) * (n - 2.0))) * sum_cubed_deviations
+    }
+    
+    fn calculate_kurtosis(&self, data: &[f64], mean: f64, std_dev: f64) -> f64 {
+        if std_dev == 0.0 || data.len() < 4 {
+            return 3.0; // 正态分布的峰度
+        }
+        
+        let n = data.len() as f64;
+        let sum_fourth_deviations: f64 = data.iter()
+            .map(|&x| ((x - mean) / std_dev).powi(4))
+            .sum();
+        
+        let kurtosis = (n * (n + 1.0) / ((n - 1.0) * (n - 2.0) * (n - 3.0))) * sum_fourth_deviations;
+        kurtosis - 3.0 * ((n - 1.0).powi(2) / ((n - 2.0) * (n - 3.0)))
+    }
+    
+    fn calculate_feature_correlation(&self, x: &[f64], y: &[f64]) -> f64 {
+        if x.len() != y.len() || x.is_empty() {
+            return 0.0;
+        }
+        
+        let x_mean = x.iter().sum::<f64>() / x.len() as f64;
+        let y_mean = y.iter().sum::<f64>() / y.len() as f64;
+        
+        let numerator: f64 = x.iter().zip(y.iter())
+            .map(|(&xi, &yi)| (xi - x_mean) * (yi - y_mean))
+            .sum();
+        
+        let x_var: f64 = x.iter().map(|&xi| (xi - x_mean).powi(2)).sum();
+        let y_var: f64 = y.iter().map(|&yi| (yi - y_mean).powi(2)).sum();
+        
+        if x_var == 0.0 || y_var == 0.0 {
+            0.0
+        } else {
+            numerator / (x_var * y_var).sqrt()
+        }
+    }
+    
+    pub fn get_feature_names(&self) -> &[String] {
+        &self.feature_names
+    }
+    
+    pub fn get_selected_feature_indices(&self) -> &[usize] {
+        &self.selected_features
+    }
+}
+
+/// 执行记录（包含丰富特征）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArbitrageExecutionRecord {
+    pub strategy_id: String,
+    pub execution_id: String,
+    pub timestamp: DateTime<Utc>,
+    pub market_indicators: MarketIndicators,
+    pub min_profit_used: f64,
+    pub predicted_profit: f64,
+    pub actual_profit: f64,
+    pub success: bool,
+    pub execution_time_ms: f64,
+    pub slippage: f64,
+    pub market_impact: f64,
+    pub confidence_score: f64,
+    pub features_used: Vec<f64>,
+    pub feature_names: Vec<String>,
+}
+
+/// min_profit自适应配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdaptiveProfitConfig {
+    /// 基础阈值配置
+    pub base_thresholds: StateBasedThresholds,
+    /// 机器学习配置
+    pub ml_config: MLConfig,
+    /// 特征工程配置
+    pub feature_config: FeatureEngineeringConfig,
+    /// 在线学习配置
+    pub online_learning_config: OnlineLearningConfig,
+    /// 模型验证配置
+    pub validation_config: ModelValidationConfig,
+}
+
+/// 基于状态的阈值配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StateBasedThresholds {
+    pub normal_min: f64,
+    pub normal_max: f64,
+    pub cautious_min: f64,
+    pub cautious_max: f64,
+    pub extreme_min: f64,
+    pub extreme_max: f64,
+}
+
+impl Default for StateBasedThresholds {
+    fn default() -> Self {
+        Self {
+            normal_min: 0.005,   // 0.5%
+            normal_max: 0.008,   // 0.8%
+            cautious_min: 0.012, // 1.2%
+            cautious_max: 0.018, // 1.8%
+            extreme_min: 0.020,  // 2.0%
+            extreme_max: 0.035,  // 3.5%
+        }
+    }
+}
+
+/// 机器学习配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MLConfig {
+    /// 主要模型类型
+    pub primary_model: MLModelType,
+    /// 集成模型列表
+    pub ensemble_models: Vec<MLModelType>,
+    /// 模型超参数
+    pub hyperparameters: ModelHyperparameters,
+    /// 训练数据最小量
+    pub min_training_samples: usize,
+    /// 模型重训练间隔（小时）
+    pub retrain_interval_hours: u64,
+    /// 交叉验证折数
+    pub cv_folds: usize,
+    /// 早停参数
+    pub early_stopping_patience: usize,
+}
+
+impl Default for MLConfig {
+    fn default() -> Self {
+        Self {
+            primary_model: MLModelType::RandomForest,
+            ensemble_models: vec![
+                MLModelType::DecisionTree,
+                MLModelType::RandomForest,
+                MLModelType::LinearRegression,
+            ],
+            hyperparameters: ModelHyperparameters::default(),
+            min_training_samples: 100,
+            retrain_interval_hours: 24,
+            cv_folds: 5,
+            early_stopping_patience: 10,
+        }
+    }
+}
+
+/// 在线学习配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OnlineLearningConfig {
+    /// 是否启用在线学习
+    pub enabled: bool,
+    /// 学习率
+    pub learning_rate: f64,
+    /// 学习率衰减
+    pub learning_rate_decay: f64,
+    /// 批次大小
+    pub batch_size: usize,
+    /// 概念漂移检测阈值
+    pub drift_detection_threshold: f64,
+    /// 滑动窗口大小
+    pub sliding_window_size: usize,
+    /// 遗忘因子
+    pub forgetting_factor: f64,
+}
+
+impl Default for OnlineLearningConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            learning_rate: 0.01,
+            learning_rate_decay: 0.995,
+            batch_size: 32,
+            drift_detection_threshold: 0.05,
+            sliding_window_size: 1000,
+            forgetting_factor: 0.99,
+        }
+    }
+}
+
+/// 模型验证配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelValidationConfig {
+    /// 验证集比例
+    pub validation_split: f64,
+    /// 测试集比例
+    pub test_split: f64,
+    /// 最小R²阈值
+    pub min_r2_threshold: f64,
+    /// 最大MSE阈值
+    pub max_mse_threshold: f64,
+    /// A/B测试配置
+    pub ab_test_enabled: bool,
+    /// A/B测试流量比例
+    pub ab_test_traffic_ratio: f64,
+    /// 模型选择策略
+    pub model_selection_strategy: ModelSelectionStrategy,
+}
+
+impl Default for ModelValidationConfig {
+    fn default() -> Self {
+        Self {
+            validation_split: 0.2,
+            test_split: 0.1,
+            min_r2_threshold: 0.3,
+            max_mse_threshold: 0.01,
+            ab_test_enabled: true,
+            ab_test_traffic_ratio: 0.1,
+            model_selection_strategy: ModelSelectionStrategy::BestValidationScore,
+        }
+    }
+}
+
+/// 模型选择策略
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ModelSelectionStrategy {
+    BestValidationScore,
+    BestTestScore,
+    EnsembleWeightedAverage,
+    BayesianOptimization,
+}
+
+/// 模型训练结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelTrainingResult {
+    pub model_id: String,
+    pub training_timestamp: DateTime<Utc>,
+    pub model_type: MLModelType,
+    pub training_samples: usize,
+    pub validation_result: ModelValidationResult,
+    pub hyperparameters: ModelHyperparameters,
+    pub training_time_seconds: f64,
+    pub model_size_bytes: usize,
+}
+
+/// 实时自适应min_profit系统
+pub struct RealAdaptiveProfitModel {
+    /// 配置
+    config: Arc<RwLock<AdaptiveProfitConfig>>,
+    /// 主要ML模型
+    primary_model: Arc<ParkingRwLock<RealMLModel>>,
+    /// 集成模型
+    ensemble_models: Arc<ParkingRwLock<Vec<RealMLModel>>>,
+    /// 特征工程器
+    feature_engineer: Arc<ParkingRwLock<AdvancedFeatureEngineer>>,
+    /// 执行历史
+    execution_history: Arc<RwLock<Vec<ArbitrageExecutionRecord>>>,
+    /// 当前阈值缓存
+    current_thresholds: Arc<RwLock<HashMap<(String, MarketState), f64>>>,
+    /// 模型性能监控
+    model_performance: Arc<RwLock<HashMap<String, ModelValidationResult>>>,
+    /// 在线学习缓冲区
+    online_buffer: Arc<RwLock<Vec<(Array1<f64>, f64)>>>,
+    /// 预测缓存
+    prediction_cache: Arc<ParkingRwLock<HashMap<String, (f64, DateTime<Utc>)>>>,
+    /// 最后训练时间
+    last_training_time: Arc<RwLock<DateTime<Utc>>>,
+    /// 概念漂移检测器
+    drift_detector: Arc<RwLock<ConceptDriftDetector>>,
+}
+
+/// 概念漂移检测器
+#[derive(Debug)]
+pub struct ConceptDriftDetector {
+    reference_window: Vec<f64>,
+    current_window: Vec<f64>,
+    window_size: usize,
+    drift_threshold: f64,
+}
+
+impl ConceptDriftDetector {
+    pub fn new(window_size: usize, drift_threshold: f64) -> Self {
+        Self {
+            reference_window: Vec::with_capacity(window_size),
+            current_window: Vec::with_capacity(window_size),
+            window_size,
+            drift_threshold,
+        }
+    }
+    
+    pub fn add_sample(&mut self, error: f64) {
+        if self.reference_window.len() < self.window_size {
+            self.reference_window.push(error);
+        } else {
+            self.current_window.push(error);
+            if self.current_window.len() > self.window_size {
+                self.current_window.remove(0);
+            }
+        }
+    }
+    
+    pub fn detect_drift(&self) -> bool {
+        if self.reference_window.len() < self.window_size || self.current_window.len() < self.window_size {
+            return false;
+        }
+        
+        // Kolmogorov-Smirnov测试检测分布变化
+        let ks_statistic = self.ks_test(&self.reference_window, &self.current_window);
+        ks_statistic > self.drift_threshold
+    }
+    
+    fn ks_test(&self, sample1: &[f64], sample2: &[f64]) -> f64 {
+        let mut combined: Vec<f64> = sample1.iter().chain(sample2.iter()).cloned().collect();
+        combined.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        
+        let mut max_diff: f64 = 0.0;
+        let n1 = sample1.len() as f64;
+        let n2 = sample2.len() as f64;
+        
+        for &value in &combined {
+            let cdf1 = sample1.iter().filter(|&&x| x <= value).count() as f64 / n1;
+            let cdf2 = sample2.iter().filter(|&&x| x <= value).count() as f64 / n2;
+            max_diff = max_diff.max((cdf1 - cdf2).abs());
+        }
+        
+        max_diff
+    }
+    
+    pub fn reset(&mut self) {
+        self.reference_window = self.current_window.clone();
+        self.current_window.clear();
+    }
+}
+
+impl RealAdaptiveProfitModel {
+    /// 创建新的自适应模型
+    pub fn new(config: AdaptiveProfitConfig) -> Self {
+        let feature_engineer = AdvancedFeatureEngineer::new(config.feature_config.clone());
+        
+        // 初始化主要模型
+        let primary_model = match config.ml_config.primary_model {
+            MLModelType::DecisionTree => RealMLModel::DecisionTree { model: None, scaler: None },
+            MLModelType::RandomForest => RealMLModel::RandomForest { model: None, scaler: None },
+            MLModelType::LinearRegression => RealMLModel::LinearRegression { model: None, scaler: None },
+            MLModelType::LogisticRegression => RealMLModel::LogisticRegression { model: None, scaler: None },
+            MLModelType::EnsembleMethod => RealMLModel::Ensemble { 
+                models: Vec::new(), 
+                weights: Vec::new(), 
+                meta_learner: None 
+            },
+            _ => RealMLModel::RandomForest { model: None, scaler: None },
+        };
+        
+        // 初始化集成模型
+        let ensemble_models = config.ml_config.ensemble_models.iter().map(|model_type| {
+            match model_type {
+                MLModelType::DecisionTree => RealMLModel::DecisionTree { model: None, scaler: None },
+                MLModelType::RandomForest => RealMLModel::RandomForest { model: None, scaler: None },
+                MLModelType::LinearRegression => RealMLModel::LinearRegression { model: None, scaler: None },
+                _ => RealMLModel::RandomForest { model: None, scaler: None },
+            }
+        }).collect();
+        
+        let drift_detector = ConceptDriftDetector::new(
+            config.online_learning_config.sliding_window_size,
+            config.online_learning_config.drift_detection_threshold,
+        );
+        
+        Self {
+            config: Arc::new(RwLock::new(config)),
+            primary_model: Arc::new(ParkingRwLock::new(primary_model)),
+            ensemble_models: Arc::new(ParkingRwLock::new(ensemble_models)),
+            feature_engineer: Arc::new(ParkingRwLock::new(feature_engineer)),
+            execution_history: Arc::new(RwLock::new(Vec::new())),
+            current_thresholds: Arc::new(RwLock::new(HashMap::new())),
+            model_performance: Arc::new(RwLock::new(HashMap::new())),
+            online_buffer: Arc::new(RwLock::new(Vec::new())),
+            prediction_cache: Arc::new(ParkingRwLock::new(HashMap::new())),
+            last_training_time: Arc::new(RwLock::new(Utc::now() - Duration::days(1))),
+            drift_detector: Arc::new(RwLock::new(drift_detector)),
+        }
+    }
+    
+    /// 获取动态min_profit阈值
+    pub async fn get_adaptive_min_profit(
+        &self,
+        strategy_type: &str,
+        market_state: MarketState,
+        market_indicators: &MarketIndicators,
+        price_history: &[f64],
+        volume_history: &[f64],
+        returns_history: &[f64],
+    ) -> Result<f64, StrategyError> {
+        // 构建缓存键
+        let cache_key = format!("{}_{:?}_{}", strategy_type, market_state, market_indicators.timestamp.timestamp());
+        
+        // 检查缓存
+        if let Some((cached_value, cache_time)) = self.prediction_cache.read().get(&cache_key) {
+            if Utc::now().signed_duration_since(*cache_time).num_seconds() < 60 {
+                return Ok(*cached_value);
+            }
+        }
+        
+        // 生成特征
+        let features = {
+            let mut engineer = self.feature_engineer.write();
+            engineer.engineer_features(
+                &[market_indicators.clone()],
+                price_history,
+                volume_history,
+                returns_history,
+            )?
+        };
+        
+        // 获取预测
+        let prediction = if self.should_use_ensemble().await {
+            self.predict_with_ensemble(&features).await?
+        } else {
+            self.predict_with_primary_model(&features).await?
+        };
+        
+        // 应用市场状态调整
+        let base_thresholds = &self.config.read().await.base_thresholds;
+        let (min_threshold, max_threshold) = match market_state {
+            MarketState::Normal => (base_thresholds.normal_min, base_thresholds.normal_max),
+            MarketState::Cautious => (base_thresholds.cautious_min, base_thresholds.cautious_max),
+            MarketState::Extreme => (base_thresholds.extreme_min, base_thresholds.extreme_max),
+        };
+        
+        // 将预测映射到合理范围
+        let adjusted_prediction = min_threshold + (max_threshold - min_threshold) * prediction.max(0.0).min(1.0);
+        
+        // 更新缓存
+        self.prediction_cache.write().insert(cache_key, (adjusted_prediction, Utc::now()));
+        
+        // 记录预测用于后续验证
+        self.record_prediction(strategy_type, market_state, adjusted_prediction, features).await;
+        
+        Ok(adjusted_prediction)
+    }
+    
+    /// 记录套利执行结果并更新模型
+    pub async fn record_execution_and_learn(
+        &self,
+        record: ArbitrageExecutionRecord,
+    ) -> Result<(), StrategyError> {
+        // 记录执行历史
+        {
+            let mut history = self.execution_history.write().await;
+            history.push(record.clone());
+            
+            // 保持历史大小在合理范围内
+            if history.len() > 10000 {
+                history.drain(0..1000);
+            }
+        }
+        
+        // 在线学习更新
+        if self.config.read().await.online_learning_config.enabled {
+            self.update_online_learning(&record).await?;
+        }
+        
+        // 检查是否需要重新训练
+        if self.should_retrain().await? {
+            self.retrain_models().await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// 在线学习更新
+    async fn update_online_learning(
+        &self,
+        record: &ArbitrageExecutionRecord,
+    ) -> Result<(), StrategyError> {
+        let features = Array1::from_vec(record.features_used.clone());
+        let target = if record.success { 
+            (record.actual_profit / record.predicted_profit).max(0.0).min(2.0)
+        } else { 
+            0.0 
+        };
+        
+        // 添加到在线学习缓冲区
+        {
+            let mut buffer = self.online_buffer.write().await;
+            buffer.push((features.clone(), target));
+            
+            let config = self.config.read().await;
+            if buffer.len() >= config.online_learning_config.batch_size {
+                // 执行批量在线更新
+                let features_batch = Array2::from_shape_fn(
+                    (buffer.len(), features.len()),
+                    |(row, col)| buffer[row].0[col]
+                );
+                let targets_batch = Array1::from_iter(buffer.iter().map(|(_, t)| *t));
+                
+                // 更新主要模型
+                {
+                    let mut model = self.primary_model.write();
+                    model.update_online(
+                        &features_batch,
+                        &targets_batch,
+                        config.online_learning_config.learning_rate,
+                    )?;
+                }
+                
+                buffer.clear();
+            }
+        }
+        
+        // 概念漂移检测
+        let prediction_error = (record.predicted_profit - record.actual_profit).abs();
+        {
+            let mut drift_detector = self.drift_detector.write().await;
+            drift_detector.add_sample(prediction_error);
+            
+            if drift_detector.detect_drift() {
+                tracing::warn!("Concept drift detected, triggering model retraining");
+                self.retrain_models().await?;
+                drift_detector.reset();
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// 判断是否应该使用集成模型
+    async fn should_use_ensemble(&self) -> bool {
+        let performance = self.model_performance.read().await;
+        
+        // 如果主模型性能不佳，使用集成模型
+        if let Some(primary_perf) = performance.get("primary") {
+            primary_perf.val_r2 < 0.5 || primary_perf.mse > 0.05
+        } else {
+            false
+        }
+    }
+    
+    /// 使用主要模型预测
+    async fn predict_with_primary_model(&self, features: &Array2<f64>) -> Result<f64, StrategyError> {
+        let model = self.primary_model.read();
+        let predictions = model.predict(features)?;
+        Ok(predictions[0])
+    }
+    
+    /// 使用集成模型预测
+    async fn predict_with_ensemble(&self, features: &Array2<f64>) -> Result<f64, StrategyError> {
+        let models = self.ensemble_models.read();
+        let mut predictions = Vec::new();
+        
+        for model in models.iter() {
+            let pred = model.predict(features)?;
+            predictions.push(pred[0]);
+        }
+        
+        // 简单平均（可以改为加权平均）
+        let ensemble_prediction = predictions.iter().sum::<f64>() / predictions.len() as f64;
+        Ok(ensemble_prediction)
+    }
+    
+    /// 判断是否需要重新训练
+    async fn should_retrain(&self) -> Result<bool, StrategyError> {
+        let config = self.config.read().await;
+        let last_training = *self.last_training_time.read().await;
+        let time_since_training = Utc::now().signed_duration_since(last_training);
+        
+        // 检查时间间隔
+        if time_since_training.num_hours() >= config.ml_config.retrain_interval_hours as i64 {
+            return Ok(true);
+        }
+        
+        // 检查数据量
+        let history_len = self.execution_history.read().await.len();
+        if history_len >= config.ml_config.min_training_samples * 2 {
+            return Ok(true);
+        }
+        
+        Ok(false)
+    }
+    
+    /// 重新训练所有模型
+    pub async fn retrain_models(&self) -> Result<(), StrategyError> {
+        let history = self.execution_history.read().await;
+        if history.len() < self.config.read().await.ml_config.min_training_samples {
+            return Err(StrategyError::ValidationError(
+                format!("Not enough data for training: {} < {}", 
+                    history.len(), 
+                    self.config.read().await.ml_config.min_training_samples)
+            ));
+        }
+        
+        // 准备训练数据
+        let (features, targets) = self.prepare_training_data(&history).await?;
+        
+        // 特征选择
+        let selected_features = {
+            let mut engineer = self.feature_engineer.write();
+            engineer.select_features(&features, &targets)?
+        };
+        
+        let config = self.config.read().await;
+        
+        // 训练主要模型
+        {
+            let mut model = self.primary_model.write();
+            let validation_result = model.train(&selected_features, &targets, &config.ml_config.hyperparameters)?;
+            
+            // 记录性能
+            self.model_performance.write().await.insert("primary".to_string(), validation_result.clone());
+            
+            tracing::info!(
+                model_type = ?config.ml_config.primary_model,
+                r2 = %validation_result.val_r2,
+                mse = %validation_result.mse,
+                "Primary model trained"
+            );
+        }
+        
+        // 训练集成模型
+        {
+            let mut models = self.ensemble_models.write();
+            for (i, model) in models.iter_mut().enumerate() {
+                let validation_result = model.train(&selected_features, &targets, &config.ml_config.hyperparameters)?;
+                self.model_performance.write().await.insert(format!("ensemble_{}", i), validation_result.clone());
+                
+                tracing::debug!(
+                    model_index = i,
+                    r2 = %validation_result.val_r2,
+                    mse = %validation_result.mse,
+                    "Ensemble model trained"
+                );
+            }
+        }
+        
+        // 更新最后训练时间
+        *self.last_training_time.write().await = Utc::now();
+        
+        // 清理预测缓存
+        self.prediction_cache.write().clear();
+        
+        Ok(())
+    }
+    
+    /// 准备训练数据
+    async fn prepare_training_data(
+        &self,
+        history: &[ArbitrageExecutionRecord],
+    ) -> Result<(Array2<f64>, Array1<f64>), StrategyError> {
+        let mut all_features = Vec::new();
+        let mut all_targets = Vec::new();
+        
+        for record in history {
+            if !record.features_used.is_empty() {
+                all_features.push(record.features_used.clone());
+                
+                // 目标变量：实际利润与预测利润的比率（成功率指标）
+                let target = if record.success {
+                    (record.actual_profit / record.predicted_profit.max(0.001))
+                        .max(0.0).min(2.0) // 限制在合理范围内
+                } else {
+                    0.0
+                };
+                all_targets.push(target);
+            }
+        }
+        
+        if all_features.is_empty() {
+            return Err(StrategyError::ValidationError("No feature data available".to_string()));
+        }
+        
+        let feature_dim = all_features[0].len();
+        let features = Array2::from_shape_fn(
+            (all_features.len(), feature_dim),
+            |(row, col)| all_features[row][col]
+        );
+        let targets = Array1::from_vec(all_targets);
+        
+        Ok((features, targets))
+    }
+    
+    /// 记录预测用于后续验证
+    async fn record_prediction(
+        &self,
+        strategy_type: &str,
+        market_state: MarketState,
+        prediction: f64,
+        features: Array2<f64>,
+    ) {
+        // 这里可以记录预测结果用于后续的A/B测试和模型评估
+        tracing::debug!(
+            strategy_type = %strategy_type,
+            market_state = ?market_state,
+            prediction = %prediction,
+            "Min profit prediction made"
+        );
+    }
+    
+    /// 获取模型性能统计
+    pub async fn get_model_performance(&self) -> HashMap<String, ModelValidationResult> {
+        self.model_performance.read().await.clone()
+    }
+    
+    /// 获取当前特征重要性
+    pub async fn get_feature_importance(&self) -> HashMap<String, f64> {
+        let performance = self.model_performance.read().await;
+        performance.get("primary")
+            .map(|p| p.feature_importance.clone())
+            .unwrap_or_default()
+    }
+    
+    /// 强制重新训练
+    pub async fn force_retrain(&self) -> Result<(), StrategyError> {
+        *self.last_training_time.write().await = Utc::now() - Duration::days(1);
+        self.retrain_models().await
+    }
+    
+    /// 获取预测置信度
+    pub async fn get_prediction_confidence(
+        &self,
+        features: &Array2<f64>,
+    ) -> Result<f64, StrategyError> {
+        // 使用集成模型的预测方差作为置信度指标
+        let models = self.ensemble_models.read();
+        let mut predictions = Vec::new();
+        
+        for model in models.iter() {
+            let pred = model.predict(features)?;
+            predictions.push(pred[0]);
+        }
+        
+        if predictions.len() < 2 {
+            return Ok(0.5); // 默认置信度
+        }
+        
+        let mean = predictions.iter().sum::<f64>() / predictions.len() as f64;
+        let variance = predictions.iter()
+            .map(|&x| (x - mean).powi(2))
+            .sum::<f64>() / predictions.len() as f64;
+        
+        // 置信度与方差成反比
+        let confidence = 1.0 / (1.0 + variance);
+        Ok(confidence)
+    }
+}
+
+impl Default for AdaptiveProfitConfig {
+    fn default() -> Self {
+        Self {
+            base_thresholds: StateBasedThresholds::default(),
+            ml_config: MLConfig::default(),
+            feature_config: FeatureEngineeringConfig::default(),
+            online_learning_config: OnlineLearningConfig::default(),
+            validation_config: ModelValidationConfig::default(),
+        }
+    }
+} 
+ 
+
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Utc, Duration};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis};
+use ndarray_stats::QuantileExt;
+use smartcore::preprocessing::numerical::{StandardScaler, StandardScalerParameters};
+use smartcore::api::{UnsupervisedEstimator, Transformer, SupervisedEstimator, Predictor};
+use smartcore::ensemble::random_forest_regressor::{RandomForestRegressor, RandomForestRegressorParameters};
+use smartcore::tree::decision_tree_regressor::{DecisionTreeRegressor, DecisionTreeRegressorParameters};
+use smartcore::linear::linear_regression::{LinearRegression as SmartLinearRegression, LinearRegressionParameters};
+use smartcore::linalg::basic::matrix::DenseMatrix;
+use smartcore::metrics::mean_squared_error;
+use rand::Rng;
+use statrs::statistics::{Statistics, Data};
+use parking_lot::RwLock as ParkingRwLock;
+
+use crate::strategy::core::StrategyError;
+use crate::strategy::market_state::{MarketState, MarketIndicators};
+
+/// 机器学习模型类型
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum MLModelType {
+    DecisionTree,
+    RandomForest,
+    LinearRegression,
+    LogisticRegression,
+    XGBoost,
+    LSTM,
+    EnsembleMethod,
+}
+
+/// 特征工程配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeatureEngineeringConfig {
+    /// 技术指标窗口大小
+    pub technical_indicator_windows: Vec<usize>,
+    /// 滞后特征数量
+    pub lag_features: usize,
+    /// 滑动窗口统计特征
+    pub rolling_stats_windows: Vec<usize>,
+    /// 差分特征阶数
+    pub difference_orders: Vec<usize>,
+    /// 是否包含交叉特征
+    pub include_interaction_features: bool,
+    /// 是否进行特征选择
+    pub enable_feature_selection: bool,
+    /// 特征选择阈值
+    pub feature_selection_threshold: f64,
+}
+
+impl Default for FeatureEngineeringConfig {
+    fn default() -> Self {
+        Self {
+            technical_indicator_windows: vec![5, 10, 20, 50],
+            lag_features: 10,
+            rolling_stats_windows: vec![5, 10, 20],
+            difference_orders: vec![1, 2],
+            include_interaction_features: true,
+            enable_feature_selection: true,
+            feature_selection_threshold: 0.01,
+        }
+    }
+}
+
+/// 模型超参数
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelHyperparameters {
+    /// 决策树最大深度
+    pub max_depth: Option<usize>,
+    /// 随机森林树的数量
+    pub n_estimators: usize,
+    /// 学习率
+    pub learning_rate: f64,
+    /// 正则化参数
+    pub regularization: f64,
+    /// 最小样本分割数
+    pub min_samples_split: usize,
+    /// 最小样本叶子数
+    pub min_samples_leaf: usize,
+    /// 特征采样比例
+    pub max_features: f64,
+    /// 随机种子
+    pub random_state: u64,
+}
+
+impl Default for ModelHyperparameters {
+    fn default() -> Self {
+        Self {
+            max_depth: Some(10),
+            n_estimators: 100,
+            learning_rate: 0.01,
+            regularization: 0.1,
+            min_samples_split: 2,
+            min_samples_leaf: 1,
+            max_features: 0.8,
+            random_state: 42,
+        }
+    }
+}
+
+/// 模型验证结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelValidationResult {
+    /// 训练集R²
+    pub train_r2: f64,
+    /// 验证集R²
+    pub val_r2: f64,
+    /// 测试集R²
+    pub test_r2: f64,
+    /// 均方误差
+    pub mse: f64,
+    /// 平均绝对误差
+    pub mae: f64,
+    /// 特征重要性
+    pub feature_importance: HashMap<String, f64>,
+    /// 预测vs实际的相关性
+    pub prediction_correlation: f64,
+    /// 模型复杂度分数
+    pub complexity_score: f64,
+}
+
+/// 真实的机器学习模型
+pub enum RealMLModel {
+    DecisionTree {
+        model: Option<DecisionTreeRegressor<f64, f64, DenseMatrix<f64>, Vec<f64>>>,
+        scaler: Option<StandardScaler<f64>>,
+    },
+    RandomForest {
+        model: Option<Box<dyn std::any::Any + Send + Sync>>,
+        scaler: Option<StandardScaler<f64>>,
+    },
+    LinearRegression {
+        model: Option<SmartLinearRegression<f64, f64, DenseMatrix<f64>, Vec<f64>>>,
+        scaler: Option<StandardScaler<f64>>,
+    },
+    LogisticRegression {
+        model: Option<smartcore::linear::logistic_regression::LogisticRegression<f64, i32, DenseMatrix<f64>, Vec<i32>>>,
+        scaler: Option<StandardScaler<f64>>,
+    },
+    Ensemble {
+        models: Vec<RealMLModel>,
+        weights: Vec<f64>,
+        meta_learner: Option<SmartLinearRegression<f64, f64, DenseMatrix<f64>, Vec<f64>>>,
+    },
+}
+
+impl RealMLModel {
+    /// 训练模型
+    pub fn train(
+        &mut self,
+        features: &Array2<f64>,
+        targets: &Array1<f64>,
+        hyperparams: &ModelHyperparameters,
+    ) -> Result<ModelValidationResult, StrategyError> {
+        match self {
+            RealMLModel::DecisionTree { model, scaler } => {
+                // 转换ndarray到DenseMatrix (smartcore要求的格式)
+                let n_samples = features.nrows();
+                let n_features = features.ncols();
+                let x_2d_vec: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let x_dense = DenseMatrix::from_2d_vec(&x_2d_vec);
+                let y_vec: Vec<f64> = targets.iter().cloned().collect();
+                
+                // 训练StandardScaler
+                let scaler_params = StandardScalerParameters::default();
+                let fitted_scaler = StandardScaler::fit(&x_dense, scaler_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Scaling failed: {:?}", e)))?;
+                
+                let scaled_x = fitted_scaler.transform(&x_dense)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Transform failed: {:?}", e)))?;
+                
+                // 训练决策树
+                let max_depth_u16 = match hyperparams.max_depth {
+                    Some(depth) => depth.min(u16::MAX as usize) as u16,
+                    None => 10, // 默认深度
+                };
+                let tree_params = DecisionTreeRegressorParameters::default()
+                    .with_max_depth(max_depth_u16)
+                    .with_min_samples_split(hyperparams.min_samples_split)
+                    .with_min_samples_leaf(hyperparams.min_samples_leaf);
+                
+                let fitted_tree = DecisionTreeRegressor::fit(&scaled_x, &y_vec, tree_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Tree training failed: {:?}", e)))?;
+                
+                *model = Some(fitted_tree);
+                *scaler = Some(fitted_scaler);
+                
+                // 计算验证指标
+                self.calculate_validation_metrics(features, targets)
+            },
+            
+            RealMLModel::RandomForest { model, scaler } => {
+                // 转换为smartcore格式
+                let feature_rows: Vec<Vec<f64>> = features.outer_iter()
+                    .map(|row| row.to_vec())
+                    .collect();
+                let feature_refs: Vec<&[f64]> = feature_rows.iter()
+                    .map(|row| row.as_slice())
+                    .collect();
+                let x_train = DenseMatrix::from_2d_array(&feature_refs);
+                let y_train: Vec<f64> = targets.to_vec();
+                
+                // 训练随机森林
+                let rf = RandomForestRegressor::fit(
+                    &x_train,
+                    &y_train,
+                    smartcore::ensemble::random_forest_regressor::RandomForestRegressorParameters::default()
+                        .with_n_trees(hyperparams.n_estimators)
+                        .with_max_depth(hyperparams.max_depth.unwrap_or(10) as u16 as u16)
+                        .with_min_samples_leaf(hyperparams.min_samples_leaf)
+                        .with_min_samples_split(hyperparams.min_samples_split)
+                        .with_seed(hyperparams.random_state)
+                ).map_err(|e| StrategyError::ModelTrainingError(format!("RF training failed: {:?}", e)))?;
+                
+                *model = Some(Box::new(rf));
+                
+                // 计算验证指标
+                self.calculate_validation_metrics(features, targets)
+            },
+            
+            RealMLModel::LinearRegression { model, scaler } => {
+                // 转换ndarray到DenseMatrix格式
+                let n_samples = features.nrows();
+                let n_features = features.ncols();
+                let x_2d_vec: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let x_dense = DenseMatrix::from_2d_vec(&x_2d_vec);
+                let y_vec: Vec<f64> = targets.iter().cloned().collect();
+                
+                // 训练StandardScaler
+                let scaler_params = StandardScalerParameters::default();
+                let fitted_scaler = StandardScaler::fit(&x_dense, scaler_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Scaling failed: {:?}", e)))?;
+                
+                let scaled_x = fitted_scaler.transform(&x_dense)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Transform failed: {:?}", e)))?;
+                
+                // 训练线性回归
+                let lr_params = LinearRegressionParameters::default();
+                let lr = SmartLinearRegression::fit(&scaled_x, &y_vec, lr_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Linear regression failed: {:?}", e)))?;
+                
+                *model = Some(lr);
+                *scaler = Some(fitted_scaler);
+                
+                self.calculate_validation_metrics(features, targets)
+            },
+            
+            RealMLModel::Ensemble { models, weights, meta_learner } => {
+                // 训练集成模型
+                let mut base_predictions = Array2::zeros((features.nrows(), models.len()));
+                
+                for (i, base_model) in models.iter_mut().enumerate() {
+                    base_model.train(features, targets, hyperparams)?;
+                    let preds = base_model.predict(features)?;
+                    base_predictions.column_mut(i).assign(&preds);
+                }
+                
+                // 训练元学习器
+                // 训练元学习器 - 使用smartcore的线性回归
+                let meta_n_samples = base_predictions.nrows();
+                let meta_n_features = base_predictions.ncols();
+                let meta_x_2d_vec: Vec<Vec<f64>> = base_predictions.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let meta_x_matrix = DenseMatrix::from_2d_vec(&meta_x_2d_vec);
+                let meta_y_vec: Vec<f64> = targets.iter().cloned().collect();
+                
+                let meta_params = LinearRegressionParameters::default();
+                let fitted_meta = SmartLinearRegression::fit(&meta_x_matrix, &meta_y_vec, meta_params)
+                    .map_err(|e| StrategyError::ModelTrainingError(format!("Meta learner failed: {:?}", e)))?;
+                
+                *meta_learner = Some(fitted_meta);
+                
+                self.calculate_validation_metrics(features, targets)
+            },
+            
+            _ => Err(StrategyError::ModelTrainingError("Unsupported model type".to_string())),
+        }
+    }
+    
+    /// 预测
+    pub fn predict(&self, features: &Array2<f64>) -> Result<Array1<f64>, StrategyError> {
+        match self {
+            RealMLModel::DecisionTree { model: Some(tree), scaler: Some(scaler) } => {
+                // 转换输入数据
+                let n_samples = features.nrows();
+                let n_features = features.ncols();
+                let x_2d_vec: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let x_matrix = DenseMatrix::from_2d_vec(&x_2d_vec);
+                
+                let scaled_x = scaler.transform(&x_matrix)
+                    .map_err(|e| StrategyError::PredictionError(format!("Transform failed: {:?}", e)))?;
+                let predictions = tree.predict(&scaled_x)
+                    .map_err(|e| StrategyError::PredictionError(format!("Tree prediction failed: {:?}", e)))?;
+                Ok(Array1::from_vec(predictions))
+            },
+            
+            RealMLModel::RandomForest { model: Some(rf), .. } => {
+                // 转换ndarray到DenseMatrix所需的格式
+                let rows: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let row_refs: Vec<&[f64]> = rows.iter()
+                    .map(|row| row.as_slice())
+                    .collect();
+                let x_test = DenseMatrix::from_2d_array(&row_refs);
+                let rf_any = rf.as_ref();
+                if let Some(rf_model) = rf_any.downcast_ref::<RandomForestRegressor<f64, f64, DenseMatrix<f64>, Vec<f64>>>() {
+                    let predictions = rf_model.predict(&x_test)
+                        .map_err(|e| StrategyError::PredictionError(format!("RF prediction failed: {:?}", e)))?;
+                    Ok(Array1::from_vec(predictions))
+                } else {
+                    Err(StrategyError::PredictionError("Failed to downcast RandomForest model".to_string()))
+                }
+            },
+            
+            RealMLModel::LinearRegression { model: Some(lr), scaler: Some(scaler) } => {
+                // 转换输入数据
+                let n_samples = features.nrows();
+                let n_features = features.ncols();
+                let x_2d_vec: Vec<Vec<f64>> = features.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let x_matrix = DenseMatrix::from_2d_vec(&x_2d_vec);
+                
+                let scaled_x = scaler.transform(&x_matrix)
+                    .map_err(|e| StrategyError::PredictionError(format!("Transform failed: {:?}", e)))?;
+                let predictions = lr.predict(&scaled_x)
+                    .map_err(|e| StrategyError::PredictionError(format!("LR prediction failed: {:?}", e)))?;
+                Ok(Array1::from_vec(predictions))
+            },
+            
+            RealMLModel::Ensemble { models, meta_learner: Some(meta), .. } => {
+                // 获取基础模型预测
+                let mut base_predictions = Array2::zeros((features.nrows(), models.len()));
+                
+                for (i, base_model) in models.iter().enumerate() {
+                    let preds = base_model.predict(features)?;
+                    base_predictions.column_mut(i).assign(&preds);
+                }
+                
+                // 转换为DenseMatrix格式
+                let meta_n_samples = base_predictions.nrows();
+                let meta_n_features = base_predictions.ncols();
+                let meta_x_2d_vec: Vec<Vec<f64>> = base_predictions.axis_iter(ndarray::Axis(0))
+                    .map(|row| row.to_vec())
+                    .collect();
+                let meta_x_matrix = DenseMatrix::from_2d_vec(&meta_x_2d_vec);
+                
+                let final_predictions = meta.predict(&meta_x_matrix)
+                    .map_err(|e| StrategyError::PredictionError(format!("Meta prediction failed: {:?}", e)))?;
+                Ok(Array1::from_vec(final_predictions))
+            },
+            
+            _ => Err(StrategyError::PredictionError("Model not trained".to_string())),
+        }
+    }
+    
+    /// 在线更新模型
+    pub fn update_online(
+        &mut self,
+        new_features: &Array2<f64>,
+        new_targets: &Array1<f64>,
+        learning_rate: f64,
+    ) -> Result<(), StrategyError> {
+        match self {
+            RealMLModel::LinearRegression { model: Some(lr), .. } => {
+                // 实现梯度下降在线更新
+                // 这里需要实现增量学习逻辑
+                Ok(())
+            },
+            _ => {
+                // 对于其他模型，重新训练
+                let hyperparams = ModelHyperparameters::default();
+                self.train(new_features, new_targets, &hyperparams)?;
+                Ok(())
+            }
+        }
+    }
+    
+    /// 计算验证指标
+    fn calculate_validation_metrics(
+        &self,
+        features: &Array2<f64>,
+        targets: &Array1<f64>,
+    ) -> Result<ModelValidationResult, StrategyError> {
+        let predictions = self.predict(features)?;
+        
+        // 计算R²
+        let targets_mean = targets.mean().unwrap_or(0.0);
+        let ss_tot: f64 = targets.iter().map(|&y| (y - targets_mean).powi(2)).sum();
+        let ss_res: f64 = targets.iter().zip(predictions.iter())
+            .map(|(&y, &pred)| (y - pred).powi(2)).sum();
+        let r2 = 1.0 - (ss_res / ss_tot);
+        
+        // 计算MSE
+        let mse: f64 = targets.iter().zip(predictions.iter())
+            .map(|(&y, &pred)| (y - pred).powi(2)).sum::<f64>() / targets.len() as f64;
+        
+        // 计算MAE
+        let mae: f64 = targets.iter().zip(predictions.iter())
+            .map(|(&y, &pred)| (y - pred).abs()).sum::<f64>() / targets.len() as f64;
+        
+        // 计算相关性
+        let correlation = self.calculate_correlation(&targets.to_vec(), &predictions.to_vec());
+        
+        Ok(ModelValidationResult {
+            train_r2: r2,
+            val_r2: r2, // 在实际实现中应该使用验证集
+            test_r2: r2, // 在实际实现中应该使用测试集
+            mse,
+            mae,
+            feature_importance: HashMap::new(), // 需要根据模型类型实现
+            prediction_correlation: correlation,
+            complexity_score: 0.5, // 需要根据模型复杂度计算
+        })
+    }
+    
+    fn calculate_correlation(&self, x: &[f64], y: &[f64]) -> f64 {
+        if x.len() != y.len() || x.is_empty() {
+            return 0.0;
+        }
+        
+        let x_mean = x.iter().sum::<f64>() / x.len() as f64;
+        let y_mean = y.iter().sum::<f64>() / y.len() as f64;
+        
+        let numerator: f64 = x.iter().zip(y.iter())
+            .map(|(&xi, &yi)| (xi - x_mean) * (yi - y_mean))
+            .sum();
+        
+        let x_var: f64 = x.iter().map(|&xi| (xi - x_mean).powi(2)).sum();
+        let y_var: f64 = y.iter().map(|&yi| (yi - y_mean).powi(2)).sum();
+        
+        if x_var == 0.0 || y_var == 0.0 {
+            0.0
+        } else {
+            numerator / (x_var * y_var).sqrt()
+        }
+    }
+}
+
+/// 高级特征工程器
+pub struct AdvancedFeatureEngineer {
+    config: FeatureEngineeringConfig,
+    feature_names: Vec<String>,
+    feature_importance: HashMap<String, f64>,
+    selected_features: Vec<usize>,
+}
+
+impl AdvancedFeatureEngineer {
+    pub fn new(config: FeatureEngineeringConfig) -> Self {
+        Self {
+            config,
+            feature_names: Vec::new(),
+            feature_importance: HashMap::new(),
+            selected_features: Vec::new(),
+        }
+    }
+    
+    /// 构建高级特征
+    pub fn engineer_features(
+        &mut self,
+        market_indicators: &[MarketIndicators],
+        price_history: &[f64],
+        volume_history: &[f64],
+        returns_history: &[f64],
+    ) -> Result<Array2<f64>, StrategyError> {
+        let mut features = Vec::new();
+        let mut feature_names: Vec<String> = Vec::new();
+        
+        // 1. 基础市场指标特征
+        if let Some(latest) = market_indicators.last() {
+            features.extend_from_slice(&[
+                latest.volatility_1h,
+                latest.volatility_4h,
+                latest.volatility_24h,
+                latest.liquidity_index,
+                latest.bid_ask_spread,
+                latest.order_book_depth,
+                latest.volume_ratio_1h,
+                latest.volume_ratio_4h,
+                latest.max_price_change_1m,
+                latest.max_price_change_5m,
+                latest.average_slippage,
+                latest.api_latency_avg,
+                latest.api_error_rate,
+                latest.api_success_rate,
+                latest.external_event_risk,
+                latest.news_sentiment_score,
+            ]);
+            
+            feature_names.extend([
+                "volatility_1h".to_string(), "volatility_4h".to_string(), "volatility_24h".to_string(),
+                "liquidity_index".to_string(), "bid_ask_spread".to_string(), "order_book_depth".to_string(),
+                "volume_ratio_1h".to_string(), "volume_ratio_4h".to_string(),
+                "max_price_change_1m".to_string(), "max_price_change_5m".to_string(),
+                "average_slippage".to_string(), "api_latency_avg".to_string(), "api_error_rate".to_string(),
+                "api_success_rate".to_string(), "external_event_risk".to_string(), "news_sentiment_score".to_string()
+            ]);
+        }
+        
+        // 2. 技术指标特征
+        for &window in &self.config.technical_indicator_windows {
+            if price_history.len() >= window {
+                let recent_prices = &price_history[price_history.len() - window..];
+                
+                // 移动平均
+                let ma = recent_prices.iter().sum::<f64>() / window as f64;
+                features.push(ma);
+                feature_names.push(format!("ma_{}", window));
+                
+                // RSI
+                let rsi = self.calculate_rsi(recent_prices);
+                features.push(rsi);
+                feature_names.push(format!("rsi_{}", window));
+                
+                // 布林带
+                let (bb_upper, bb_lower, bb_width) = self.calculate_bollinger_bands(recent_prices, 2.0);
+                features.extend_from_slice(&[bb_upper, bb_lower, bb_width]);
+                feature_names.extend_from_slice(&[
+                    format!("bb_upper_{}", window),
+                    format!("bb_lower_{}", window),
+                    format!("bb_width_{}", window)
+                ]);
+                
+                // MACD
+                if window >= 26 {
+                    let macd = self.calculate_macd(recent_prices);
+                    features.push(macd);
+                    feature_names.push(format!("macd_{}", window));
+                }
+            }
+        }
+        
+        // 3. 滞后特征
+        for lag in 1..=self.config.lag_features {
+            if price_history.len() > lag {
+                let lagged_price = price_history[price_history.len() - 1 - lag];
+                features.push(lagged_price);
+                feature_names.push(format!("price_lag_{}", lag));
+            }
+            
+            if returns_history.len() > lag {
+                let lagged_return = returns_history[returns_history.len() - 1 - lag];
+                features.push(lagged_return);
+                feature_names.push(format!("return_lag_{}", lag));
+            }
+        }
+        
+        // 4. 滑动窗口统计特征
+        for &window in &self.config.rolling_stats_windows {
+            if price_history.len() >= window {
+                let recent_prices = &price_history[price_history.len() - window..];
+                
+                // 统计特征
+                let mean = recent_prices.iter().sum::<f64>() / window as f64;
+                let variance = recent_prices.iter()
+                    .map(|&x| (x - mean).powi(2))
+                    .sum::<f64>() / window as f64;
+                let std_dev = variance.sqrt();
+                let skewness = self.calculate_skewness(recent_prices, mean, std_dev);
+                let kurtosis = self.calculate_kurtosis(recent_prices, mean, std_dev);
+                
+                features.extend_from_slice(&[mean, std_dev, skewness, kurtosis]);
+                feature_names.extend_from_slice(&[
+                    format!("mean_{}", window),
+                    format!("std_{}", window),
+                    format!("skew_{}", window),
+                    format!("kurt_{}", window)
+                ]);
+                
+                // 分位数特征
+                let mut sorted_prices = recent_prices.to_vec();
+                sorted_prices.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                let q25 = sorted_prices[window / 4];
+                let q50 = sorted_prices[window / 2];
+                let q75 = sorted_prices[3 * window / 4];
+                
+                features.extend_from_slice(&[q25, q50, q75]);
+                feature_names.extend_from_slice(&[
+                    format!("q25_{}", window),
+                    format!("q50_{}", window),
+                    format!("q75_{}", window)
+                ]);
+            }
+        }
+        
+        // 5. 差分特征
+        for &order in &self.config.difference_orders {
+            if price_history.len() > order {
+                let diff = price_history[price_history.len() - 1] - price_history[price_history.len() - 1 - order];
+                features.push(diff);
+                feature_names.push(format!("diff_{}", order));
+            }
+        }
+        
+        // 6. 交叉特征（如果启用）
+        if self.config.include_interaction_features && features.len() >= 2 {
+            let base_feature_count = features.len();
+            for i in 0..std::cmp::min(base_feature_count, 5) {
+                for j in i+1..std::cmp::min(base_feature_count, 5) {
+                    features.push(features[i] * features[j]);
+                    feature_names.push(format!("{}_{}_interaction", feature_names[i], feature_names[j]));
+                }
+            }
+        }
+        
+        // 7. 市场微观结构特征
+        if let Some(latest) = market_indicators.last() {
+            // 订单流失衡
+            let order_flow_imbalance = (latest.liquidity_index - 0.5) * 2.0; // 标准化到[-1, 1]
+            features.push(order_flow_imbalance);
+            feature_names.push("order_flow_imbalance".to_string());
+            
+            // 价差动态
+            let spread_volatility = latest.bid_ask_spread / latest.liquidity_index.max(0.001);
+            features.push(spread_volatility);
+            feature_names.push("spread_volatility".to_string());
+            
+            // API质量得分
+            let api_quality = latest.api_success_rate * (1.0 - latest.api_error_rate) / (latest.api_latency_avg / 1000.0).max(0.001);
+            features.push(api_quality);
+            feature_names.push("api_quality_score".to_string());
+        }
+        
+        self.feature_names = feature_names;
+        
+        // 转换为ndarray格式
+        if features.is_empty() {
+            return Err(StrategyError::FeatureEngineeringError("No features generated".to_string()));
+        }
+        
+        let feature_matrix = Array2::from_shape_vec((1, features.len()), features)
+            .map_err(|e| StrategyError::FeatureEngineeringError(format!("Array creation failed: {:?}", e)))?;
+        
+        Ok(feature_matrix)
+    }
+    
+    /// 特征选择
+    pub fn select_features(
+        &mut self,
+        features: &Array2<f64>,
+        targets: &Array1<f64>,
+    ) -> Result<Array2<f64>, StrategyError> {
+        if !self.config.enable_feature_selection {
+            return Ok(features.clone());
+        }
+        
+        let mut correlations = Vec::new();
+        
+        // 计算每个特征与目标的相关性
+        for feature_idx in 0..features.ncols() {
+            let feature_col = features.column(feature_idx);
+            let correlation = self.calculate_feature_correlation(&feature_col.to_vec(), &targets.to_vec());
+            correlations.push((feature_idx, correlation.abs()));
+        }
+        
+        // 按相关性排序
+        correlations.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        
+        // 选择重要特征
+        self.selected_features = correlations
+            .iter()
+            .filter(|(_, corr)| *corr >= self.config.feature_selection_threshold)
+            .map(|(idx, _)| *idx)
+            .collect();
+        
+        if self.selected_features.is_empty() {
+            // 如果没有特征满足阈值，选择前50%的特征
+            self.selected_features = correlations
+                .iter()
+                .take(correlations.len() / 2)
+                .map(|(idx, _)| *idx)
+                .collect();
+        }
+        
+        // 提取选定的特征
+        let selected_features = Array2::from_shape_fn(
+            (features.nrows(), self.selected_features.len()),
+            |(row, col)| features[[row, self.selected_features[col]]]
+        );
+        
+        Ok(selected_features)
+    }
+    
+    // 技术指标计算方法
+    fn calculate_rsi(&self, prices: &[f64]) -> f64 {
+        if prices.len() < 2 {
+            return 50.0;
+        }
+        
+        let mut gains = Vec::new();
+        let mut losses = Vec::new();
+        
+        for i in 1..prices.len() {
+            let change = prices[i] - prices[i-1];
+            if change > 0.0 {
+                gains.push(change);
+                losses.push(0.0);
+            } else {
+                gains.push(0.0);
+                losses.push(-change);
+            }
+        }
+        
+        let avg_gain = gains.iter().sum::<f64>() / gains.len() as f64;
+        let avg_loss = losses.iter().sum::<f64>() / losses.len() as f64;
+        
+        if avg_loss == 0.0 {
+            return 100.0;
+        }
+        
+        let rs = avg_gain / avg_loss;
+        100.0 - (100.0 / (1.0 + rs))
+    }
+    
+    fn calculate_bollinger_bands(&self, prices: &[f64], std_multiplier: f64) -> (f64, f64, f64) {
+        let mean = prices.iter().sum::<f64>() / prices.len() as f64;
+        let variance = prices.iter()
+            .map(|&x| (x - mean).powi(2))
+            .sum::<f64>() / prices.len() as f64;
+        let std_dev = variance.sqrt();
+        
+        let upper = mean + std_multiplier * std_dev;
+        let lower = mean - std_multiplier * std_dev;
+        let width = upper - lower;
+        
+        (upper, lower, width)
+    }
+    
+    fn calculate_macd(&self, prices: &[f64]) -> f64 {
+        if prices.len() < 26 {
+            return 0.0;
+        }
+        
+        let ema12 = self.calculate_ema(&prices, 12);
+        let ema26 = self.calculate_ema(&prices, 26);
+        
+        ema12 - ema26
+    }
+    
+    fn calculate_ema(&self, prices: &[f64], period: usize) -> f64 {
+        if prices.is_empty() {
+            return 0.0;
+        }
+        
+        let alpha = 2.0 / (period as f64 + 1.0);
+        let mut ema = prices[0];
+        
+        for &price in prices.iter().skip(1) {
+            ema = alpha * price + (1.0 - alpha) * ema;
+        }
+        
+        ema
+    }
+    
+    fn calculate_skewness(&self, data: &[f64], mean: f64, std_dev: f64) -> f64 {
+        if std_dev == 0.0 || data.len() < 3 {
+            return 0.0;
+        }
+        
+        let n = data.len() as f64;
+        let sum_cubed_deviations: f64 = data.iter()
+            .map(|&x| ((x - mean) / std_dev).powi(3))
+            .sum();
+        
+        (n / ((n - 1.0) * (n - 2.0))) * sum_cubed_deviations
+    }
+    
+    fn calculate_kurtosis(&self, data: &[f64], mean: f64, std_dev: f64) -> f64 {
+        if std_dev == 0.0 || data.len() < 4 {
+            return 3.0; // 正态分布的峰度
+        }
+        
+        let n = data.len() as f64;
+        let sum_fourth_deviations: f64 = data.iter()
+            .map(|&x| ((x - mean) / std_dev).powi(4))
+            .sum();
+        
+        let kurtosis = (n * (n + 1.0) / ((n - 1.0) * (n - 2.0) * (n - 3.0))) * sum_fourth_deviations;
+        kurtosis - 3.0 * ((n - 1.0).powi(2) / ((n - 2.0) * (n - 3.0)))
+    }
+    
+    fn calculate_feature_correlation(&self, x: &[f64], y: &[f64]) -> f64 {
+        if x.len() != y.len() || x.is_empty() {
+            return 0.0;
+        }
+        
+        let x_mean = x.iter().sum::<f64>() / x.len() as f64;
+        let y_mean = y.iter().sum::<f64>() / y.len() as f64;
+        
+        let numerator: f64 = x.iter().zip(y.iter())
+            .map(|(&xi, &yi)| (xi - x_mean) * (yi - y_mean))
+            .sum();
+        
+        let x_var: f64 = x.iter().map(|&xi| (xi - x_mean).powi(2)).sum();
+        let y_var: f64 = y.iter().map(|&yi| (yi - y_mean).powi(2)).sum();
+        
+        if x_var == 0.0 || y_var == 0.0 {
+            0.0
+        } else {
+            numerator / (x_var * y_var).sqrt()
+        }
+    }
+    
+    pub fn get_feature_names(&self) -> &[String] {
+        &self.feature_names
+    }
+    
+    pub fn get_selected_feature_indices(&self) -> &[usize] {
+        &self.selected_features
+    }
+}
+
+/// 执行记录（包含丰富特征）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArbitrageExecutionRecord {
+    pub strategy_id: String,
+    pub execution_id: String,
+    pub timestamp: DateTime<Utc>,
+    pub market_indicators: MarketIndicators,
+    pub min_profit_used: f64,
+    pub predicted_profit: f64,
+    pub actual_profit: f64,
+    pub success: bool,
+    pub execution_time_ms: f64,
+    pub slippage: f64,
+    pub market_impact: f64,
+    pub confidence_score: f64,
+    pub features_used: Vec<f64>,
+    pub feature_names: Vec<String>,
+}
+
+/// min_profit自适应配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdaptiveProfitConfig {
+    /// 基础阈值配置
+    pub base_thresholds: StateBasedThresholds,
+    /// 机器学习配置
+    pub ml_config: MLConfig,
+    /// 特征工程配置
+    pub feature_config: FeatureEngineeringConfig,
+    /// 在线学习配置
+    pub online_learning_config: OnlineLearningConfig,
+    /// 模型验证配置
+    pub validation_config: ModelValidationConfig,
+}
+
+/// 基于状态的阈值配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StateBasedThresholds {
+    pub normal_min: f64,
+    pub normal_max: f64,
+    pub cautious_min: f64,
+    pub cautious_max: f64,
+    pub extreme_min: f64,
+    pub extreme_max: f64,
+}
+
+impl Default for StateBasedThresholds {
+    fn default() -> Self {
+        Self {
+            normal_min: 0.005,   // 0.5%
+            normal_max: 0.008,   // 0.8%
+            cautious_min: 0.012, // 1.2%
+            cautious_max: 0.018, // 1.8%
+            extreme_min: 0.020,  // 2.0%
+            extreme_max: 0.035,  // 3.5%
+        }
+    }
+}
+
+/// 机器学习配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MLConfig {
+    /// 主要模型类型
+    pub primary_model: MLModelType,
+    /// 集成模型列表
+    pub ensemble_models: Vec<MLModelType>,
+    /// 模型超参数
+    pub hyperparameters: ModelHyperparameters,
+    /// 训练数据最小量
+    pub min_training_samples: usize,
+    /// 模型重训练间隔（小时）
+    pub retrain_interval_hours: u64,
+    /// 交叉验证折数
+    pub cv_folds: usize,
+    /// 早停参数
+    pub early_stopping_patience: usize,
+}
+
+impl Default for MLConfig {
+    fn default() -> Self {
+        Self {
+            primary_model: MLModelType::RandomForest,
+            ensemble_models: vec![
+                MLModelType::DecisionTree,
+                MLModelType::RandomForest,
+                MLModelType::LinearRegression,
+            ],
+            hyperparameters: ModelHyperparameters::default(),
+            min_training_samples: 100,
+            retrain_interval_hours: 24,
+            cv_folds: 5,
+            early_stopping_patience: 10,
+        }
+    }
+}
+
+/// 在线学习配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OnlineLearningConfig {
+    /// 是否启用在线学习
+    pub enabled: bool,
+    /// 学习率
+    pub learning_rate: f64,
+    /// 学习率衰减
+    pub learning_rate_decay: f64,
+    /// 批次大小
+    pub batch_size: usize,
+    /// 概念漂移检测阈值
+    pub drift_detection_threshold: f64,
+    /// 滑动窗口大小
+    pub sliding_window_size: usize,
+    /// 遗忘因子
+    pub forgetting_factor: f64,
+}
+
+impl Default for OnlineLearningConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            learning_rate: 0.01,
+            learning_rate_decay: 0.995,
+            batch_size: 32,
+            drift_detection_threshold: 0.05,
+            sliding_window_size: 1000,
+            forgetting_factor: 0.99,
+        }
+    }
+}
+
+/// 模型验证配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelValidationConfig {
+    /// 验证集比例
+    pub validation_split: f64,
+    /// 测试集比例
+    pub test_split: f64,
+    /// 最小R²阈值
+    pub min_r2_threshold: f64,
+    /// 最大MSE阈值
+    pub max_mse_threshold: f64,
+    /// A/B测试配置
+    pub ab_test_enabled: bool,
+    /// A/B测试流量比例
+    pub ab_test_traffic_ratio: f64,
+    /// 模型选择策略
+    pub model_selection_strategy: ModelSelectionStrategy,
+}
+
+impl Default for ModelValidationConfig {
+    fn default() -> Self {
+        Self {
+            validation_split: 0.2,
+            test_split: 0.1,
+            min_r2_threshold: 0.3,
+            max_mse_threshold: 0.01,
+            ab_test_enabled: true,
+            ab_test_traffic_ratio: 0.1,
+            model_selection_strategy: ModelSelectionStrategy::BestValidationScore,
+        }
+    }
+}
+
+/// 模型选择策略
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ModelSelectionStrategy {
+    BestValidationScore,
+    BestTestScore,
+    EnsembleWeightedAverage,
+    BayesianOptimization,
+}
+
+/// 模型训练结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelTrainingResult {
+    pub model_id: String,
+    pub training_timestamp: DateTime<Utc>,
+    pub model_type: MLModelType,
+    pub training_samples: usize,
+    pub validation_result: ModelValidationResult,
+    pub hyperparameters: ModelHyperparameters,
+    pub training_time_seconds: f64,
+    pub model_size_bytes: usize,
+}
+
+/// 实时自适应min_profit系统
+pub struct RealAdaptiveProfitModel {
+    /// 配置
+    config: Arc<RwLock<AdaptiveProfitConfig>>,
+    /// 主要ML模型
+    primary_model: Arc<ParkingRwLock<RealMLModel>>,
+    /// 集成模型
+    ensemble_models: Arc<ParkingRwLock<Vec<RealMLModel>>>,
+    /// 特征工程器
+    feature_engineer: Arc<ParkingRwLock<AdvancedFeatureEngineer>>,
+    /// 执行历史
+    execution_history: Arc<RwLock<Vec<ArbitrageExecutionRecord>>>,
+    /// 当前阈值缓存
+    current_thresholds: Arc<RwLock<HashMap<(String, MarketState), f64>>>,
+    /// 模型性能监控
+    model_performance: Arc<RwLock<HashMap<String, ModelValidationResult>>>,
+    /// 在线学习缓冲区
+    online_buffer: Arc<RwLock<Vec<(Array1<f64>, f64)>>>,
+    /// 预测缓存
+    prediction_cache: Arc<ParkingRwLock<HashMap<String, (f64, DateTime<Utc>)>>>,
+    /// 最后训练时间
+    last_training_time: Arc<RwLock<DateTime<Utc>>>,
+    /// 概念漂移检测器
+    drift_detector: Arc<RwLock<ConceptDriftDetector>>,
+}
+
+/// 概念漂移检测器
+#[derive(Debug)]
+pub struct ConceptDriftDetector {
+    reference_window: Vec<f64>,
+    current_window: Vec<f64>,
+    window_size: usize,
+    drift_threshold: f64,
+}
+
+impl ConceptDriftDetector {
+    pub fn new(window_size: usize, drift_threshold: f64) -> Self {
+        Self {
+            reference_window: Vec::with_capacity(window_size),
+            current_window: Vec::with_capacity(window_size),
+            window_size,
+            drift_threshold,
+        }
+    }
+    
+    pub fn add_sample(&mut self, error: f64) {
+        if self.reference_window.len() < self.window_size {
+            self.reference_window.push(error);
+        } else {
+            self.current_window.push(error);
+            if self.current_window.len() > self.window_size {
+                self.current_window.remove(0);
+            }
+        }
+    }
+    
+    pub fn detect_drift(&self) -> bool {
+        if self.reference_window.len() < self.window_size || self.current_window.len() < self.window_size {
+            return false;
+        }
+        
+        // Kolmogorov-Smirnov测试检测分布变化
+        let ks_statistic = self.ks_test(&self.reference_window, &self.current_window);
+        ks_statistic > self.drift_threshold
+    }
+    
+    fn ks_test(&self, sample1: &[f64], sample2: &[f64]) -> f64 {
+        let mut combined: Vec<f64> = sample1.iter().chain(sample2.iter()).cloned().collect();
+        combined.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        
+        let mut max_diff: f64 = 0.0;
+        let n1 = sample1.len() as f64;
+        let n2 = sample2.len() as f64;
+        
+        for &value in &combined {
+            let cdf1 = sample1.iter().filter(|&&x| x <= value).count() as f64 / n1;
+            let cdf2 = sample2.iter().filter(|&&x| x <= value).count() as f64 / n2;
+            max_diff = max_diff.max((cdf1 - cdf2).abs());
+        }
+        
+        max_diff
+    }
+    
+    pub fn reset(&mut self) {
+        self.reference_window = self.current_window.clone();
+        self.current_window.clear();
+    }
+}
+
+impl RealAdaptiveProfitModel {
+    /// 创建新的自适应模型
+    pub fn new(config: AdaptiveProfitConfig) -> Self {
+        let feature_engineer = AdvancedFeatureEngineer::new(config.feature_config.clone());
+        
+        // 初始化主要模型
+        let primary_model = match config.ml_config.primary_model {
+            MLModelType::DecisionTree => RealMLModel::DecisionTree { model: None, scaler: None },
+            MLModelType::RandomForest => RealMLModel::RandomForest { model: None, scaler: None },
+            MLModelType::LinearRegression => RealMLModel::LinearRegression { model: None, scaler: None },
+            MLModelType::LogisticRegression => RealMLModel::LogisticRegression { model: None, scaler: None },
+            MLModelType::EnsembleMethod => RealMLModel::Ensemble { 
+                models: Vec::new(), 
+                weights: Vec::new(), 
+                meta_learner: None 
+            },
+            _ => RealMLModel::RandomForest { model: None, scaler: None },
+        };
+        
+        // 初始化集成模型
+        let ensemble_models = config.ml_config.ensemble_models.iter().map(|model_type| {
+            match model_type {
+                MLModelType::DecisionTree => RealMLModel::DecisionTree { model: None, scaler: None },
+                MLModelType::RandomForest => RealMLModel::RandomForest { model: None, scaler: None },
+                MLModelType::LinearRegression => RealMLModel::LinearRegression { model: None, scaler: None },
+                _ => RealMLModel::RandomForest { model: None, scaler: None },
+            }
+        }).collect();
+        
+        let drift_detector = ConceptDriftDetector::new(
+            config.online_learning_config.sliding_window_size,
+            config.online_learning_config.drift_detection_threshold,
+        );
+        
+        Self {
+            config: Arc::new(RwLock::new(config)),
+            primary_model: Arc::new(ParkingRwLock::new(primary_model)),
+            ensemble_models: Arc::new(ParkingRwLock::new(ensemble_models)),
+            feature_engineer: Arc::new(ParkingRwLock::new(feature_engineer)),
+            execution_history: Arc::new(RwLock::new(Vec::new())),
+            current_thresholds: Arc::new(RwLock::new(HashMap::new())),
+            model_performance: Arc::new(RwLock::new(HashMap::new())),
+            online_buffer: Arc::new(RwLock::new(Vec::new())),
+            prediction_cache: Arc::new(ParkingRwLock::new(HashMap::new())),
+            last_training_time: Arc::new(RwLock::new(Utc::now() - Duration::days(1))),
+            drift_detector: Arc::new(RwLock::new(drift_detector)),
+        }
+    }
+    
+    /// 获取动态min_profit阈值
+    pub async fn get_adaptive_min_profit(
+        &self,
+        strategy_type: &str,
+        market_state: MarketState,
+        market_indicators: &MarketIndicators,
+        price_history: &[f64],
+        volume_history: &[f64],
+        returns_history: &[f64],
+    ) -> Result<f64, StrategyError> {
+        // 构建缓存键
+        let cache_key = format!("{}_{:?}_{}", strategy_type, market_state, market_indicators.timestamp.timestamp());
+        
+        // 检查缓存
+        if let Some((cached_value, cache_time)) = self.prediction_cache.read().get(&cache_key) {
+            if Utc::now().signed_duration_since(*cache_time).num_seconds() < 60 {
+                return Ok(*cached_value);
+            }
+        }
+        
+        // 生成特征
+        let features = {
+            let mut engineer = self.feature_engineer.write();
+            engineer.engineer_features(
+                &[market_indicators.clone()],
+                price_history,
+                volume_history,
+                returns_history,
+            )?
+        };
+        
+        // 获取预测
+        let prediction = if self.should_use_ensemble().await {
+            self.predict_with_ensemble(&features).await?
+        } else {
+            self.predict_with_primary_model(&features).await?
+        };
+        
+        // 应用市场状态调整
+        let base_thresholds = &self.config.read().await.base_thresholds;
+        let (min_threshold, max_threshold) = match market_state {
+            MarketState::Normal => (base_thresholds.normal_min, base_thresholds.normal_max),
+            MarketState::Cautious => (base_thresholds.cautious_min, base_thresholds.cautious_max),
+            MarketState::Extreme => (base_thresholds.extreme_min, base_thresholds.extreme_max),
+        };
+        
+        // 将预测映射到合理范围
+        let adjusted_prediction = min_threshold + (max_threshold - min_threshold) * prediction.max(0.0).min(1.0);
+        
+        // 更新缓存
+        self.prediction_cache.write().insert(cache_key, (adjusted_prediction, Utc::now()));
+        
+        // 记录预测用于后续验证
+        self.record_prediction(strategy_type, market_state, adjusted_prediction, features).await;
+        
+        Ok(adjusted_prediction)
+    }
+    
+    /// 记录套利执行结果并更新模型
+    pub async fn record_execution_and_learn(
+        &self,
+        record: ArbitrageExecutionRecord,
+    ) -> Result<(), StrategyError> {
+        // 记录执行历史
+        {
+            let mut history = self.execution_history.write().await;
+            history.push(record.clone());
+            
+            // 保持历史大小在合理范围内
+            if history.len() > 10000 {
+                history.drain(0..1000);
+            }
+        }
+        
+        // 在线学习更新
+        if self.config.read().await.online_learning_config.enabled {
+            self.update_online_learning(&record).await?;
+        }
+        
+        // 检查是否需要重新训练
+        if self.should_retrain().await? {
+            self.retrain_models().await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// 在线学习更新
+    async fn update_online_learning(
+        &self,
+        record: &ArbitrageExecutionRecord,
+    ) -> Result<(), StrategyError> {
+        let features = Array1::from_vec(record.features_used.clone());
+        let target = if record.success { 
+            (record.actual_profit / record.predicted_profit).max(0.0).min(2.0)
+        } else { 
+            0.0 
+        };
+        
+        // 添加到在线学习缓冲区
+        {
+            let mut buffer = self.online_buffer.write().await;
+            buffer.push((features.clone(), target));
+            
+            let config = self.config.read().await;
+            if buffer.len() >= config.online_learning_config.batch_size {
+                // 执行批量在线更新
+                let features_batch = Array2::from_shape_fn(
+                    (buffer.len(), features.len()),
+                    |(row, col)| buffer[row].0[col]
+                );
+                let targets_batch = Array1::from_iter(buffer.iter().map(|(_, t)| *t));
+                
+                // 更新主要模型
+                {
+                    let mut model = self.primary_model.write();
+                    model.update_online(
+                        &features_batch,
+                        &targets_batch,
+                        config.online_learning_config.learning_rate,
+                    )?;
+                }
+                
+                buffer.clear();
+            }
+        }
+        
+        // 概念漂移检测
+        let prediction_error = (record.predicted_profit - record.actual_profit).abs();
+        {
+            let mut drift_detector = self.drift_detector.write().await;
+            drift_detector.add_sample(prediction_error);
+            
+            if drift_detector.detect_drift() {
+                tracing::warn!("Concept drift detected, triggering model retraining");
+                self.retrain_models().await?;
+                drift_detector.reset();
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// 判断是否应该使用集成模型
+    async fn should_use_ensemble(&self) -> bool {
+        let performance = self.model_performance.read().await;
+        
+        // 如果主模型性能不佳，使用集成模型
+        if let Some(primary_perf) = performance.get("primary") {
+            primary_perf.val_r2 < 0.5 || primary_perf.mse > 0.05
+        } else {
+            false
+        }
+    }
+    
+    /// 使用主要模型预测
+    async fn predict_with_primary_model(&self, features: &Array2<f64>) -> Result<f64, StrategyError> {
+        let model = self.primary_model.read();
+        let predictions = model.predict(features)?;
+        Ok(predictions[0])
+    }
+    
+    /// 使用集成模型预测
+    async fn predict_with_ensemble(&self, features: &Array2<f64>) -> Result<f64, StrategyError> {
+        let models = self.ensemble_models.read();
+        let mut predictions = Vec::new();
+        
+        for model in models.iter() {
+            let pred = model.predict(features)?;
+            predictions.push(pred[0]);
+        }
+        
+        // 简单平均（可以改为加权平均）
+        let ensemble_prediction = predictions.iter().sum::<f64>() / predictions.len() as f64;
+        Ok(ensemble_prediction)
+    }
+    
+    /// 判断是否需要重新训练
+    async fn should_retrain(&self) -> Result<bool, StrategyError> {
+        let config = self.config.read().await;
+        let last_training = *self.last_training_time.read().await;
+        let time_since_training = Utc::now().signed_duration_since(last_training);
+        
+        // 检查时间间隔
+        if time_since_training.num_hours() >= config.ml_config.retrain_interval_hours as i64 {
+            return Ok(true);
+        }
+        
+        // 检查数据量
+        let history_len = self.execution_history.read().await.len();
+        if history_len >= config.ml_config.min_training_samples * 2 {
+            return Ok(true);
+        }
+        
+        Ok(false)
+    }
+    
+    /// 重新训练所有模型
+    pub async fn retrain_models(&self) -> Result<(), StrategyError> {
+        let history = self.execution_history.read().await;
+        if history.len() < self.config.read().await.ml_config.min_training_samples {
+            return Err(StrategyError::ValidationError(
+                format!("Not enough data for training: {} < {}", 
+                    history.len(), 
+                    self.config.read().await.ml_config.min_training_samples)
+            ));
+        }
+        
+        // 准备训练数据
+        let (features, targets) = self.prepare_training_data(&history).await?;
+        
+        // 特征选择
+        let selected_features = {
+            let mut engineer = self.feature_engineer.write();
+            engineer.select_features(&features, &targets)?
+        };
+        
+        let config = self.config.read().await;
+        
+        // 训练主要模型
+        {
+            let mut model = self.primary_model.write();
+            let validation_result = model.train(&selected_features, &targets, &config.ml_config.hyperparameters)?;
+            
+            // 记录性能
+            self.model_performance.write().await.insert("primary".to_string(), validation_result.clone());
+            
+            tracing::info!(
+                model_type = ?config.ml_config.primary_model,
+                r2 = %validation_result.val_r2,
+                mse = %validation_result.mse,
+                "Primary model trained"
+            );
+        }
+        
+        // 训练集成模型
+        {
+            let mut models = self.ensemble_models.write();
+            for (i, model) in models.iter_mut().enumerate() {
+                let validation_result = model.train(&selected_features, &targets, &config.ml_config.hyperparameters)?;
+                self.model_performance.write().await.insert(format!("ensemble_{}", i), validation_result.clone());
+                
+                tracing::debug!(
+                    model_index = i,
+                    r2 = %validation_result.val_r2,
+                    mse = %validation_result.mse,
+                    "Ensemble model trained"
+                );
+            }
+        }
+        
+        // 更新最后训练时间
+        *self.last_training_time.write().await = Utc::now();
+        
+        // 清理预测缓存
+        self.prediction_cache.write().clear();
+        
+        Ok(())
+    }
+    
+    /// 准备训练数据
+    async fn prepare_training_data(
+        &self,
+        history: &[ArbitrageExecutionRecord],
+    ) -> Result<(Array2<f64>, Array1<f64>), StrategyError> {
+        let mut all_features = Vec::new();
+        let mut all_targets = Vec::new();
+        
+        for record in history {
+            if !record.features_used.is_empty() {
+                all_features.push(record.features_used.clone());
+                
+                // 目标变量：实际利润与预测利润的比率（成功率指标）
+                let target = if record.success {
+                    (record.actual_profit / record.predicted_profit.max(0.001))
+                        .max(0.0).min(2.0) // 限制在合理范围内
+                } else {
+                    0.0
+                };
+                all_targets.push(target);
+            }
+        }
+        
+        if all_features.is_empty() {
+            return Err(StrategyError::ValidationError("No feature data available".to_string()));
+        }
+        
+        let feature_dim = all_features[0].len();
+        let features = Array2::from_shape_fn(
+            (all_features.len(), feature_dim),
+            |(row, col)| all_features[row][col]
+        );
+        let targets = Array1::from_vec(all_targets);
+        
+        Ok((features, targets))
+    }
+    
+    /// 记录预测用于后续验证
+    async fn record_prediction(
+        &self,
+        strategy_type: &str,
+        market_state: MarketState,
+        prediction: f64,
+        features: Array2<f64>,
+    ) {
+        // 这里可以记录预测结果用于后续的A/B测试和模型评估
+        tracing::debug!(
+            strategy_type = %strategy_type,
+            market_state = ?market_state,
+            prediction = %prediction,
+            "Min profit prediction made"
+        );
+    }
+    
+    /// 获取模型性能统计
+    pub async fn get_model_performance(&self) -> HashMap<String, ModelValidationResult> {
+        self.model_performance.read().await.clone()
+    }
+    
+    /// 获取当前特征重要性
+    pub async fn get_feature_importance(&self) -> HashMap<String, f64> {
+        let performance = self.model_performance.read().await;
+        performance.get("primary")
+            .map(|p| p.feature_importance.clone())
+            .unwrap_or_default()
+    }
+    
+    /// 强制重新训练
+    pub async fn force_retrain(&self) -> Result<(), StrategyError> {
+        *self.last_training_time.write().await = Utc::now() - Duration::days(1);
+        self.retrain_models().await
+    }
+    
+    /// 获取预测置信度
+    pub async fn get_prediction_confidence(
+        &self,
+        features: &Array2<f64>,
+    ) -> Result<f64, StrategyError> {
+        // 使用集成模型的预测方差作为置信度指标
+        let models = self.ensemble_models.read();
+        let mut predictions = Vec::new();
+        
+        for model in models.iter() {
+            let pred = model.predict(features)?;
+            predictions.push(pred[0]);
+        }
+        
+        if predictions.len() < 2 {
+            return Ok(0.5); // 默认置信度
+        }
+        
+        let mean = predictions.iter().sum::<f64>() / predictions.len() as f64;
+        let variance = predictions.iter()
+            .map(|&x| (x - mean).powi(2))
+            .sum::<f64>() / predictions.len() as f64;
+        
+        // 置信度与方差成反比
+        let confidence = 1.0 / (1.0 + variance);
+        Ok(confidence)
+    }
+}
+
+impl Default for AdaptiveProfitConfig {
+    fn default() -> Self {
+        Self {
+            base_thresholds: StateBasedThresholds::default(),
+            ml_config: MLConfig::default(),
+            feature_config: FeatureEngineeringConfig::default(),
+            online_learning_config: OnlineLearningConfig::default(),
+            validation_config: ModelValidationConfig::default(),
+        }
+    }
+} 
+ 

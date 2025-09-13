@@ -1,0 +1,433 @@
+# 高频套利监控系统完整配置
+# 基于 arbitrage_monitor.rs 的生产级配置
+
+[system]
+name = "celue-arbitrage-monitor"
+version = "1.0.0"
+environment = "production"
+log_level = "info"
+enable_metrics = true
+
+[performance]
+# AVX-512 SIMD优化配置
+optimal_batch_size = 2048
+max_concurrent_batches = 16
+enable_avx512 = true
+enable_avx2_fallback = true
+simd_alignment = 64
+
+# 高频处理配置
+target_throughput_msg_per_sec = 100000
+target_latency_microseconds = 100
+memory_pool_size = "512MB"
+cpu_affinity_cores = [0, 1, 2, 3, 4, 5, 6, 7]
+
+# 批处理管道配置
+async_batch_processing = true
+batch_timeout_milliseconds = 50
+max_pending_batches = 32
+batch_compression = "zstd"
+
+[networking]
+# NATS配置
+nats_url = "127.0.0.1:4222"
+nats_subject = "market.data.normalized.*.*"
+nats_queue_group = "arbitrage_monitor"
+connection_timeout_seconds = 30
+reconnect_attempts = 10
+
+# 网络优化
+tcp_keepalive = true
+tcp_nodelay = true
+buffer_size = "64KB"
+max_connections = 100
+
+[monitoring]
+# 统计显示配置
+stats_display_interval_seconds = 10
+max_history_size = 2000
+max_opportunity_pool_size = 1000
+enable_colored_output = true
+
+# 性能监控
+enable_performance_tracking = true
+latency_percentiles = [50, 90, 95, 99, 99]
+throughput_window_seconds = 60
+
+[arbitrage]
+# 基本套利配置
+min_profit_percentage = 0.5
+max_profit_percentage = 50.0
+min_spread_percentage = 0.5
+max_spread_percentage = 20.0
+
+# 价格验证
+price_staleness_seconds = 30
+min_volume_usd = 1000.0
+max_volume_usd = 1000000.0
+
+# 交易对过滤
+excluded_symbols = ["SCAM.*", "TEST.*", "DEBUG.*"]
+included_exchanges = ["binance", "okx", "bybit", "kucoin", "gate"]
+min_liquidity_depth = 5
+
+[risk_management]
+# 基础风控
+max_daily_trades = 1000
+max_single_trade_usd = 50000.0
+max_total_exposure_usd = 500000.0
+max_consecutive_losses = 5
+
+# 动态风控
+enable_dynamic_risk = true
+risk_score_threshold = 0.7
+volatility_threshold = 0.1
+correlation_threshold = 0.8
+
+# 异常检测
+price_deviation_threshold = 0.15
+volume_spike_threshold = 5.0
+enable_ai_anomaly_detection = true
+
+[exchanges]
+# 交易所特定配置
+[exchanges.binance]
+enabled = true
+api_rate_limit = 2400
+weight_factor = 1.0
+latency_penalty_ms = 0
+
+[exchanges.okx]
+enabled = true
+api_rate_limit = 2000
+weight_factor = 1.1
+latency_penalty_ms = 5
+
+[exchanges.bybit]
+enabled = true
+api_rate_limit = 1000
+weight_factor = 1.2
+latency_penalty_ms = 10
+
+[exchanges.kucoin]
+enabled = true
+api_rate_limit = 1800
+weight_factor = 1.15
+latency_penalty_ms = 8
+
+[exchanges.gate]
+enabled = true
+api_rate_limit = 1500
+weight_factor = 1.25
+latency_penalty_ms = 12
+
+[strategy]
+# 跨交易所套利
+[strategy.inter_exchange]
+enabled = true
+min_profit_bps = 50  # 0.5%
+max_execution_time_ms = 5000
+price_impact_threshold = 0.02
+
+# 三角套利 (预留)
+[strategy.triangular]
+enabled = false  # 当前版本未完全实现
+min_profit_bps = 100  # 1.0%
+max_path_length = 3
+currency_whitelist = ["BTC", "ETH", "USDT", "USDC", "BNB"]
+
+[ai_models]
+# AI自适应利润模型 (预留)
+[ai_models.adaptive_profit]
+enabled = false  # 当前版本未集成
+model_type = "random_forest"
+retrain_interval_hours = 24
+feature_window_minutes = 60
+
+# 异常检测模型
+[ai_models.anomaly_detection]
+enabled = true
+detection_threshold = 0.8
+model_sensitivity = "medium"
+alert_cooldown_seconds = 300
+
+[data_sources]
+# 市场数据源
+primary_source = "nats"
+backup_sources = ["redis", "kafka"]
+data_validation = true
+schema_version = "1.0"
+
+# 数据质量
+max_data_age_seconds = 60
+min_data_completeness = 0.95
+enable_data_deduplication = true
+
+[storage]
+# 本地存储
+enable_local_cache = true
+cache_size_mb = 1024
+cache_ttl_seconds = 300
+
+# 持久化存储 (可选)
+enable_persistence = false
+storage_backend = "sqlite"
+storage_path = "./data/arbitrage_monitor.db"
+
+[alerting]
+# 告警配置
+enable_alerts = true
+alert_channels = ["console", "log"]
+
+# 告警阈值
+high_latency_threshold_ms = 1000
+low_throughput_threshold = 50000
+error_rate_threshold = 0.01
+memory_usage_threshold = 0.8
+
+[logging]
+# 日志配置
+log_format = "json"
+log_file = "./logs/arbitrage_monitor.log"
+log_rotation = "daily"
+max_log_files = 30
+
+# 日志级别
+console_level = "info"
+file_level = "debug"
+structured_logging = true
+
+[debugging]
+# 调试选项
+enable_debug_mode = false
+verbose_simd_operations = false
+trace_batch_processing = false
+dump_market_data = false
+
+# 性能分析
+enable_profiling = false
+profiling_interval_seconds = 300
+profile_output_dir = "./profiles"
+
+[experimental]
+# 实验性功能
+enable_experimental_features = false
+new_simd_algorithms = false
+advanced_risk_models = false
+ml_prediction_models = false 
+# 基于 arbitrage_monitor.rs 的生产级配置
+
+[system]
+name = "celue-arbitrage-monitor"
+version = "1.0.0"
+environment = "production"
+log_level = "info"
+enable_metrics = true
+
+[performance]
+# AVX-512 SIMD优化配置
+optimal_batch_size = 2048
+max_concurrent_batches = 16
+enable_avx512 = true
+enable_avx2_fallback = true
+simd_alignment = 64
+
+# 高频处理配置
+target_throughput_msg_per_sec = 100000
+target_latency_microseconds = 100
+memory_pool_size = "512MB"
+cpu_affinity_cores = [0, 1, 2, 3, 4, 5, 6, 7]
+
+# 批处理管道配置
+async_batch_processing = true
+batch_timeout_milliseconds = 50
+max_pending_batches = 32
+batch_compression = "zstd"
+
+[networking]
+# NATS配置
+nats_url = "127.0.0.1:4222"
+nats_subject = "market.data.normalized.*.*"
+nats_queue_group = "arbitrage_monitor"
+connection_timeout_seconds = 30
+reconnect_attempts = 10
+
+# 网络优化
+tcp_keepalive = true
+tcp_nodelay = true
+buffer_size = "64KB"
+max_connections = 100
+
+[monitoring]
+# 统计显示配置
+stats_display_interval_seconds = 10
+max_history_size = 2000
+max_opportunity_pool_size = 1000
+enable_colored_output = true
+
+# 性能监控
+enable_performance_tracking = true
+latency_percentiles = [50, 90, 95, 99, 99]
+throughput_window_seconds = 60
+
+[arbitrage]
+# 基本套利配置
+min_profit_percentage = 0.5
+max_profit_percentage = 50.0
+min_spread_percentage = 0.5
+max_spread_percentage = 20.0
+
+# 价格验证
+price_staleness_seconds = 30
+min_volume_usd = 1000.0
+max_volume_usd = 1000000.0
+
+# 交易对过滤
+excluded_symbols = ["SCAM.*", "TEST.*", "DEBUG.*"]
+included_exchanges = ["binance", "okx", "bybit", "kucoin", "gate"]
+min_liquidity_depth = 5
+
+[risk_management]
+# 基础风控
+max_daily_trades = 1000
+max_single_trade_usd = 50000.0
+max_total_exposure_usd = 500000.0
+max_consecutive_losses = 5
+
+# 动态风控
+enable_dynamic_risk = true
+risk_score_threshold = 0.7
+volatility_threshold = 0.1
+correlation_threshold = 0.8
+
+# 异常检测
+price_deviation_threshold = 0.15
+volume_spike_threshold = 5.0
+enable_ai_anomaly_detection = true
+
+[exchanges]
+# 交易所特定配置
+[exchanges.binance]
+enabled = true
+api_rate_limit = 2400
+weight_factor = 1.0
+latency_penalty_ms = 0
+
+[exchanges.okx]
+enabled = true
+api_rate_limit = 2000
+weight_factor = 1.1
+latency_penalty_ms = 5
+
+[exchanges.bybit]
+enabled = true
+api_rate_limit = 1000
+weight_factor = 1.2
+latency_penalty_ms = 10
+
+[exchanges.kucoin]
+enabled = true
+api_rate_limit = 1800
+weight_factor = 1.15
+latency_penalty_ms = 8
+
+[exchanges.gate]
+enabled = true
+api_rate_limit = 1500
+weight_factor = 1.25
+latency_penalty_ms = 12
+
+[strategy]
+# 跨交易所套利
+[strategy.inter_exchange]
+enabled = true
+min_profit_bps = 50  # 0.5%
+max_execution_time_ms = 5000
+price_impact_threshold = 0.02
+
+# 三角套利 (预留)
+[strategy.triangular]
+enabled = false  # 当前版本未完全实现
+min_profit_bps = 100  # 1.0%
+max_path_length = 3
+currency_whitelist = ["BTC", "ETH", "USDT", "USDC", "BNB"]
+
+[ai_models]
+# AI自适应利润模型 (预留)
+[ai_models.adaptive_profit]
+enabled = false  # 当前版本未集成
+model_type = "random_forest"
+retrain_interval_hours = 24
+feature_window_minutes = 60
+
+# 异常检测模型
+[ai_models.anomaly_detection]
+enabled = true
+detection_threshold = 0.8
+model_sensitivity = "medium"
+alert_cooldown_seconds = 300
+
+[data_sources]
+# 市场数据源
+primary_source = "nats"
+backup_sources = ["redis", "kafka"]
+data_validation = true
+schema_version = "1.0"
+
+# 数据质量
+max_data_age_seconds = 60
+min_data_completeness = 0.95
+enable_data_deduplication = true
+
+[storage]
+# 本地存储
+enable_local_cache = true
+cache_size_mb = 1024
+cache_ttl_seconds = 300
+
+# 持久化存储 (可选)
+enable_persistence = false
+storage_backend = "sqlite"
+storage_path = "./data/arbitrage_monitor.db"
+
+[alerting]
+# 告警配置
+enable_alerts = true
+alert_channels = ["console", "log"]
+
+# 告警阈值
+high_latency_threshold_ms = 1000
+low_throughput_threshold = 50000
+error_rate_threshold = 0.01
+memory_usage_threshold = 0.8
+
+[logging]
+# 日志配置
+log_format = "json"
+log_file = "./logs/arbitrage_monitor.log"
+log_rotation = "daily"
+max_log_files = 30
+
+# 日志级别
+console_level = "info"
+file_level = "debug"
+structured_logging = true
+
+[debugging]
+# 调试选项
+enable_debug_mode = false
+verbose_simd_operations = false
+trace_batch_processing = false
+dump_market_data = false
+
+# 性能分析
+enable_profiling = false
+profiling_interval_seconds = 300
+profile_output_dir = "./profiles"
+
+[experimental]
+# 实验性功能
+enable_experimental_features = false
+new_simd_algorithms = false
+advanced_risk_models = false
+ml_prediction_models = false 

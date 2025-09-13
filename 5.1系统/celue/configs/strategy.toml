@@ -1,0 +1,235 @@
+[strategy]
+min_profit_threshold = 0.002
+max_slippage = 0.001
+enabled_strategies = ["inter_exchange"]
+
+[strategy.inter_exchange]
+min_exchanges = 2
+min_quantity = 0.001
+max_slippage_per_leg = 0.0005
+max_price_diff_pct = 0.01
+min_profit_pct = 0.002
+max_slippage_pct = 0.001
+
+[strategy.triangular]
+triangle_paths = [
+  { base = "BTC", intermediate = "ETH", quote = "USDT" },
+  { base = "BTC", intermediate = "BNB", quote = "USDT" }
+]
+min_liquidity_usd = 100.0
+max_slippage_per_leg = 0.001
+
+[strategy.market_state]
+cautious_weight = 1.4
+extreme_weight = 2.5
+
+[market_data]
+snapshot_interval = { secs = 1, nanos = 0 }
+http_timeout = { secs = 5, nanos = 0 }
+ws_ping_interval = { secs = 30, nanos = 0 }
+quality_min_score = 0.8
+
+[[market_data.exchanges]]
+name = "binance"
+rest_url = "https://api.binance.com"
+ws_url = "wss://stream.binance.com:9443"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT"]
+enabled = true
+
+[[market_data.exchanges]]
+name = "okx"
+rest_url = "https://www.okx.com"
+ws_url = "wss://ws.okx.com:8443"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT"]
+enabled = true
+
+[[market_data.exchanges]]
+name = "huobi"
+rest_url = "https://api.huobi.pro"
+ws_url = "wss://api.huobi.pro:443"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT"]
+enabled = true
+
+[[market_data.exchanges]]
+name = "bybit"
+rest_url = "https://api.bybit.com"
+ws_url = "wss://stream.bybit.com"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT"]
+enabled = true
+
+[[market_data.exchanges]]
+name = "gateio"
+rest_url = "https://api.gateio.ws"
+ws_url = "wss://api.gateio.ws"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT"]
+enabled = true
+
+[market_data.reconnect]
+initial_delay = { secs = 1, nanos = 0 }
+max_delay = { secs = 60, nanos = 0 }
+max_attempts = 10
+backoff_factor = 2.0
+
+[risk]
+max_position_size = 10000.0
+max_daily_loss = 1000.0
+enabled_strategies = ["inter_exchange"]
+
+[execution]
+dry_run = true
+max_concurrent = 10
+timeout_ms = 5000
+retry_count = 3
+
+[execution.exchanges]
+
+[nats]
+servers = ["nats://localhost:4222"]
+name = "qingxi-strategy"
+request_timeout = { secs = 0, nanos = 100000000 }
+connect_timeout = { secs = 10, nanos = 0 }
+enable_jetstream = true
+jetstream_domain = ""
+
+[[nats.streams]]
+name = "MARKET_DATA"
+subjects = ["qx.v5.md.clean.*.*.ob50"]
+retention = "limits"
+max_msgs = 100000
+max_bytes = 1073741824
+max_age = { secs = 21600, nanos = 0 }
+replicas = 1
+
+[[nats.consumers]]
+name = "strategy-processor"
+stream_name = "MARKET_DATA"
+deliver_subject = ""
+durable_name = "strategy-processor"
+ack_policy = "explicit"
+max_deliver = 3
+filter_subject = "qx.v5.md.clean.*.*.ob50"
+
+[metrics]
+enabled = true
+export_interval = { secs = 30, nanos = 0 }
+prometheus_port = 9090
+
+[performance]
+target_opportunities_per_sec = 100
+max_detection_latency_us = 100
+max_execution_latency_ms = 50
+worker_threads = 0
+
+[performance.memory_pool]
+orderbook_capacity = 1000
+opportunity_capacity = 10000
+buffer_size = 8192
+
+[logging]
+level = "info"
+json = false
+file = "qingxi.log"
+
+[logging.rotation]
+max_size_mb = 100
+max_files = 10 
+[nats]
+servers = ["nats://localhost:4222"]
+name = "qingxi-strategy"
+request_timeout = { secs = 0, nanos = 100000000 }
+connect_timeout = { secs = 10, nanos = 0 }
+enable_jetstream = true
+jetstream_domain = ""
+
+[[nats.streams]]
+name = "MARKET_DATA"
+subjects = ["qx.v5.md.clean.*.*.ob50"]
+retention = "limits"
+max_msgs = 100000
+max_bytes = 1073741824
+max_age = { secs = 21600, nanos = 0 }
+replicas = 1
+
+[[nats.consumers]]
+name = "strategy-processor"
+stream_name = "MARKET_DATA"
+deliver_subject = ""
+durable_name = "strategy-processor"
+ack_policy = "explicit"
+max_deliver = 3
+filter_subject = "qx.v5.md.clean.*.*.ob50"
+
+[metrics]
+enabled = true
+export_interval = { secs = 30, nanos = 0 }
+prometheus_port = 9090
+
+[performance]
+target_opportunities_per_sec = 100
+max_detection_latency_us = 100
+max_execution_latency_ms = 50
+worker_threads = 0
+
+[performance.memory_pool]
+orderbook_capacity = 1000
+opportunity_capacity = 10000
+buffer_size = 8192
+
+[logging]
+level = "info"
+json = false
+file = "qingxi.log"
+
+[logging.rotation]
+max_size_mb = 100
+max_files = 10 
+[nats]
+servers = ["nats://localhost:4222"]
+name = "qingxi-strategy"
+request_timeout = { secs = 0, nanos = 100000000 }
+connect_timeout = { secs = 10, nanos = 0 }
+enable_jetstream = true
+jetstream_domain = ""
+
+[[nats.streams]]
+name = "MARKET_DATA"
+subjects = ["qx.v5.md.clean.*.*.ob50"]
+retention = "limits"
+max_msgs = 100000
+max_bytes = 1073741824
+max_age = { secs = 21600, nanos = 0 }
+replicas = 1
+
+[[nats.consumers]]
+name = "strategy-processor"
+stream_name = "MARKET_DATA"
+deliver_subject = ""
+durable_name = "strategy-processor"
+ack_policy = "explicit"
+max_deliver = 3
+filter_subject = "qx.v5.md.clean.*.*.ob50"
+
+[metrics]
+enabled = true
+export_interval = { secs = 30, nanos = 0 }
+prometheus_port = 9090
+
+[performance]
+target_opportunities_per_sec = 100
+max_detection_latency_us = 100
+max_execution_latency_ms = 50
+worker_threads = 0
+
+[performance.memory_pool]
+orderbook_capacity = 1000
+opportunity_capacity = 10000
+buffer_size = 8192
+
+[logging]
+level = "info"
+json = false
+file = "qingxi.log"
+
+[logging.rotation]
+max_size_mb = 100
+max_files = 10 

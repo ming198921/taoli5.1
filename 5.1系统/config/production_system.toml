@@ -1,0 +1,240 @@
+# 🚀 5.1套利系统生产配置 - 5交易所250币种完整测试
+
+[system]
+name = "ArbitrageSystem51"
+version = "5.1.0"
+environment = "production"
+log_level = "info"
+max_concurrent_opportunities = 2000
+health_check_interval_seconds = 15
+metrics_collection_interval_seconds = 3
+graceful_shutdown_timeout_seconds = 60
+enable_hot_reload = true
+enable_telemetry = true
+enable_profiling = true
+
+[monitoring.performance]
+enable_performance_monitoring = true
+profiling_enabled = true
+sampling_rate = 0.05
+memory_monitoring = true
+cpu_monitoring = true
+network_monitoring = true
+latency_monitoring = true
+
+# 🚀 数据清洗层配置化 - 高性能配置
+[monitoring.performance.data_cleaning.v3_optimization]
+memory_pool_size = 262144      # 4x提升
+vec_pool_capacity = 32768      # 4x提升
+orderbook_capacity = 4000      # 4x提升
+zero_alloc_buffer_count = 262144
+o1_sort_bucket_count = 524288   # 8x提升
+entries_per_bucket = 32        # 4x提升
+enable_intel_optimizations = true
+enable_o1_sorting = true
+enable_realtime_monitoring = true
+
+[monitoring.performance.data_cleaning.simd_optimization]
+batch_size = 2048             # 4x提升
+enable_avx512 = true
+enable_avx2 = true
+enable_sse4 = true
+auto_detect_simd = true
+
+[monitoring.performance.data_cleaning.memory_management]
+max_memory_usage_mb = 2048
+enable_zero_allocation = true
+enable_pool_preallocation = true
+enable_numa_affinity = true
+
+[monitoring.performance.data_cleaning.performance_targets]
+target_latency_ns = 25000     # 极限延迟目标
+max_cpu_usage_percent = 85.0
+target_throughput_per_second = 320000
+
+[monitoring.performance.data_cleaning.auto_configuration]
+enable_hardware_detection = true
+enable_performance_adaptation = true
+max_auto_scale_factor = 8.0
+scaling_algorithm = "CpuMemoryComposite"
+
+# 🏛️ 交易所配置 - 5个主要交易所
+[[exchanges]]
+name = "binance"
+exchange_type = "Binance"
+enabled = true
+api_key = "test_binance_key"
+api_secret = "test_binance_secret"
+api_passphrase = ""
+sandbox_mode = true
+rate_limit_per_second = 10
+websocket_url = "wss://stream.binance.com:9443/ws"
+rest_api_url = "https://api.binance.com"
+# 币安 50个交易对
+trading_pairs = [
+    # USDT交易对 (25个)
+    "BTC/USDT", "ETH/USDT", "BNB/USDT", "ADA/USDT", "XRP/USDT",
+    "SOL/USDT", "DOT/USDT", "DOGE/USDT", "AVAX/USDT", "SHIB/USDT",
+    "MATIC/USDT", "LTC/USDT", "UNI/USDT", "LINK/USDT", "ATOM/USDT",
+    "ETC/USDT", "XLM/USDT", "BCH/USDT", "ALGO/USDT", "VET/USDT",
+    "ICP/USDT", "FIL/USDT", "TRX/USDT", "EOS/USDT", "AAVE/USDT",
+    # 非USDT交易对 (25个)  
+    "ETH/BTC", "BNB/BTC", "ADA/BTC", "XRP/BTC", "SOL/BTC",
+    "DOT/BTC", "DOGE/BTC", "AVAX/BTC", "MATIC/BTC", "LTC/BTC",
+    "UNI/BTC", "LINK/BTC", "ATOM/BTC", "ETC/BTC", "XLM/BTC",
+    "BCH/BTC", "ALGO/BTC", "VET/BTC", "ICP/BTC", "FIL/BTC",
+    "TRX/BTC", "EOS/BTC", "AAVE/BTC", "BNB/ETH", "ADA/ETH"
+]
+
+[[exchanges]]
+name = "huobi"
+enabled = true
+api_key = "test_huobi_key"
+api_secret = "test_huobi_secret"
+api_passphrase = ""
+sandbox_mode = true
+rate_limit_per_second = 8
+websocket_url = "wss://api.huobi.pro/ws"
+rest_api_url = "https://api.huobi.pro"
+# 火币 50个交易对
+trading_pairs = [
+    # USDT交易对 (25个)
+    "BTC/USDT", "ETH/USDT", "HT/USDT", "ADA/USDT", "XRP/USDT",
+    "SOL/USDT", "DOT/USDT", "DOGE/USDT", "AVAX/USDT", "SHIB/USDT",
+    "MATIC/USDT", "LTC/USDT", "UNI/USDT", "LINK/USDT", "ATOM/USDT",
+    "ETC/USDT", "XLM/USDT", "BCH/USDT", "ALGO/USDT", "VET/USDT",
+    "ICP/USDT", "FIL/USDT", "TRX/USDT", "EOS/USDT", "AAVE/USDT",
+    # 非USDT交易对 (25个)
+    "ETH/BTC", "HT/BTC", "ADA/BTC", "XRP/BTC", "SOL/BTC",
+    "DOT/BTC", "DOGE/BTC", "AVAX/BTC", "MATIC/BTC", "LTC/BTC",
+    "UNI/BTC", "LINK/BTC", "ATOM/BTC", "ETC/BTC", "XLM/BTC",
+    "BCH/BTC", "ALGO/BTC", "VET/BTC", "ICP/BTC", "FIL/BTC",
+    "TRX/BTC", "EOS/BTC", "AAVE/BTC", "HT/ETH", "ADA/ETH"
+]
+
+[[exchanges]]
+name = "bybit"
+exchange_type = "Bybit"
+enabled = true
+api_key = "test_bybit_key"
+api_secret = "test_bybit_secret"
+api_passphrase = ""
+sandbox_mode = true
+rate_limit_per_second = 12
+websocket_url = "wss://stream.bybit.com/v5/public/spot"
+rest_api_url = "https://api.bybit.com"
+# Bybit 50个交易对
+trading_pairs = [
+    # USDT交易对 (25个)
+    "BTC/USDT", "ETH/USDT", "BIT/USDT", "ADA/USDT", "XRP/USDT",
+    "SOL/USDT", "DOT/USDT", "DOGE/USDT", "AVAX/USDT", "SHIB/USDT",
+    "MATIC/USDT", "LTC/USDT", "UNI/USDT", "LINK/USDT", "ATOM/USDT",
+    "ETC/USDT", "XLM/USDT", "BCH/USDT", "ALGO/USDT", "VET/USDT",
+    "ICP/USDT", "FIL/USDT", "TRX/USDT", "EOS/USDT", "AAVE/USDT",
+    # 非USDT交易对 (25个)
+    "ETH/BTC", "BIT/BTC", "ADA/BTC", "XRP/BTC", "SOL/BTC",
+    "DOT/BTC", "DOGE/BTC", "AVAX/BTC", "MATIC/BTC", "LTC/BTC",
+    "UNI/BTC", "LINK/BTC", "ATOM/BTC", "ETC/BTC", "XLM/BTC",
+    "BCH/BTC", "ALGO/BTC", "VET/BTC", "ICP/BTC", "FIL/BTC",
+    "TRX/BTC", "EOS/BTC", "AAVE/BTC", "BIT/ETH", "ADA/ETH"
+]
+
+[[exchanges]]
+name = "okx"
+enabled = true
+api_key = "test_okx_key"
+api_secret = "test_okx_secret"
+api_passphrase = "test_okx_passphrase"
+sandbox_mode = true
+rate_limit_per_second = 15
+websocket_url = "wss://ws.okx.com:8443/ws/v5/public"
+rest_api_url = "https://www.okx.com"
+# OKX 50个交易对
+trading_pairs = [
+    # USDT交易对 (25个)
+    "BTC/USDT", "ETH/USDT", "OKB/USDT", "ADA/USDT", "XRP/USDT",
+    "SOL/USDT", "DOT/USDT", "DOGE/USDT", "AVAX/USDT", "SHIB/USDT",
+    "MATIC/USDT", "LTC/USDT", "UNI/USDT", "LINK/USDT", "ATOM/USDT",
+    "ETC/USDT", "XLM/USDT", "BCH/USDT", "ALGO/USDT", "VET/USDT",
+    "ICP/USDT", "FIL/USDT", "TRX/USDT", "EOS/USDT", "AAVE/USDT",
+    # 非USDT交易对 (25个)
+    "ETH/BTC", "OKB/BTC", "ADA/BTC", "XRP/BTC", "SOL/BTC",
+    "DOT/BTC", "DOGE/BTC", "AVAX/BTC", "MATIC/BTC", "LTC/BTC",
+    "UNI/BTC", "LINK/BTC", "ATOM/BTC", "ETC/BTC", "XLM/BTC",
+    "BCH/BTC", "ALGO/BTC", "VET/BTC", "ICP/BTC", "FIL/BTC",
+    "TRX/BTC", "EOS/BTC", "AAVE/BTC", "OKB/ETH", "ADA/ETH"
+]
+
+[[exchanges]]
+name = "gateio"
+exchange_type = "Gateio"
+enabled = true
+api_key = "test_gate_key"
+api_secret = "test_gate_secret"
+api_passphrase = ""
+sandbox_mode = true
+rate_limit_per_second = 10
+websocket_url = "wss://api.gateio.ws/ws/v4/"
+rest_api_url = "https://api.gateio.ws"
+# Gate.io 50个交易对
+trading_pairs = [
+    # USDT交易对 (25个)
+    "BTC/USDT", "ETH/USDT", "GT/USDT", "ADA/USDT", "XRP/USDT",
+    "SOL/USDT", "DOT/USDT", "DOGE/USDT", "AVAX/USDT", "SHIB/USDT",
+    "MATIC/USDT", "LTC/USDT", "UNI/USDT", "LINK/USDT", "ATOM/USDT",
+    "ETC/USDT", "XLM/USDT", "BCH/USDT", "ALGO/USDT", "VET/USDT",
+    "ICP/USDT", "FIL/USDT", "TRX/USDT", "EOS/USDT", "AAVE/USDT",
+    # 非USDT交易对 (25个)
+    "ETH/BTC", "GT/BTC", "ADA/BTC", "XRP/BTC", "SOL/BTC",
+    "DOT/BTC", "DOGE/BTC", "AVAX/BTC", "MATIC/BTC", "LTC/BTC",
+    "UNI/BTC", "LINK/BTC", "ATOM/BTC", "ETC/BTC", "XLM/BTC",
+    "BCH/BTC", "ALGO/BTC", "VET/BTC", "ICP/BTC", "FIL/BTC",
+    "TRX/BTC", "EOS/BTC", "AAVE/BTC", "GT/ETH", "ADA/ETH"
+]
+
+# 🎯 策略配置 - 跨所套利和三角套利
+[strategy]
+enabled = true
+min_profit_threshold = 0.3      # 最小利润阈值 0.3%
+max_position_size = 10000       # 最大仓位大小
+risk_limit_per_trade = 0.02     # 单笔交易风险限制 2%
+max_concurrent_trades = 50      # 最大并发交易数
+
+# 跨所套利配置
+[strategy.inter_exchange]
+enabled = true
+min_profit_bps = 30            # 最小利润 30个基点
+max_latency_ms = 100           # 最大延迟
+slippage_tolerance = 0.1       # 滑点容忍度
+
+# 三角套利配置  
+[strategy.triangular]
+enabled = true
+min_profit_bps = 25            # 最小利润 25个基点
+max_cycles_per_second = 1000   # 最大检测频率
+base_currencies = ["BTC", "ETH", "USDT", "BNB"]
+
+# 🛡️ AI风控配置
+[ai_risk]
+enabled = true
+risk_model_version = "v2.1"
+max_drawdown_percent = 5.0     # 最大回撤 5%
+position_size_limit = 0.1      # 仓位限制 10%
+volatility_threshold = 0.15    # 波动率阈值
+
+[ai_risk.market_conditions]
+extreme_volatility_threshold = 0.25
+liquidity_threshold = 100000
+correlation_threshold = 0.8
+
+# 📊 监控和日志配置
+[monitoring]
+enable_real_time_metrics = true
+metrics_interval_seconds = 5
+alert_thresholds = { latency_ms = 200, error_rate = 0.01, cpu_usage = 90.0 }
+
+[logging]
+level = "info"
+enable_structured_logging = true
+log_to_file = true
+max_file_size_mb = 100 

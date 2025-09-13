@@ -1,0 +1,13 @@
+{
+  "analysis_time": "2025-09-10T13:42:15.358958",
+  "target_pair": "BTC-USDT",
+  "exchange": "Binance",
+  "strategy": "V3三角套利算法",
+  "results": {
+    "total_combinations": 5,
+    "daily_opportunities": 46,
+    "executable_opportunities": 41,
+    "expected_daily_return": 0.0644,
+    "risk_adjusted_return": 0.05152
+  }
+}

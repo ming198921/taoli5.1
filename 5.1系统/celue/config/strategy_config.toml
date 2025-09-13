@@ -1,0 +1,42 @@
+# CELUE策略配置文件
+# 本文件包含所有策略相关参数，实现100%配置化，零硬编码
+
+[inter_exchange]
+# 跨交易所套利配置
+slippage_per_leg_pct = 0.001        # 每腿滑点: 0.1%
+min_liquidity_usd = 10000.0          # 最小流动性: $10K
+default_fee_bps = 8.0                # 默认手续费: 0.08% (8 bps)
+max_trade_size_usd = 100000.0        # 最大交易金额: $100K
+
+[triangular]
+# 三角套利配置（v3.0算法动态计算，此配置用于兼容性）
+enabled = true                       # 启用状态
+max_paths = 50                       # 最大路径数量
+cache_ttl_seconds = 300              # 缓存TTL: 5分钟
+
+[risk]
+# 风险控制配置
+max_daily_loss_usd = 50000.0         # 最大日损失: $50K
+max_single_loss_pct = 0.02           # 最大单笔损失: 2%
+
+[risk.emergency_stop_conditions]
+# 紧急停机条件
+consecutive_failures = 5             # 连续失败次数阈值
+error_rate_threshold_pct = 0.1       # 错误率阈值: 10%
+latency_threshold_ms = 1000          # 延迟阈值: 1秒
+
+[min_profit]
+# 最小利润配置
+base_bps = 50                        # 基础最小利润: 0.5% (50 bps)
+
+[min_profit.market_state_weights]
+# 市场状态权重
+regular = 1.0                        # 正常市场: 1.0x
+cautious = 1.4                       # 谨慎市场: 1.4x 
+extreme = 2.5                        # 极端市场: 2.5x
+
+[min_profit.strategy_specific]
+# 策略特定最小利润配置（bps）
+inter_exchange = 40                  # 跨交易所: 0.4%
+triangular_v3 = 60                   # v3.0三角套利: 0.6%
+triangular_legacy = 80               # 传统三角套利: 0.8% 

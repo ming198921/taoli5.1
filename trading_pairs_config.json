@@ -1,0 +1,357 @@
+{
+  "binance_trading_pairs": [
+    {
+      "symbol": "BTCUSDT",
+      "base": "BTC",
+      "quote": "USDT",
+      "name": "Bitcoin",
+      "enabled": true
+    },
+    {
+      "symbol": "ETHUSDT", 
+      "base": "ETH",
+      "quote": "USDT",
+      "name": "Ethereum",
+      "enabled": true
+    },
+    {
+      "symbol": "BNBUSDT",
+      "base": "BNB", 
+      "quote": "USDT",
+      "name": "BNB Chain",
+      "enabled": true
+    },
+    {
+      "symbol": "XRPUSDT",
+      "base": "XRP",
+      "quote": "USDT", 
+      "name": "Ripple",
+      "enabled": true
+    },
+    {
+      "symbol": "SOLUSDT",
+      "base": "SOL",
+      "quote": "USDT",
+      "name": "Solana", 
+      "enabled": true
+    },
+    {
+      "symbol": "ADAUSDT",
+      "base": "ADA",
+      "quote": "USDT",
+      "name": "Cardano",
+      "enabled": true
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "base": "DOGE", 
+      "quote": "USDT",
+      "name": "Dogecoin",
+      "enabled": true
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "base": "AVAX",
+      "quote": "USDT",
+      "name": "Avalanche",
+      "enabled": true
+    },
+    {
+      "symbol": "DOTUSDT",
+      "base": "DOT",
+      "quote": "USDT", 
+      "name": "Polkadot",
+      "enabled": true
+    },
+    {
+      "symbol": "LINKUSDT",
+      "base": "LINK",
+      "quote": "USDT",
+      "name": "Chainlink",
+      "enabled": true
+    },
+    {
+      "symbol": "TRXUSDT",
+      "base": "TRX",
+      "quote": "USDT",
+      "name": "TRON", 
+      "enabled": true
+    },
+    {
+      "symbol": "MATICUSDT",
+      "base": "MATIC",
+      "quote": "USDT",
+      "name": "Polygon",
+      "enabled": true
+    },
+    {
+      "symbol": "LTCUSDT",
+      "base": "LTC",
+      "quote": "USDT",
+      "name": "Litecoin",
+      "enabled": true
+    },
+    {
+      "symbol": "BCHUSDT", 
+      "base": "BCH",
+      "quote": "USDT",
+      "name": "Bitcoin Cash",
+      "enabled": true
+    },
+    {
+      "symbol": "ICPUSDT",
+      "base": "ICP",
+      "quote": "USDT",
+      "name": "Internet Computer",
+      "enabled": true
+    },
+    {
+      "symbol": "NEARUSDT",
+      "base": "NEAR",
+      "quote": "USDT",
+      "name": "NEAR Protocol",
+      "enabled": true
+    },
+    {
+      "symbol": "UNIUSDT",
+      "base": "UNI", 
+      "quote": "USDT",
+      "name": "Uniswap",
+      "enabled": true
+    },
+    {
+      "symbol": "XLMUSDT",
+      "base": "XLM",
+      "quote": "USDT",
+      "name": "Stellar",
+      "enabled": true
+    },
+    {
+      "symbol": "ETCUSDT",
+      "base": "ETC",
+      "quote": "USDT",
+      "name": "Ethereum Classic", 
+      "enabled": true
+    },
+    {
+      "symbol": "FILUSDT",
+      "base": "FIL",
+      "quote": "USDT",
+      "name": "Filecoin",
+      "enabled": true
+    },
+    {
+      "symbol": "HBARUSDT",
+      "base": "HBAR",
+      "quote": "USDT",
+      "name": "Hedera",
+      "enabled": true
+    },
+    {
+      "symbol": "APTUSDT",
+      "base": "APT",
+      "quote": "USDT",
+      "name": "Aptos",
+      "enabled": true
+    },
+    {
+      "symbol": "XMRUSDT",
+      "base": "XMR",
+      "quote": "USDT", 
+      "name": "Monero",
+      "enabled": true
+    },
+    {
+      "symbol": "ATOMUSDT",
+      "base": "ATOM",
+      "quote": "USDT",
+      "name": "Cosmos",
+      "enabled": true
+    },
+    {
+      "symbol": "ARBUSDT",
+      "base": "ARB",
+      "quote": "USDT",
+      "name": "Arbitrum",
+      "enabled": true
+    },
+    {
+      "symbol": "VETUSDT",
+      "base": "VET",
+      "quote": "USDT",
+      "name": "VeChain", 
+      "enabled": true
+    },
+    {
+      "symbol": "OPUSDT",
+      "base": "OP",
+      "quote": "USDT", 
+      "name": "Optimism",
+      "enabled": true
+    },
+    {
+      "symbol": "GRTUSDT",
+      "base": "GRT",
+      "quote": "USDT",
+      "name": "The Graph",
+      "enabled": true
+    },
+    {
+      "symbol": "AAVEUSDT",
+      "base": "AAVE",
+      "quote": "USDT",
+      "name": "Aave",
+      "enabled": true
+    },
+    {
+      "symbol": "ALGOUSDT",
+      "base": "ALGO",
+      "quote": "USDT",
+      "name": "Algorand",
+      "enabled": true
+    },
+    {
+      "symbol": "MKRUSDT",
+      "base": "MKR",
+      "quote": "USDT",
+      "name": "Maker",
+      "enabled": true
+    },
+    {
+      "symbol": "QNTUSDT",
+      "base": "QNT", 
+      "quote": "USDT",
+      "name": "Quant",
+      "enabled": true
+    },
+    {
+      "symbol": "FTMUSDT",
+      "base": "FTM",
+      "quote": "USDT",
+      "name": "Fantom",
+      "enabled": true
+    },
+    {
+      "symbol": "EGLDUSDT",
+      "base": "EGLD",
+      "quote": "USDT",
+      "name": "MultiversX/Elrond",
+      "enabled": true
+    },
+    {
+      "symbol": "SANDUSDT",
+      "base": "SAND", 
+      "quote": "USDT",
+      "name": "The Sandbox",
+      "enabled": true
+    },
+    {
+      "symbol": "MANAUSDT",
+      "base": "MANA",
+      "quote": "USDT",
+      "name": "Decentraland",
+      "enabled": true
+    },
+    {
+      "symbol": "XTZUSDT",
+      "base": "XTZ",
+      "quote": "USDT",
+      "name": "Tezos",
+      "enabled": true
+    },
+    {
+      "symbol": "AXSUSDT",
+      "base": "AXS",
+      "quote": "USDT",
+      "name": "Axie Infinity",
+      "enabled": true
+    },
+    {
+      "symbol": "THETAUSDT",
+      "base": "THETA",
+      "quote": "USDT",
+      "name": "Theta Network",
+      "enabled": true
+    },
+    {
+      "symbol": "RNDRUSDT",
+      "base": "RNDR",
+      "quote": "USDT",
+      "name": "Render Token", 
+      "enabled": true
+    },
+    {
+      "symbol": "SNXUSDT",
+      "base": "SNX",
+      "quote": "USDT",
+      "name": "Synthetix",
+      "enabled": true
+    },
+    {
+      "symbol": "KCSUSDT",
+      "base": "KCS",
+      "quote": "USDT",
+      "name": "KuCoin Token",
+      "enabled": true
+    },
+    {
+      "symbol": "OKBUSDT",
+      "base": "OKB",
+      "quote": "USDT", 
+      "name": "OKX Token",
+      "enabled": true
+    },
+    {
+      "symbol": "LDOUSDT",
+      "base": "LDO",
+      "quote": "USDT",
+      "name": "Lido DAO Token",
+      "enabled": true
+    },
+    {
+      "symbol": "IMXUSDT",
+      "base": "IMX",
+      "quote": "USDT",
+      "name": "Immutable X",
+      "enabled": true
+    },
+    {
+      "symbol": "CRVUSDT",
+      "base": "CRV",
+      "quote": "USDT",
+      "name": "Curve DAO Token",
+      "enabled": true
+    },
+    {
+      "symbol": "KAVAUSDT",
+      "base": "KAVA", 
+      "quote": "USDT",
+      "name": "Kava",
+      "enabled": true
+    },
+    {
+      "symbol": "ZECUSDT",
+      "base": "ZEC",
+      "quote": "USDT",
+      "name": "Zcash",
+      "enabled": true
+    },
+    {
+      "symbol": "SUSHIUSDT",
+      "base": "SUSHI",
+      "quote": "USDT",
+      "name": "SushiSwap",
+      "enabled": true
+    },
+    {
+      "symbol": "CHZUSDT",
+      "base": "CHZ",
+      "quote": "USDT",
+      "name": "Chiliz",
+      "enabled": true
+    }
+  ],
+  "total_pairs": 50,
+  "exchange": "binance",
+  "created_at": "2025-09-11T03:41:00Z"
+}
