@@ -1,11 +1,13 @@
 # Rust build artifacts
 target/
-Cargo.lock
+# Note: Keep Cargo.lock for production deployment consistency
+# Cargo.lock
 
-# Logs
+# Logs (keep structure, exclude large log files)
 *.log
-logs/
-rizhi/
+# logs/
+# Note: Keep rizhi/ for important system documentation
+# rizhi/
 
 # Test results and reports
 test_results_*.json
