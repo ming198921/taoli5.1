@@ -1,9 +1,9 @@
 use thiserror::Error;
 
-#[derive(Debug, Error)]
-pub enum Error {
+#[derive(Error, Debug)]
+pub enum OrchestratorError {
     #[error("Configuration error: {0}")]
-    Config(String),
+    Configuration(String),
     
     #[error("NATS connection error: {0}")]
     NatsConnection(#[from] async_nats::Error),
@@ -33,4 +33,4 @@ pub enum Error {
     Generic(String),
 }
 
-pub type Result<T> = std::result::Result<T, Error>; 
+pub type Result<T> = std::result::Result<T, OrchestratorError>; 

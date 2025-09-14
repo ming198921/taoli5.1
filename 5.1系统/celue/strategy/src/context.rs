@@ -7,21 +7,10 @@ use std::sync::Arc;
 use common::types::Exchange;
 use common::precision::FixedPrice;
 use crate::market_state::MarketState;
-use crate::StrategyConfig;
-use crate::MarketStateEvaluator;
-use crate::MinProfitAdjuster; 
-use crate::RiskManager;
-use crate::MarketDataSnapshot;
-use crate::production_api::ProductionApiManager;
+use crate::config_loader::ConfigLoader;
 
-// 策略指标结构体
-#[derive(Debug, Default)]
-pub struct StrategyMetrics {
-    pub total_opportunities: std::sync::atomic::AtomicUsize,
-    pub successful_trades: std::sync::atomic::AtomicUsize,
-    pub failed_trades: std::sync::atomic::AtomicUsize,
-    pub total_profit: parking_lot::RwLock<f64>,
-}
+// 策略指标类型定义
+pub type StrategyMetrics = Arc<adapters::metrics::AdapterMetrics>;
 
 /// 策略上下文配置
 #[derive(Debug, Clone)]
@@ -44,71 +33,46 @@ impl Default for StrategyContextConfig {
     }
 }
 
-/// 策略上下文 - 为策略提供市场数据、配置和工具
+/// 策略执行上下文 - 核心配置驱动架构
+/// 专为v3.0三角套利算法和跨交易所套利优化
+// Debug removed due to complex trait objects
 pub struct StrategyContext {
-    /// 手续费和精度仓库
     pub fee_precision_repo: Arc<dyn FeePrecisionRepo>,
-    /// 策略配置
-    pub strategy_config: StrategyConfig,
-    /// 市场状态评估器
-    pub market_state_evaluator: Arc<dyn MarketStateEvaluator>,
-    /// min_profit动态调整器
-    pub min_profit_adjuster: Arc<dyn MinProfitAdjuster>,
-    /// 风险管理器
-    pub risk_manager: Arc<dyn RiskManager>,
-    /// 📈 实时市场数据缓存
-    pub market_data_cache: Arc<parking_lot::RwLock<HashMap<String, MarketDataSnapshot>>>,
-    /// 🚀 生产级API管理器
-    pub production_api_manager: Option<Arc<ProductionApiManager>>,
-    /// 配置加载器
-    pub config_loader: Option<Arc<crate::config_loader::ConfigLoader>>,
-    /// min_profit缓存
-    pub min_profit_cache: Arc<parking_lot::RwLock<HashMap<String, FixedPrice>>>,
-    /// 当前市场状态
-    pub current_market_state: Arc<parking_lot::RwLock<MarketState>>,
-    /// 交易所权重
-    pub exchange_weights: Arc<parking_lot::RwLock<HashMap<String, f64>>>,
-    /// 策略指标
-    pub strategy_metrics: Arc<StrategyMetrics>,
-    /// 跨交易所每腿滑点百分比
+    min_profit_cache: Arc<parking_lot::RwLock<HashMap<String, FixedPrice>>>,
+    exchange_weights: Arc<parking_lot::RwLock<HashMap<String, f64>>>,
+    current_market_state: Arc<parking_lot::RwLock<MarketState>>,
+    strategy_metrics: StrategyMetrics,
     pub inter_exchange_slippage_per_leg_pct: f64,
+    // v3.0算法不使用预配置的三角套利参数，全部动态计算
+    pub inter_exchange_min_liquidity_usd: f64,
+    // 配置加载器（可选）- 用于动态配置加载
+    config_loader: Option<Arc<parking_lot::RwLock<ConfigLoader>>>,
 }
 
 impl StrategyContext {
-    /// 创建新的策略上下文
     pub fn new(
-        fee_precision_repo: Arc<dyn FeePrecisionRepo>,
-        strategy_config: StrategyConfig,
-        market_state_evaluator: Arc<dyn MarketStateEvaluator>,
-        min_profit_adjuster: Arc<dyn MinProfitAdjuster>,
-        risk_manager: Arc<dyn RiskManager>,
-        production_api_manager: Option<Arc<ProductionApiManager>>,
+        fee_repo: Arc<dyn FeePrecisionRepo>,
+        strategy_metrics: StrategyMetrics,
+    ) -> Self {
+        Self::with_config(fee_repo, strategy_metrics, Default::default())
+    }
+
+    /// 使用指定配置创建策略上下文
+    pub fn with_config(
+        fee_repo: Arc<dyn FeePrecisionRepo>,
+        strategy_metrics: StrategyMetrics,
+        config: StrategyContextConfig,
     ) -> Self {
         Self {
-            fee_precision_repo,
-            strategy_config,
-            market_state_evaluator,
-            min_profit_adjuster,
-            risk_manager,
-            market_data_cache: Arc::new(parking_lot::RwLock::new(HashMap::new())),
-            production_api_manager,
-            config_loader: None,
+            fee_precision_repo: fee_repo,
             min_profit_cache: Arc::new(parking_lot::RwLock::new(HashMap::new())),
-            current_market_state: Arc::new(parking_lot::RwLock::new(MarketState::Regular)),
             exchange_weights: Arc::new(parking_lot::RwLock::new(HashMap::new())),
-            strategy_metrics: Arc::new(StrategyMetrics::default()),
-            inter_exchange_slippage_per_leg_pct: 0.001, // 默认0.1%滑点
+            current_market_state: Arc::new(parking_lot::RwLock::new(MarketState::Regular)),
+            strategy_metrics,
+            inter_exchange_slippage_per_leg_pct: config.inter_exchange_slippage_per_leg_pct,
+            inter_exchange_min_liquidity_usd: config.inter_exchange_min_liquidity_usd,
+            config_loader: None, // 默认不启用配置加载器
         }
-    }
-
-    /// 获取生产API管理器
-    pub fn get_production_api_manager(&self) -> Option<&Arc<ProductionApiManager>> {
-        self.production_api_manager.as_ref()
-    }
-
-    /// 设置生产API管理器
-    pub fn set_production_api_manager(&mut self, manager: Arc<ProductionApiManager>) {
-        self.production_api_manager = Some(manager);
     }
 
     pub fn get_taker_fee(&self, exchange: &Exchange) -> Option<FixedPrice> {
@@ -125,16 +89,18 @@ impl StrategyContext {
             .unwrap_or_else(|| {
                 // 从config_loader获取动态配置，而非硬编码
                 if let Some(config_loader) = &self.config_loader {
-                    let config = config_loader.get_config();
-                    let base_bps = config.min_profit.base_bps as u32;
-                    let current_state = self.get_market_state();
-                    let weight = match current_state {
-                        MarketState::Regular => config.min_profit.market_state_weights.regular,
-                        MarketState::Cautious => config.min_profit.market_state_weights.cautious,
-                        MarketState::Extreme => config.min_profit.market_state_weights.extreme,
-                    };
-                    let dynamic_bps = (base_bps as f64 * weight) as u32;
-                    return FixedPrice::from_raw((dynamic_bps * 100) as i64, 6);
+                    if let Some(guard) = config_loader.try_read() {
+                        let config = guard.get_config();
+                        let base_bps = config.min_profit.base_bps as u32;
+                        let current_state = self.get_market_state();
+                        let weight = match current_state {
+                            MarketState::Regular => config.min_profit.market_state_weights.regular,
+                            MarketState::Cautious => config.min_profit.market_state_weights.cautious,
+                            MarketState::Extreme => config.min_profit.market_state_weights.extreme,
+                        };
+                        let dynamic_bps = (base_bps as f64 * weight) as u32;
+                        return FixedPrice::from_raw((dynamic_bps * 100) as i64, 6);
+                    }
                 }
                 
                 // 最后的安全后备值：从环境变量获取
@@ -280,6 +246,37 @@ pub struct FeePrecisionConfig {
 
 #[derive(Debug, Clone)]
 pub struct ExchangeConfig {
+    pub taker_fee: f64,
+    pub maker_fee: f64,
+    pub fee_rate_bps: f64,
+}
+
+impl Default for FeePrecisionConfig {
+    fn default() -> Self {
+        let mut exchanges = HashMap::new();
+        
+        exchanges.insert("binance".to_string(), ExchangeConfig {
+            taker_fee: 0.001, // 0.1%
+            maker_fee: 0.001,
+            fee_rate_bps: 10.0,
+        });
+        
+        exchanges.insert("okx".to_string(), ExchangeConfig {
+            taker_fee: 0.001,
+            maker_fee: 0.001,
+            fee_rate_bps: 10.0,
+        });
+        
+        exchanges.insert("bybit".to_string(), ExchangeConfig {
+            taker_fee: 0.001,
+            maker_fee: 0.001,
+            fee_rate_bps: 10.0,
+        });
+
+        Self { exchanges }
+    }
+}
+
     pub taker_fee: f64,
     pub maker_fee: f64,
     pub fee_rate_bps: f64,

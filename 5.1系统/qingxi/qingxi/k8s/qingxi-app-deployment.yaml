@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qingxi-app
+  namespace: qingxi-market-data
+  labels:
+    app: qingxi-market-data-app
+    app.kubernetes.io/name: qingxi-market-data
+    app.kubernetes.io/component: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qingxi-market-data-app
+  template:
+    metadata:
+      labels:
+        app: qingxi-market-data-app
+    spec:
+      containers:
+      - name: qingxi-container
+        image: wangshengming/qingxi-data:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 50051
+          name: grpc
+          protocol: TCP
+        - containerPort: 9091
+          name: metrics
+          protocol: TCP  
+        - containerPort: 50053
+          name: health
+          protocol: TCP
+        env:
+        - name: QINGXI_DISABLE_CPU_AFFINITY
+          value: "true"
+        - name: RUST_LOG
+          value: "info"
+        - name: RUST_BACKTRACE
+          value: "1"
+        volumeMounts:
+        - name: qingxi-config-volume
+          mountPath: /app/configs
+          readOnly: true
+        resources:
+          requests:
+            memory: "6Gi"
+            cpu: "3"
+          limits:
+            memory: "12Gi"
+            cpu: "6"
+        livenessProbe:
+          grpc:
+            port: 50051
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          grpc:
+            port: 50051
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: qingxi-config-volume
+        configMap:
+          name: qingxi-config
+      restartPolicy: Always

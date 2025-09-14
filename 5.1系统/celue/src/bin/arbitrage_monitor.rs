@@ -15,7 +15,6 @@ use tokio::sync::{RwLock, Mutex};
 use chrono::{DateTime, Utc};
 use celue::performance::simd_fixed_point::{SIMDFixedPointProcessor, FixedPrice};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use common_types::{ArbitrageOpportunity, StrategyType, ArbitrageType};
 // lazy_static removed for now
 // bumpalo removed for now
 // use std::sync::Mutex; // 已有tokio::sync::Mutex
@@ -25,10 +24,6 @@ use colored::*;
 
 const OPTIMAL_BATCH_SIZE: usize = 2000;
 
-/// 直接使用统一的MarketData定义 - 不再重复定义
-pub use common_types::{MarketData, ExchangeMarketData};
-
-/// 高频原始数据输入格式 - 仅用于数据接收，直接转换为统一格式
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CelueMarketData {
     pub symbol: String,
@@ -36,41 +31,6 @@ pub struct CelueMarketData {
     pub bids: Vec<[f64; 2]>,
     pub asks: Vec<[f64; 2]>,
     pub timestamp: DateTime<Utc>,
-}
-
-impl From<CelueMarketData> for ExchangeMarketData {
-    fn from(data: CelueMarketData) -> Self {
-        let best_bid = data.bids.first().map(|b| b[0]).unwrap_or(0.0);
-        let best_ask = data.asks.first().map(|a| a[0]).unwrap_or(0.0);
-        let bid_volume = data.bids.first().map(|b| b[1]).unwrap_or(0.0);
-        let ask_volume = data.asks.first().map(|a| a[1]).unwrap_or(0.0);
-        
-        // 创建订单簿数据
-        let order_book = Some(common_types::OrderBookData {
-            bids: data.bids.into_iter().map(|b| (b[0], b[1])).collect(),
-            asks: data.asks.into_iter().map(|a| (a[0], a[1])).collect(),
-            timestamp: data.timestamp.timestamp_millis() as u64,
-        });
-        
-        ExchangeMarketData {
-            market_data: MarketData {
-                symbol: data.symbol,
-                exchange: data.exchange,
-                timestamp: data.timestamp.timestamp_millis() as u64,
-                bid_price: best_bid,
-                ask_price: best_ask,
-                bid_volume,
-                ask_volume,
-                last_price: (best_bid + best_ask) / 2.0,
-                volume_24h: 0.0, // 高频数据不包含24小时数据
-                change_24h: 0.0,
-                metadata: std::collections::HashMap::new(),
-            },
-            order_book,
-            recent_trades: Vec::new(),
-            latency_ms: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -83,7 +43,18 @@ pub struct PricePoint {
     pub exchange: String,
 }
 
-// ArbitrageOpportunity 从 common_types 导入，移除本地重复定义
+#[derive(Debug, Clone)]
+pub struct ArbitrageOpportunity {
+    pub symbol: String,
+    pub buy_exchange: String,
+    pub sell_exchange: String,
+    pub buy_price: f64,
+    pub sell_price: f64,
+    pub profit_percentage: f64,
+    pub opportunity_type: ArbitrageType,
+    pub timestamp: DateTime<Utc>,
+    pub volume: f64,
+}
 
 #[derive(Debug, Clone)]
 pub enum ArbitrageType {
@@ -388,8 +359,7 @@ impl ArbitrageMonitor {
     // 预留接口：将来集成完整策略模块
     #[allow(dead_code)]
     async fn use_full_triangular_strategy(&self) -> bool {
-        // 集成完整的三角套利策略
-        use crate::strategy::plugins::triangular::DynamicTriangularStrategy;
+        // TODO: 集成 strategy::plugins::triangular::TriangularStrategy
         // 当前使用简化版本进行高频处理优化
         false
     }

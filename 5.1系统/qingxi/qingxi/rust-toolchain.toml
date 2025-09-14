@@ -1,0 +1,4 @@
+# 🚀 阶段2优化：启用nightly工具链以支持AVX-512和内联汇编
+[toolchain]
+channel = "nightly"
+components = ["rustfmt", "clippy"]

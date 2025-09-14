@@ -1,0 +1,56 @@
+# 🚀 QINGXI生产环境Docker配置
+# 多阶段构建，优化镜像大小，生产就绪
+
+# 构建阶段
+FROM rust:1.75 as builder
+
+WORKDIR /usr/src/qingxi
+COPY . .
+
+# 优化编译配置
+ENV CARGO_TARGET_DIR=/tmp/target
+RUN cargo build --release --bin market_data_module
+
+# 生产运行阶段
+FROM debian:bookworm-slim
+
+# 安装必要的运行时依赖
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建用户和目录
+RUN useradd -r -s /bin/false qingxi
+RUN mkdir -p /app/configs /app/logs /app/data
+RUN chown -R qingxi:qingxi /app
+
+# 复制编译好的二进制文件
+COPY --from=builder /tmp/target/release/market_data_module /app/
+COPY --from=builder /usr/src/qingxi/configs/production.toml /app/configs/
+COPY --from=builder /usr/src/qingxi/proto /app/proto
+
+# 设置工作目录和用户
+WORKDIR /app
+USER qingxi
+
+# 环境变量配置
+ENV QINGXI_CONFIG_PATH="/app/configs/production.toml"
+ENV QINGXI_LOG_DIR="/app/logs"
+ENV RUST_LOG="info"
+ENV RUST_BACKTRACE="1"
+
+# 生产环境端口
+EXPOSE 50051 50052 50053 50061
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD pgrep market_data_module || exit 1
+
+# 启动命令
+CMD ["./market_data_module"]
+
+# 标签信息
+LABEL maintainer="QINGXI Team"
+LABEL version="2.0"
+LABEL description="QINGXI High-Performance Trading System - Production Ready"

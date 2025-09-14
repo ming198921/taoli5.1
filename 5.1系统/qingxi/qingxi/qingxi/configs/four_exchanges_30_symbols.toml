@@ -1,0 +1,303 @@
+# QingXi V5.1 系统 - 4个交易所30个币种并发配置
+# 🚀 极限性能优化配置 - V3+O1 清洗系统
+
+[general]
+log_level = "info"
+metrics_enabled = true
+
+[api_server]
+host = "0.0.0.0"
+port = 50051
+metrics_port_offset = 1
+health_port_offset = 2
+http_port_offset = 10
+orderbook_depth_limit = 50
+symbols_list_limit = 200
+
+[central_manager]
+event_buffer_size = 5000
+
+# 🚀 Binance - 30个热门币种 (优化配置)
+[[sources]]
+id = "binance_spot"
+adapter_type = "binance"
+enabled = true
+exchange_id = "binance"
+symbols = [
+    "BTCUSDT", "ETHUSDT", "ADAUSDT", "BNBUSDT", "XRPUSDT",
+    "SOLUSDT", "DOTUSDT", "DOGEUSDT", "AVAXUSDT", "SHIBUSDT",
+    "MATICUSDT", "LTCUSDT", "UNIUSDT", "LINKUSDT", "ATOMUSDT",
+    "ETCUSDT", "XLMUSDT", "BCHUSDT", "FILUSDT", "TRXUSDT",
+    "VETUSDT", "FTMUSDT", "MANAUSDT", "SANDUSDT", "AXSUSDT",
+    "ICPUSDT", "THETAUSDT", "ALGOUSDT", "EGLDUSDT", "NEARUSDT"
+]
+ws_endpoint = "wss://stream.binance.com:443/ws"
+rest_url = "https://api.binance.com"
+channel = "depth@100ms"
+connection_timeout = 30
+max_connections = 5
+reconnect_interval = 5
+ping_interval = 20
+
+# 🚀 OKX - 30个热门币种 (优化配置)
+[[sources]]
+id = "okx_spot"
+adapter_type = "okx"
+enabled = true
+exchange_id = "okx"
+symbols = [
+    "BTC-USDT", "ETH-USDT", "ADA-USDT", "XRP-USDT", "SOL-USDT",
+    "DOT-USDT", "DOGE-USDT", "AVAX-USDT", "SHIB-USDT", "MATIC-USDT",
+    "LTC-USDT", "UNI-USDT", "LINK-USDT", "ATOM-USDT", "ETC-USDT",
+    "XLM-USDT", "BCH-USDT", "FIL-USDT", "TRX-USDT", "VET-USDT",
+    "FTM-USDT", "MANA-USDT", "SAND-USDT", "AXS-USDT", "ICP-USDT",
+    "THETA-USDT", "ALGO-USDT", "EGLD-USDT", "NEAR-USDT", "APE-USDT"
+]
+ws_endpoint = "wss://ws.okx.com:8443/ws/v5/public"
+rest_url = "https://www.okx.com"
+channel = "books"
+connection_timeout = 30
+max_connections = 8
+reconnect_interval = 3
+ping_interval = 15
+book_depth = 20
+
+# 🚀 Bybit - 30个热门币种 (优化配置)
+[[sources]]
+id = "bybit_spot"
+adapter_type = "bybit"
+enabled = true
+exchange_id = "bybit"
+symbols = [
+    "BTCUSDT", "ETHUSDT", "ADAUSDT", "XRPUSDT", "SOLUSDT",
+    "DOTUSDT", "DOGEUSDT", "AVAXUSDT", "SHIBUSDT", "MATICUSDT",
+    "LTCUSDT", "UNIUSDT", "LINKUSDT", "ATOMUSDT", "ETCUSDT",
+    "XLMUSDT", "BCHUSDT", "FILUSDT", "TRXUSDT", "VETUSDT",
+    "FTMUSDT", "MANAUSDT", "SANDUSDT", "AXSUSDT", "ICPUSDT",
+    "THETAUSDT", "ALGOUSDT", "EGLDUSDT", "NEARUSDT", "APEUSDT"
+]
+ws_endpoint = "wss://stream.bybit.com/v5/public/spot"
+rest_url = "https://api.bybit.com"
+channel = "orderbook.1"
+connection_timeout = 30
+max_connections = 6
+reconnect_interval = 5
+ping_interval = 20
+
+# 🚀 Gate.io - 30个热门币种 (优化配置)
+[[sources]]
+id = "gateio_spot"
+adapter_type = "gateio"
+enabled = true
+exchange_id = "gateio"
+symbols = [
+    "BTC_USDT", "ETH_USDT", "ADA_USDT", "XRP_USDT", "SOL_USDT",
+    "DOT_USDT", "DOGE_USDT", "AVAX_USDT", "SHIB_USDT", "MATIC_USDT",
+    "LTC_USDT", "UNI_USDT", "LINK_USDT", "ATOM_USDT", "ETC_USDT",
+    "XLM_USDT", "BCH_USDT", "FIL_USDT", "TRX_USDT", "VET_USDT",
+    "FTM_USDT", "MANA_USDT", "SAND_USDT", "AXS_USDT", "ICP_USDT",
+    "THETA_USDT", "ALGO_USDT", "EGLD_USDT", "NEAR_USDT", "APE_USDT"
+]
+ws_endpoint = "wss://api.gateio.ws/ws/v4/"
+rest_url = "https://api.gateio.ws/api/v4"
+channel = "spot.order_book_update"
+connection_timeout = 30
+max_connections = 4
+reconnect_interval = 8
+ping_interval = 25
+book_depth = 10
+
+[consistency_thresholds]
+price_diff_percentage = 0.5
+timestamp_diff_ms = 5000
+sequence_gap_threshold = 10
+spread_threshold_percentage = 1.0
+critical_spread_threshold_percentage = 2.0
+max_time_diff_ms = 10000.0
+volume_consistency_threshold = 0.5
+
+[reasoner]
+api_endpoint = "http://127.0.0.1:8081"
+
+[anomaly_detection]
+spread_threshold = 2.0
+volume_threshold = 100.0
+price_change_threshold = 5.0
+spread_threshold_percentage = 1.0
+
+[performance]
+command_channel_size = 2000
+internal_channel_size = 2000
+cleaner_input_buffer_size = 1000
+cleaner_output_buffer_size = 1000
+performance_stats_interval_sec = 30
+system_readiness_timeout_sec = 600
+
+[threading]
+network_worker_threads = 12
+network_cpu_cores = [0, 1, 2, 3, 4, 5, 6, 7]
+processing_worker_threads = 6
+processing_cpu_core = 8
+main_worker_threads = 6
+enable_cpu_affinity = true
+enable_numa_awareness = true
+
+# 🚀 V5.1 极限性能优化配置
+[cleaning]
+enable_optimized_cleaner = true
+enable_zero_copy = true
+enable_memory_pool = true
+enable_simd = true
+disable_debug_logging = true
+batch_size = 128
+memory_pool_size = 8192
+vec_pool_capacity = 800
+enable_fast_path_validation = true
+skip_non_critical_checks = true
+enable_parallel_cleaning = true
+
+# 🚀 V3+O1 SIMD优化配置
+[simd_optimization]
+enable_simd = true
+min_price = 0.0001
+max_price = 10000000.0
+min_quantity = 0.00001
+price_change_threshold = 0.05
+enable_vectorized_sorting = true
+simd_batch_size = 128
+enable_auto_vectorization = true
+prefetch_strategy = "aggressive"
+simd_unroll_factor = 16
+vectorization_threshold = 4
+
+# 🚀 缓存配置 - 数据存储位置
+[cache]
+auto_create_dirs = true
+l2_directory = "cache/l2_cleaned_data"
+l3_directory = "cache/l3_processed_data"
+log_directory = "logs"
+system_log_directory = "logs/system"
+audit_log_directory = "logs/audit"
+performance_log_directory = "logs/performance"
+max_entries = 50000
+max_memory_mb = 2048
+default_ttl_secs = 7200
+cleanup_interval_secs = 300
+enable_detailed_logging = true
+enable_performance_logging = true
+enable_audit_logging = true
+
+# 🚀 质量阈值配置
+[quality_thresholds]
+cache_hit_rate_threshold = 0.9
+buffer_usage_threshold = 0.8
+compression_ratio_threshold = 3.0
+data_freshness_warning_ms = 500
+data_freshness_critical_ms = 2000
+max_orderbook_count = 50000
+max_batch_size = 2000
+max_memory_usage_mb = 4096
+
+# 🚀 内存池配置
+[memory_pools]
+snapshot_pool_size = 2000
+default_vec_capacity = 500
+orderbook_entry_pool_size = 10000
+trade_update_pool_size = 5000
+f64_buffer_pool_size = 1000
+usize_buffer_pool_size = 1000
+cleaner_buffer_size = 2000
+
+# 🚀 BTreeMap订单簿配置
+[btreemap_orderbook]
+enable_btreemap = true
+max_depth_per_side = 200
+cleanup_interval_secs = 60
+max_spread_ratio = 0.1
+enable_quality_monitoring = true
+
+# 🚀 高级缓存配置
+[advanced_caching]
+max_entries = 50000
+max_memory_mb = 1024
+default_ttl_secs = 7200
+cleanup_interval_secs = 60
+preload_concurrency = 8
+hit_rate_window_size = 2000
+enable_predictive_preload = true
+preload_threshold = 0.85
+
+# 🚀 渐进式数据清洗配置
+[progressive_cleaning]
+enable_zero_value_prefilter = true
+enable_duplicate_removal = true
+enable_outlier_detection = true
+enable_consistency_validation = true
+enable_performance_profiling = true
+adaptive_batch_sizing = true
+outlier_z_score_threshold = 3.0
+price_deviation_threshold = 0.1
+volume_spike_threshold = 10.0
+latency_threshold_us = 1000
+enable_smart_prefetch = true
+prefetch_lookahead = 10
+dynamic_memory_management = true
+enable_compression = true
+compression_threshold = 1000
+
+# 🚀 清洗器详细配置
+[cleaner]
+memory_pool_size = 131072
+batch_size = 50000
+orderbook_capacity = 5000
+zero_alloc_buffer_count = 131072
+thread_count = 8
+target_latency_ns = 50000
+orderbook_bid_capacity = 5000
+orderbook_ask_capacity = 5000
+reserved_bid_capacity = 5000
+reserved_ask_capacity = 5000
+volume_top_count = 20
+
+# 🚀 批处理配置
+[batch]
+max_batch_size = 1000
+max_wait_time_ms = 10
+concurrency = 4
+enable_compression = false
+buffer_multiplier = 10
+
+# 🚀 基准测试配置
+[benchmark]
+iterations = 1000
+orderbook_depth = 20
+trade_count = 50
+warmup_iterations = 100
+verbose_output = false
+
+# 🚀 算法评分配置
+[algorithm_scoring]
+depth_score_max = 30.0
+liquidity_score_baseline = 1000.0
+liquidity_score_max = 25.0
+spread_score_max = 30.0
+spread_ratio_threshold = 0.05
+balance_score_max = 20.0
+
+# 🚀 内存分配器配置
+[memory_allocator]
+zero_allocation_buffer_size = 131072
+large_buffer_size = 262144
+huge_buffer_size = 1048576
+small_chunks_capacity = 1024
+chunk_sizes = [64, 128, 256, 512, 1024]
+large_buffer_sizes = [131072, 262144, 524288, 1048576]
+size_threshold = 1024
+test_iterations = 1000000
+test_allocation_sizes = [128, 1024, 4096]
+
+# 🚀 交易所特定配置
+[exchanges]
+bybit_orderbook_depth = 60
+binance_orderbook_depth = 100
+event_buffer_size = 5000 

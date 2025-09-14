@@ -1,0 +1,161 @@
+
+> arbitrage-frontend-v5.1@2.1.0 dev
+> vite
+
+
+  VITE v5.4.20  ready in 151 ms
+
+  ➜  Local:   http://localhost:3003/
+  ➜  Network: http://172.31.26.146:3003/
+3:35:22 PM [vite] hmr update /src/pages/StrategyModule.tsx
+3:36:15 PM [vite] hmr update /src/pages/ConfigModule.tsx
+3:36:35 PM [vite] hmr update /src/pages/TradingModule.tsx
+3:36:55 PM [vite] hmr update /src/pages/AIModelModule.tsx
+3:37:11 PM [vite] hmr update /src/pages/CleaningModule.tsx
+4:37:25 AM [vite] hmr update /src/pages/TradingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/StrategyModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/LoggingModule.tsx, /src/pages/ConfigModule.tsx
+4:37:26 AM [vite] hmr update /src/pages/TradingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/StrategyModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/LoggingModule.tsx, /src/pages/ConfigModule.tsx
+4:37:26 AM [vite] hmr update /src/pages/TradingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/StrategyModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/LoggingModule.tsx, /src/pages/ConfigModule.tsx
+4:37:27 AM [vite] hmr update /src/pages/TradingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/StrategyModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/LoggingModule.tsx, /src/pages/ConfigModule.tsx
+4:37:28 AM [vite] hmr update /src/pages/TradingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/StrategyModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/LoggingModule.tsx, /src/pages/ConfigModule.tsx
+4:37:29 AM [vite] hmr update /src/pages/TradingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/StrategyModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/LoggingModule.tsx, /src/pages/ConfigModule.tsx
+4:37:30 AM [vite] hmr update /src/pages/TradingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/StrategyModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/LoggingModule.tsx, /src/pages/ConfigModule.tsx
+4:37:30 AM [vite] hmr update /src/pages/TradingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/StrategyModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/LoggingModule.tsx, /src/pages/ConfigModule.tsx
+4:37:31 AM [vite] hmr update /src/pages/LoggingModule.tsx
+4:37:32 AM [vite] hmr update /src/pages/SystemControl.tsx
+4:37:35 AM [vite] vite.config.ts changed, restarting server...
+4:37:35 AM [vite] server restarted.
+4:37:36 AM [vite] page reload index.html
+4:37:37 AM [vite] page reload src/main.tsx
+4:37:38 AM [vite] hmr update /src/App.tsx
+4:37:39 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+4:37:39 AM [vite] hmr update /src/pages/Dashboard.tsx
+4:37:40 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+4:37:40 AM [vite] hmr update /src/pages/StrategyModule.tsx
+4:37:41 AM [vite] hmr update /src/pages/ConfigModule.tsx
+4:37:41 AM [vite] hmr update /src/pages/TradingModule.tsx
+4:37:43 AM [vite] hmr update /src/pages/AIModelModule.tsx
+4:37:43 AM [vite] hmr update /src/pages/CleaningModule.tsx
+5:26:27 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:31:48 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:31:57 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:32:11 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:32:20 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:32:32 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:32:52 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:33:10 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:34:00 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:34:05 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:34:12 AM [vite] hmr update /src/pages/StrategyModule.tsx
+5:43:11 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:43:12 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:43:13 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:43:13 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:43:14 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:43:14 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:43:15 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:43:15 AM [vite] hmr update /src/pages/SystemControl.tsx, /src/pages/Dashboard.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/ConfigModule.tsx
+5:43:16 AM [vite] hmr update /src/pages/LoggingModule.tsx
+5:43:17 AM [vite] hmr update /src/pages/SystemControl.tsx
+5:43:20 AM [vite] vite.config.ts changed, restarting server...
+5:43:20 AM [vite] server restarted.
+5:43:21 AM [vite] page reload index.html
+5:43:21 AM [vite] page reload src/main.tsx
+5:43:22 AM [vite] hmr update /src/App.tsx
+5:43:22 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+5:43:23 AM [vite] hmr update /src/pages/Dashboard.tsx
+5:43:23 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+5:43:24 AM [vite] hmr update /src/pages/ConfigModule.tsx
+5:43:25 AM [vite] hmr update /src/pages/TradingModule.tsx
+5:43:26 AM [vite] hmr update /src/pages/AIModelModule.tsx
+5:43:26 AM [vite] hmr update /src/pages/CleaningModule.tsx
+5:43:27 AM [vite] hmr update /src/pages/StrategyModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+5:43:27 AM [vite] hmr update /src/pages/StrategyModule.tsx
+6:20:36 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:20:42 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:20:46 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:20:50 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:21:11 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:21:16 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:21:20 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:21:25 AM [vite] hmr update /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/StrategyModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:24:08 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+6:24:15 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+6:24:26 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+6:24:49 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+6:24:51 AM [vite] ✨ new dependencies optimized: @ant-design/charts
+6:24:51 AM [vite] ✨ optimized dependencies changed. reloading
+6:25:01 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+6:25:14 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+6:25:31 AM [vite] hmr update /src/pages/PerformanceModule.tsx
+6:25:50 AM [vite] hmr update /src/pages/StrategyModule.tsx
+6:26:12 AM [vite] hmr update /src/pages/StrategyModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:26:23 AM [vite] hmr update /src/pages/StrategyModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+6:26:24 AM [vite] Internal server error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+  Plugin: vite:esbuild
+  File: /home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31
+  
+  Unexpected "."
+  49 |      console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+  50 |      // 重置重试计数
+  51 |      if (response.config as any).__retryCount) {
+     |                                 ^
+  52 |        delete (response.config as any).__retryCount;
+  53 |      }
+  
+      at failureErrorWithLog (/home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+      at /home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+      at responseCallbacks.<computed> (/home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+      at handleIncomingPacket (/home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+      at Socket.readFromStdout (/home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+6:29:01 AM [vite] Internal server error: Transform failed with 1 error:
+/home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31: ERROR: Unexpected "."
+  Plugin: vite:esbuild
+  File: /home/ubuntu/arbitrage-frontend-v5.1/src/api/apiClient.ts:51:31
+  
+  Unexpected "."
+  49 |      console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+  50 |      // 重置重试计数
+  51 |      if (response.config as any).__retryCount) {
+     |                                 ^
+  52 |        delete (response.config as any).__retryCount;
+  53 |      }
+  
+      at failureErrorWithLog (/home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+      at /home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+      at responseCallbacks.<computed> (/home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+      at handleIncomingPacket (/home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+      at Socket.readFromStdout (/home/ubuntu/arbitrage-frontend-v5.1/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+6:30:02 AM [vite] hmr update /src/pages/StrategyModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:30:14 AM [vite] hmr update /src/pages/StrategyModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx
+6:30:22 AM [vite] hmr update /src/pages/StrategyModule.tsx, /src/pages/Dashboard.tsx, /src/pages/SystemControl.tsx, /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/PerformanceModule.tsx, /src/pages/TradingModule.tsx, /src/pages/ConfigModule.tsx

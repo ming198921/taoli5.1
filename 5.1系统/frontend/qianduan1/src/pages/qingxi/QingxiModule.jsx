@@ -1,0 +1,792 @@
+/**
+ * 清洗模块页面 - 数据收集器管理和数据质量监控
+ */
+
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Navigation from '../../components/Navigation.jsx';
+import apiService from '../../services/api.js';
+import { 
+  COLLECTOR_STATUS, 
+  REFRESH_INTERVALS, 
+  SUCCESS_MESSAGES, 
+  ERROR_MESSAGES 
+} from '../../utils/constants.js';
+import { 
+  formatTime, 
+  getStatusColor,
+  cn
+} from '../../utils/helpers.js';
+
+// 数据收集器卡片组件
+const CollectorCard = ({ collector, onStart, onStop, loading }) => {
+  const { id, name, status } = collector;
+  const statusColor = getStatusColor(status === 'running' ? 'running' : 'stopped');
+  const isRunning = status === 'running';
+  
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-4 h-4 rounded-full"
+            style={{ backgroundColor: statusColor }}
+          />
+          <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
+        </div>
+        <span 
+          className="px-3 py-1 rounded-full text-sm font-medium"
+          style={{ 
+            color: statusColor,
+            backgroundColor: `${statusColor}20`
+          }}
+        >
+          {isRunning ? '运行中' : '已停止'}
+        </span>
+      </div>
+      
+      <div className="mb-4">
+        <p className="text-sm text-gray-500 mb-1">收集器ID</p>
+        <p className="text-gray-900 font-mono text-sm">{id}</p>
+      </div>
+      
+      <div className="flex gap-3">
+        <button
+          onClick={() => onStart(id)}
+          disabled={loading || isRunning}
+          className={cn(
+            'flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            !isRunning && !loading
+              ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-400'
+          )}
+        >
+          {loading ? '启动中...' : '启动收集器'}
+        </button>
+        <button
+          onClick={() => onStop(id)}
+          disabled={loading || !isRunning}
+          className={cn(
+            'flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            isRunning && !loading
+              ? 'bg-red-600 hover:bg-red-700 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-400'
+          )}
+        >
+          {loading ? '停止中...' : '停止收集器'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// 数据质量监控卡片
+const DataQualityCard = () => {
+  // 使用真实API获取数据质量指标
+  const { data: qualityData, isLoading: qualityLoading, error: qualityError } = useQuery({
+    queryKey: ['dataQuality'],
+    queryFn: async () => {
+      try {
+        console.log('开始获取数据质量...');
+        const result = await apiService.qingxi.getDataQuality();
+        console.log('数据质量获取结果:', result);
+        return result;
+      } catch (error) {
+        console.error('获取数据质量失败:', error);
+        // 不抛出错误，返回默认值
+        return { data: { totalRecords: 0, validRecords: 0, dataQualityScore: 0, exchangeData: {} } };
+      }
+    },
+    refetchInterval: 4000, // 4秒刷新一次，实现3-5秒自动刷新
+    select: (response) => response.data?.data || response.data,
+  });
+
+  if (qualityLoading || !qualityData) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">数据质量监控</h3>
+      
+      {/* 总体数据质量评分 */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-600">数据质量评分</p>
+            <p className="text-3xl font-bold text-blue-600">
+              {qualityData.dataQualityScore.toFixed(2)}%
+            </p>
+          </div>
+          <div className="w-16 h-16 relative">
+            <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#e5e7eb"
+                strokeWidth="3"
+              />
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="3"
+                strokeDasharray={`${qualityData.dataQualityScore.toFixed(2)}, 100`}
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* 数据统计 */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="text-center">
+          <p className="text-2xl font-semibold text-gray-900">
+            {qualityData.totalRecords.toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-500">总记录数</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-semibold text-green-600">
+            {qualityData.validRecords.toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-500">有效记录</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-semibold text-red-600">
+            {(qualityData.invalidRecords || (qualityData.totalRecords - qualityData.validRecords) || 0).toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-500">无效记录</p>
+        </div>
+      </div>
+
+      {/* 交易所数据质量 */}
+      <div className="space-y-3">
+        <h4 className="text-md font-medium text-gray-900">各交易所数据质量</h4>
+        {qualityData.exchangeData && Object.keys(qualityData.exchangeData).length > 0 ? (
+          Object.entries(qualityData.exchangeData).map(([exchange, data]) => (
+            <div key={exchange} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="capitalize font-medium text-gray-700">
+                  {exchange}
+                </span>
+                <span className="text-sm text-gray-500">
+                  {(data.records || 0).toLocaleString()} 记录
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-900">
+                  {(data.quality || 0).toFixed(2)}%
+                </span>
+                <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(data.quality || 0, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center text-gray-500 py-4">
+            暂无交易所数据
+          </div>
+        )}
+      </div>
+      
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <p className="text-xs text-gray-500">
+          最后更新: {qualityData.lastUpdated ? formatTime(new Date(qualityData.lastUpdated)) : formatTime(new Date())}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// 数据流监控卡片
+const DataFlowCard = () => {
+  // 使用真实API获取数据流量统计，每3-5秒刷新
+  const { data: flowData, isLoading: flowLoading, error: flowError } = useQuery({
+    queryKey: ['dataFlow'],
+    queryFn: async () => {
+      try {
+        console.log('开始获取数据流量...');
+        const result = await apiService.qingxi.getDataFlow();
+        console.log('数据流量获取结果:', result);
+        return result;
+      } catch (error) {
+        console.error('获取数据流量失败:', error);
+        // 不抛出错误，返回默认值
+        return { data: { realTimeFlow: 0, avgFlowPerMin: 0, peakFlow: 0, flowTrend: 'stable', v3Plus01Status: 'inactive', zeroAllocationStatus: 'disabled' } };
+      }
+    },
+    refetchInterval: 3000, // 3秒刷新一次，实现3-5秒自动刷新
+    select: (response) => response.data?.data || response.data,
+  });
+
+  if (flowLoading || !flowData) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-6 bg-gray-200 rounded w-full"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">实时数据流监控</h3>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm text-gray-500">实时流量</p>
+          <p className="text-2xl font-bold text-blue-600">
+            {flowData.realTimeFlow} <span className="text-sm font-normal">条/秒</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">平均流量</p>
+          <p className="text-2xl font-bold text-green-600">
+            {flowData.avgFlowPerMin} <span className="text-sm font-normal">条/分钟</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">峰值流量</p>
+          <p className="text-2xl font-bold text-orange-600">
+            {flowData.peakFlow} <span className="text-sm font-normal">条/秒</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">流量趋势</p>
+          <p className={cn(
+            "text-lg font-semibold",
+            flowData.flowTrend === 'increasing' ? 'text-green-600' : 
+            flowData.flowTrend === 'stable' ? 'text-blue-600' :
+            flowData.flowTrend === 'stopped' ? 'text-gray-600' : 'text-red-600'
+          )}>
+            {flowData.flowTrend === 'increasing' ? '↗️ 上升中' : 
+             flowData.flowTrend === 'stable' ? '⚡ 稳定中' :
+             flowData.flowTrend === 'stopped' ? '⏹️ 已停止' : '↘️ 下降中'}
+          </p>
+        </div>
+      </div>
+
+      {/* v3+o1 和零分配状态显示 */}
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <h4 className="text-sm font-medium text-gray-900 mb-2">系统启动状态检查</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-2">
+            <div 
+              className={cn(
+                "w-3 h-3 rounded-full",
+                flowData.v3Plus01Status === 'active' ? 'bg-green-500' : 'bg-gray-400'
+              )}
+            />
+            <span className="text-sm text-gray-600">v3+o1</span>
+            <span className={cn(
+              "text-xs px-2 py-1 rounded-full font-medium",
+              flowData.v3Plus01Status === 'active' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-gray-100 text-gray-600'
+            )}>
+              {flowData.v3Plus01Status === 'active' ? '已启动' : '未启动'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div 
+              className={cn(
+                "w-3 h-3 rounded-full",
+                flowData.zeroAllocationStatus === 'enabled' ? 'bg-green-500' : 'bg-gray-400'
+              )}
+            />
+            <span className="text-sm text-gray-600">零分配</span>
+            <span className={cn(
+              "text-xs px-2 py-1 rounded-full font-medium",
+              flowData.zeroAllocationStatus === 'enabled' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-gray-100 text-gray-600'
+            )}>
+              {flowData.zeroAllocationStatus === 'enabled' ? '已启用' : '未启用'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 清洗速度统计卡片
+const CleanStatsCard = () => {
+  const [expandedExchange, setExpandedExchange] = useState(null);
+  
+  // 获取清洗速度统计，每3秒刷新
+  const { data: cleanStats, isLoading: statsLoading, error: statsError } = useQuery({
+    queryKey: ['cleanStats'],
+    queryFn: async () => {
+      try {
+        console.log('开始获取清洗速度统计...');
+        const result = await apiService.qingxi.getCleanStats();
+        console.log('清洗速度统计获取结果:', result);
+        return result;
+      } catch (error) {
+        console.error('获取清洗速度统计失败:', error);
+        return { data: { totalPairs: 0, avgCleanTime: 0, fastestPair: null, slowestPair: null, allPairs: [] } };
+      }
+    },
+    refetchInterval: 3000, // 3秒刷新一次，确保真正实时更新
+    select: (response) => response.data?.data || response.data,
+  });
+
+  // 获取收集器详细信息，包含每个交易对的清洗时间
+  const { data: collectorsData } = useQuery({
+    queryKey: ['collectors'],
+    queryFn: async () => {
+      try {
+        const result = await apiService.qingxi.getCollectors();
+        return result;
+      } catch (error) {
+        console.error('获取收集器失败:', error);
+        return { data: [] };
+      }
+    },
+    refetchInterval: 3000, // 3秒刷新一次
+    select: (response) => response.data?.data || response.data,
+  });
+
+  if (statsLoading || !cleanStats) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-12 bg-gray-200 rounded"></div>
+            <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">清洗速度统计</h3>
+      
+      {/* 总体统计 */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="text-center p-3 bg-blue-50 rounded-lg">
+          <p className="text-2xl font-bold text-blue-600">{cleanStats.totalPairs}</p>
+          <p className="text-sm text-gray-600">交易对总数</p>
+        </div>
+        <div className="text-center p-3 bg-green-50 rounded-lg">
+          <p className="text-2xl font-bold text-green-600">{cleanStats.avgCleanTime}ms</p>
+          <p className="text-sm text-gray-600">平均清洗时间</p>
+        </div>
+      </div>
+
+      {/* 最快和最慢交易对 */}
+      <div className="space-y-3">
+        {cleanStats.fastestPair && (
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div>
+                <p className="font-medium text-green-800">🚀 最快清洗</p>
+                <p className="text-sm text-green-600">
+                  {cleanStats.fastestPair.pair} ({cleanStats.fastestPair.exchange})
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-green-800">{cleanStats.fastestPair.cleanTime}ms</p>
+              <p className="text-xs text-green-600">{cleanStats.fastestPair.efficiency}% 效率</p>
+            </div>
+          </div>
+        )}
+
+        {cleanStats.slowestPair && (
+          <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+              <div>
+                <p className="font-medium text-orange-800">🐌 最慢清洗</p>
+                <p className="text-sm text-orange-600">
+                  {cleanStats.slowestPair.pair} ({cleanStats.slowestPair.exchange})
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-orange-800">{cleanStats.slowestPair.cleanTime}ms</p>
+              <p className="text-xs text-orange-600">{cleanStats.slowestPair.efficiency}% 效率</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 交易所详细信息折叠区域 */}
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <h4 className="text-sm font-medium text-gray-900 mb-3">各交易所清洗详情</h4>
+        <div className="space-y-2">
+          {collectorsData && Array.isArray(collectorsData) && collectorsData.length > 0 ? (
+            collectorsData.map(collector => (
+              <div key={collector?.id || Math.random()} className="border border-gray-200 rounded-lg">
+                <button
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+                  onClick={() => setExpandedExchange(expandedExchange === collector?.id ? null : collector?.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className={cn(
+                        "w-3 h-3 rounded-full",
+                        collector?.status === 'running' ? 'bg-green-500' : 'bg-gray-400'
+                      )}
+                    />
+                    <span className="font-medium text-gray-900 capitalize">
+                      {collector?.exchange || '未知交易所'}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      ({collector?.pairs ? collector.pairs.length : 0} 交易对)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">
+                      {collector?.status === 'running' ? '运行中' : '已停止'}
+                    </span>
+                    <svg
+                      className={cn(
+                        "w-4 h-4 text-gray-400 transition-transform",
+                        expandedExchange === collector?.id ? "rotate-180" : ""
+                      )}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+                
+                {expandedExchange === collector?.id && collector?.pairDetails && (
+                  <div className="px-4 pb-4 border-t border-gray-100">
+                    <div className="mt-3 space-y-2">
+                      {Object.entries(collector.pairDetails).map(([pair, details]) => (
+                        <div key={pair} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className={cn(
+                                "w-2 h-2 rounded-full",
+                                details?.status === 'running' ? 'bg-green-500' : 'bg-gray-400'
+                              )}
+                            />
+                            <span className="font-mono text-sm text-gray-700">{pair}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-gray-900">
+                                {details?.cleanTime || 0}ms
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {details?.efficiency || 0}% 效率
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">
+                                {(details?.dataCount || 0).toLocaleString()} 条
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                数据量
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {collector?.status === 'running' && (
+                      <div className="mt-2 text-xs text-green-600">
+                        ⚡ 实时更新中，每3秒刷新清洗时间
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-4">
+              暂无收集器数据
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-3 text-xs text-gray-500">
+          📊 实时监控所有交易对清洗性能，每3秒更新一次
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 主清洗模块页面组件
+const QingxiModule = () => {
+  const queryClient = useQueryClient();
+  const [notification, setNotification] = useState(null);
+  const [operatingCollector, setOperatingCollector] = useState(null);
+  const [hasError, setHasError] = useState(false);
+  
+  // 错误边界 - 增强版
+  useEffect(() => {
+    const handleError = (error, errorInfo) => {
+      console.error('清洗模块页面错误:', error, errorInfo);
+      setHasError(true);
+    };
+    
+    const handleUnhandledRejection = (event) => {
+      console.error('未处理的Promise拒绝:', event.reason);
+      setHasError(true);
+    };
+    
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+  
+  // 如果发生错误，显示错误页面
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <Navigation />
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mt-8">
+            <p className="text-red-600 text-lg font-medium mb-2">
+              页面加载出现错误
+            </p>
+            <p className="text-red-500 text-sm mb-4">
+              请检查浏览器控制台获取详细错误信息，或检查API服务器状态
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  setHasError(false);
+                  queryClient.invalidateQueries();
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                重新获取数据
+              </button>
+              <button
+                onClick={() => {
+                  setHasError(false);
+                  window.location.reload();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                重新加载页面
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // 获取数据收集器列表
+  const { data: collectors = [], isLoading, error } = useQuery({
+    queryKey: ['collectors'],
+    queryFn: async () => {
+      try {
+        console.log('开始获取收集器列表...');
+        const result = await apiService.qingxi.getCollectors();
+        console.log('收集器列表获取结果:', result);
+        return result;
+      } catch (error) {
+        console.error('获取收集器列表失败:', error);
+        throw error;
+      }
+    },
+    refetchInterval: REFRESH_INTERVALS.NORMAL,
+    select: (response) => {
+      console.log('处理收集器列表数据:', response);
+      const data = response.data || response || [];
+      console.log('最终收集器数据:', data);
+      return data;
+    },
+    retry: 3,
+    retryDelay: 1000,
+  });
+  
+  // 显示通知
+  const showNotification = useCallback((message, type = 'info') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  }, []);
+  
+  // 启动收集器
+  const startCollectorMutation = useMutation({
+    mutationFn: (collectorId) => apiService.qingxi.startCollector(collectorId),
+    onMutate: (collectorId) => {
+      setOperatingCollector(collectorId);
+    },
+    onSuccess: (response, collectorId) => {
+      queryClient.invalidateQueries(['collectors']);
+      showNotification(`收集器 ${collectorId} 启动成功`, 'success');
+    },
+    onError: (error, collectorId) => {
+      showNotification(`收集器 ${collectorId} 启动失败: ${error.message}`, 'error');
+    },
+    onSettled: () => {
+      setOperatingCollector(null);
+    },
+  });
+  
+  // 停止收集器
+  const stopCollectorMutation = useMutation({
+    mutationFn: (collectorId) => apiService.qingxi.stopCollector(collectorId),
+    onMutate: (collectorId) => {
+      setOperatingCollector(collectorId);
+    },
+    onSuccess: (response, collectorId) => {
+      queryClient.invalidateQueries(['collectors']);
+      showNotification(`收集器 ${collectorId} 已停止`, 'success');
+    },
+    onError: (error, collectorId) => {
+      showNotification(`收集器 ${collectorId} 停止失败: ${error.message}`, 'error');
+    },
+    onSettled: () => {
+      setOperatingCollector(null);
+    },
+  });
+  
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-600 text-lg font-medium mb-2">
+              清洗模块数据加载失败
+            </p>
+            <p className="text-red-500 text-sm">
+              {error.message}
+            </p>
+            <button
+              onClick={() => queryClient.invalidateQueries(['collectors'])}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              重试
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* 通知组件 */}
+      {notification && (
+        <div className={cn(
+          'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm',
+          notification.type === 'success' && 'bg-green-50 border border-green-200 text-green-800',
+          notification.type === 'error' && 'bg-red-50 border border-red-200 text-red-800',
+          notification.type === 'info' && 'bg-blue-50 border border-blue-200 text-blue-800'
+        )}>
+          {notification.message}
+        </div>
+      )}
+
+      {/* 导航栏 */}
+      <Navigation />
+      
+      <div className="max-w-7xl mx-auto">
+        {/* 页面标题 */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">清洗模块</h1>
+          <p className="text-gray-600 mt-1">
+            数据收集器管理、数据质量监控和实时数据流分析
+          </p>
+        </div>
+        
+        {isLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {/* 加载占位符 */}
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* 数据收集器管理区域 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">数据收集器管理</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {collectors && Array.isArray(collectors) && collectors.length > 0 ? (
+                  collectors.map((collector) => (
+                    collector && collector.id ? (
+                      <CollectorCard
+                        key={collector.id}
+                        collector={collector}
+                        onStart={() => startCollectorMutation.mutate(collector.id)}
+                        onStop={() => stopCollectorMutation.mutate(collector.id)}
+                        loading={operatingCollector === collector.id}
+                      />
+                    ) : null
+                  ))
+                ) : (
+                  <div className="col-span-full text-center text-gray-500 py-8">
+                    暂无收集器数据
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* 数据质量和流监控区域 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <DataQualityCard />
+              <DataFlowCard />
+              <CleanStatsCard />
+            </div>
+          </div>
+        )}
+        
+        {/* 页面底部信息 */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          最后更新: {formatTime(new Date())} | 
+          刷新间隔: {REFRESH_INTERVALS.NORMAL / 1000}秒 | 
+          数据收集器数量: {collectors.length}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QingxiModule;

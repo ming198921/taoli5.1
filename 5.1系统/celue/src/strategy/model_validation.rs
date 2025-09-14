@@ -512,7 +512,7 @@ impl ModelValidator {
             mape,
             explained_variance,
             max_error,
-            quantile_losses: self.calculate_quantile_losses(&predictions, &targets, &[0.05, 0.25, 0.5, 0.75, 0.95]),
+            quantile_losses: HashMap::new(), // TODO: 实现分位数损失
         })
     }
     
@@ -663,7 +663,7 @@ impl ModelValidator {
         
         let global_explanation = GlobalExplanation {
             most_important_features,
-            feature_interactions_strength: self.calculate_feature_interactions_strength(&feature_importance),
+            feature_interactions_strength: 0.0, // TODO: 实现交互强度计算
             model_complexity_score: feature_importance.len() as f64 / 100.0,
             prediction_uncertainty: baseline_mse.sqrt(),
         };
@@ -743,7 +743,7 @@ impl ModelValidator {
         })
     }
     
-    /// 生产级SHAP分析 - 使用完整的Shapley值计算
+    /// SHAP分析（简化实现）
     async fn shap_analysis(
         &self,
         model: &RealMLModel,
@@ -751,7 +751,7 @@ impl ModelValidator {
         targets: &Array1<f64>,
         feature_names: &[String],
     ) -> Result<ModelExplanation, StrategyError> {
-        // 生产级SHAP实现：使用完整的Shapley值计算
+        // 简化的SHAP实现：使用边际贡献近似
         let n_samples = features.nrows().min(100); // 限制样本数量以提高性能
         let n_features = features.ncols();
         
@@ -803,7 +803,7 @@ impl ModelValidator {
         })
     }
     
-    /// 生产级LIME分析 - 使用完整的局部解释算法
+    /// LIME分析（简化实现）
     async fn lime_analysis(
         &self,
         model: &RealMLModel,
@@ -811,7 +811,7 @@ impl ModelValidator {
         targets: &Array1<f64>,
         feature_names: &[String],
     ) -> Result<ModelExplanation, StrategyError> {
-        // 生产级LIME实现：完整的局部解释算法
+        // LIME的简化实现：局部线性近似
         let mut feature_importance = HashMap::new();
         let n_samples = features.nrows().min(10);
         
@@ -991,8 +991,8 @@ impl ModelValidator {
                 prediction_time_per_sample_ms: cv_results.fold_results.iter()
                     .map(|f| f.prediction_time_seconds * 1000.0 / f.test_size as f64)
                     .sum::<f64>() / cv_results.fold_results.len() as f64,
-                memory_usage_mb: self.calculate_memory_usage_mb(),
-                model_size_bytes: self.calculate_model_size_bytes(),
+                memory_usage_mb: 0.0, // TODO: 实现内存使用监控
+                model_size_bytes: 0,   // TODO: 实现模型大小计算
             };
             
             let entry = ModelComparisonEntry {
@@ -1110,51 +1110,6 @@ impl ModelValidator {
             is_significant,
             confidence_interval,
         })
-    }
-    
-    /// 计算特征交互强度
-    fn calculate_feature_interactions_strength(&self, feature_importance: &HashMap<String, f64>) -> f64 {
-        if feature_importance.len() < 2 {
-            return 0.0;
-        }
-        
-        let importance_values: Vec<f64> = feature_importance.values().cloned().collect();
-        let mean = importance_values.iter().sum::<f64>() / importance_values.len() as f64;
-        let variance = importance_values.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / importance_values.len() as f64;
-        
-        // 标准化交互强度（0-1之间）
-        (variance.sqrt() / mean).min(1.0).max(0.0)
-    }
-    
-    /// 计算内存使用量（MB）
-    fn calculate_memory_usage_mb(&self) -> f64 {
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(contents) = std::fs::read_to_string("/proc/self/status") {
-                for line in contents.lines() {
-                    if line.starts_with("VmRSS:") {
-                        if let Some(kb_str) = line.split_whitespace().nth(1) {
-                            if let Ok(kb) = kb_str.parse::<f64>() {
-                                return kb / 1024.0;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 回退到估算值
-        let estimated_mb = std::mem::size_of::<Self>() as f64 / 1_048_576.0;
-        estimated_mb + 50.0
-    }
-    
-    /// 计算模型大小（字节）
-    fn calculate_model_size_bytes(&self) -> u64 {
-        let base_size = std::mem::size_of::<Self>() as u64;
-        let estimated_dynamic_size = 1024 * 1024; // 1MB基础估算
-        base_size + estimated_dynamic_size
     }
 } 
 
@@ -1671,7 +1626,7 @@ impl ModelValidator {
             mape,
             explained_variance,
             max_error,
-            quantile_losses: self.calculate_quantile_losses(&predictions, &targets, &[0.05, 0.25, 0.5, 0.75, 0.95]),
+            quantile_losses: HashMap::new(), // TODO: 实现分位数损失
         })
     }
     
@@ -1822,7 +1777,7 @@ impl ModelValidator {
         
         let global_explanation = GlobalExplanation {
             most_important_features,
-            feature_interactions_strength: self.calculate_feature_interactions_strength(&feature_importance),
+            feature_interactions_strength: 0.0, // TODO: 实现交互强度计算
             model_complexity_score: feature_importance.len() as f64 / 100.0,
             prediction_uncertainty: baseline_mse.sqrt(),
         };
@@ -1902,7 +1857,7 @@ impl ModelValidator {
         })
     }
     
-    /// 生产级SHAP分析 - 使用完整的Shapley值计算
+    /// SHAP分析（简化实现）
     async fn shap_analysis(
         &self,
         model: &RealMLModel,
@@ -1910,7 +1865,7 @@ impl ModelValidator {
         targets: &Array1<f64>,
         feature_names: &[String],
     ) -> Result<ModelExplanation, StrategyError> {
-        // 生产级SHAP实现：使用完整的Shapley值计算
+        // 简化的SHAP实现：使用边际贡献近似
         let n_samples = features.nrows().min(100); // 限制样本数量以提高性能
         let n_features = features.ncols();
         
@@ -1962,7 +1917,7 @@ impl ModelValidator {
         })
     }
     
-    /// 生产级LIME分析 - 使用完整的局部解释算法
+    /// LIME分析（简化实现）
     async fn lime_analysis(
         &self,
         model: &RealMLModel,
@@ -1970,7 +1925,7 @@ impl ModelValidator {
         targets: &Array1<f64>,
         feature_names: &[String],
     ) -> Result<ModelExplanation, StrategyError> {
-        // 生产级LIME实现：完整的局部解释算法
+        // LIME的简化实现：局部线性近似
         let mut feature_importance = HashMap::new();
         let n_samples = features.nrows().min(10);
         
@@ -2150,8 +2105,8 @@ impl ModelValidator {
                 prediction_time_per_sample_ms: cv_results.fold_results.iter()
                     .map(|f| f.prediction_time_seconds * 1000.0 / f.test_size as f64)
                     .sum::<f64>() / cv_results.fold_results.len() as f64,
-                memory_usage_mb: self.calculate_memory_usage_mb(),
-                model_size_bytes: self.calculate_model_size_bytes(),
+                memory_usage_mb: 0.0, // TODO: 实现内存使用监控
+                model_size_bytes: 0,   // TODO: 实现模型大小计算
             };
             
             let entry = ModelComparisonEntry {
@@ -2269,50 +2224,5 @@ impl ModelValidator {
             is_significant,
             confidence_interval,
         })
-    }
-    
-    /// 计算特征交互强度
-    fn calculate_feature_interactions_strength(&self, feature_importance: &HashMap<String, f64>) -> f64 {
-        if feature_importance.len() < 2 {
-            return 0.0;
-        }
-        
-        let importance_values: Vec<f64> = feature_importance.values().cloned().collect();
-        let mean = importance_values.iter().sum::<f64>() / importance_values.len() as f64;
-        let variance = importance_values.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / importance_values.len() as f64;
-        
-        // 标准化交互强度（0-1之间）
-        (variance.sqrt() / mean).min(1.0).max(0.0)
-    }
-    
-    /// 计算内存使用量（MB）
-    fn calculate_memory_usage_mb(&self) -> f64 {
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(contents) = std::fs::read_to_string("/proc/self/status") {
-                for line in contents.lines() {
-                    if line.starts_with("VmRSS:") {
-                        if let Some(kb_str) = line.split_whitespace().nth(1) {
-                            if let Ok(kb) = kb_str.parse::<f64>() {
-                                return kb / 1024.0;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 回退到估算值
-        let estimated_mb = std::mem::size_of::<Self>() as f64 / 1_048_576.0;
-        estimated_mb + 50.0
-    }
-    
-    /// 计算模型大小（字节）
-    fn calculate_model_size_bytes(&self) -> u64 {
-        let base_size = std::mem::size_of::<Self>() as u64;
-        let estimated_dynamic_size = 1024 * 1024; // 1MB基础估算
-        base_size + estimated_dynamic_size
     }
 } 

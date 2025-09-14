@@ -1,0 +1,115 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+*.out
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Performance and test results
+*_performance_*.log
+*_test_results_*.log
+*_monitor_*.log
+*_timing_*.log
+*_stats_*.json
+*_summary_*.json
+*.jsonl
+cleaning_*.log
+cleaning_*.txt
+performance_*.log
+monitor_*.log
+*.test.log
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+temp/
+
+# Build artifacts
+/dist/
+/build/
+/out/
+
+# Documentation builds
+/book/
+/mdbook/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache
+.cache/
+/cache/
+
+# Local configuration overrides
+configs/local/
+configs/personal/
+configs/secrets/
+
+# API keys and secrets
+api_keys.toml
+secrets.toml
+credentials.toml
+
+# Deployment
+.kubernetes/
+.docker/
+docker-compose.override.yml
+
+# Benchmarks
+criterion/
+benchmarks/
+
+# Coverage
+coverage/
+tarpaulin-report.html
+lcov.info
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Temporary files
+*.tmp
+*.bak
+
+# Build and CI/CD related
+Dockerfile.bak
+docker-compose.yml.bak
+prometheus.yml.bak
+*.log
+
+# Workspace specific
+# 如果 qingxi/ 是你的唯一内容，可以这样简化
+/*
+!/qingxi/
+!/Cargo.toml
+!/.gitignore
+!/.github/

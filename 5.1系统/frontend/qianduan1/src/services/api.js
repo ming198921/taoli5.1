@@ -1,0 +1,1489 @@
+/**
+ * 5.1套利系统 - 统一API服务层
+ * 
+ * 提供与后端服务的统一接口，包括：
+ * - 系统控制API
+ * - 清洗模块API  
+ * - 策略模块API
+ * - 风险管理API
+ * - 架构监控API
+ * - 可观测性API
+ */
+
+import axios from 'axios';
+
+// 导入我们的完整SDK
+import arbitrageSDK from './sdk.js';
+
+// API基础配置 - 更新为使用本地API网关
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+// 创建axios实例
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+});
+
+// 请求拦截器
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log(`🚀 API请求: ${config.method?.toUpperCase()} ${config.url}`);
+    return config;
+  },
+  (error) => {
+    console.error('❌ API请求错误:', error);
+    return Promise.reject(error);
+  }
+);
+
+// 响应拦截器
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log(`✅ API响应: ${response.status} ${response.config.url}`);
+    return response;
+  },
+  (error) => {
+    console.error('❌ API响应错误:', error.response?.status, error.response?.data || error.message);
+    
+    // 统一错误处理
+    if (error.response) {
+      // 服务器返回错误状态码
+      const errorMessage = error.response.data?.message || `请求失败 (${error.response.status})`;
+      return Promise.reject(new Error(errorMessage));
+    } else if (error.request) {
+      // 网络错误
+      return Promise.reject(new Error('网络连接失败，请检查网络或后端服务状态'));
+    } else {
+      // 其他错误
+      return Promise.reject(new Error(error.message));
+    }
+  }
+);
+
+// 统一API服务对象 - 现在使用完整的SDK
+export const apiService = {
+  
+  // ===== 系统控制模块 API - 使用新的完整API网关 =====
+  system: {
+    // 获取系统状态
+    getStatus: async () => {
+      try {
+        const data = await arbitrageSDK.system.getSystemStatus();
+        console.log('SDK获取系统状态成功:', data);
+        return { data: { data } }; // 保持兼容性
+      } catch (error) {
+        console.error('SDK获取系统状态失败:', error);
+        // 如果SDK失败，尝试直接调用API
+        try {
+          console.log('尝试直接API调用获取系统状态...');
+          const response = await apiClient.get('/api/system/status');
+          console.log('直接API调用成功:', response.data);
+          return { data: response.data };
+        } catch (apiError) {
+          console.error('直接API调用也失败:', apiError);
+          return { data: { data: {
+            isRunning: false,
+            uptime: 0,
+            version: '5.1.0',
+            modules: {},
+            cpu_usage: 0,
+            memory_usage: 0,
+            network_latency: 0
+          }}};
+        }
+      }
+    },
+    
+    // 启动系统
+    start: async () => {
+      try {
+        console.log('调用系统启动, SDK状态:', arbitrageSDK.getStatus());
+        const result = await arbitrageSDK.system.startSystem();
+        console.log('系统启动结果:', result);
+        return { data: result };
+      } catch (error) {
+        console.error('启动系统失败:', error);
+        // 如果SDK有问题，尝试直接调用API
+        if (error.message?.includes('网络连接失败') || error.message?.includes('初始化')) {
+          try {
+            console.log('SDK失败，尝试直接API调用...');
+            const response = await apiClient.post('/api/system/start');
+            return response;
+          } catch (apiError) {
+            console.error('直接API调用也失败:', apiError);
+            throw new Error(`系统启动失败: ${apiError.message || error.message}`);
+          }
+        }
+        throw error;
+      }
+    },
+    
+    // 停止系统
+    stop: async () => {
+      try {
+        console.log('调用系统停止, SDK状态:', arbitrageSDK.getStatus());
+        const result = await arbitrageSDK.system.stopSystem();
+        console.log('系统停止结果:', result);
+        return { data: result };
+      } catch (error) {
+        console.error('停止系统失败:', error);
+        // 如果SDK有问题，尝试直接调用API
+        if (error.message?.includes('网络连接失败') || error.message?.includes('初始化')) {
+          try {
+            console.log('SDK失败，尝试直接API调用停止系统...');
+            const response = await apiClient.post('/api/system/stop');
+            return response;
+          } catch (apiError) {
+            console.error('直接API调用停止也失败:', apiError);
+            throw new Error(`系统停止失败: ${apiError.message || error.message}`);
+          }
+        }
+        throw error;
+      }
+    },
+    
+    // 获取系统日志
+    getLogs: async (lines = 50) => {
+      try {
+        const data = await arbitrageSDK.system.getSystemLogs({ limit: lines });
+        return { data: { data: { logs: data.logs || [] } } };
+      } catch (error) {
+        console.error('SDK获取系统日志失败:', error);
+        // 尝试直接API调用
+        try {
+          const response = await apiClient.get('/api/system/logs');
+          console.log('直接API获取日志成功:', response.data);
+          return { data: { data: { logs: response.data.logs || [] } } };
+        } catch (apiError) {
+          console.error('直接API获取日志也失败:', apiError);
+          return { data: { data: { logs: [] } } };
+        }
+      }
+    },
+    
+    // 健康检查
+    health: async () => {
+      try {
+        const health = await arbitrageSDK.healthCheck();
+        return { 
+          ok: health.api && health.sdk,
+          data: health
+        };
+      } catch (error) {
+        console.error('健康检查失败:', error);
+        return { ok: false, data: { api: false, sdk: false, user: false, websocket: false } };
+      }
+    },
+  },
+
+  // ===== 清洗模块 API - 使用新的完整API网关 =====
+  qingxi: {
+    // 获取数据收集器列表
+    getCollectors: async () => {
+      try {
+        console.log('开始通过SDK获取收集器列表...');
+        const data = await arbitrageSDK.qingxi.getCollectorStatus();
+        console.log('SDK获取收集器成功:', data);
+        return { success: true, data };
+      } catch (error) {
+        console.error('SDK获取数据收集器失败:', error);
+        return { success: false, data: [] };
+      }
+    },
+    
+    // 启动数据收集器
+    startCollector: async (collectorId) => {
+      try {
+        await arbitrageSDK.qingxi.startCollector(collectorId);
+        return { data: { success: true, message: `收集器 ${collectorId} 启动成功` } };
+      } catch (error) {
+        console.error('SDK启动收集器失败:', error);
+        // 备用API调用
+        try {
+          const response = await apiClient.post(`/api/qingxi/collectors/${collectorId}/start`);
+          return response;
+        } catch (apiError) {
+          throw new Error(`启动收集器失败: ${apiError.message || error.message}`);
+        }
+      }
+    },
+    
+    // 停止数据收集器
+    stopCollector: async (collectorId) => {
+      try {
+        await arbitrageSDK.qingxi.stopCollector(collectorId);
+        return { data: { success: true, message: `收集器 ${collectorId} 已停止` } };
+      } catch (error) {
+        console.error('SDK停止收集器失败:', error);
+        // 备用API调用
+        try {
+          const response = await apiClient.post(`/api/qingxi/collectors/${collectorId}/stop`);
+          return response;
+        } catch (apiError) {
+          throw new Error(`停止收集器失败: ${apiError.message || error.message}`);
+        }
+      }
+    },
+    
+    // 获取数据质量信息
+    getDataQuality: async () => {
+      try {
+        const data = await arbitrageSDK.qingxi.getDataQuality();
+        return { data };
+      } catch (error) {
+        console.error('SDK获取数据质量失败:', error);
+        // 备用API调用
+        try {
+          const response = await apiClient.get('/api/qingxi/data/quality');
+          return response;
+        } catch (apiError) {
+          console.error('直接API调用也失败:', apiError);
+          return { data: { totalRecords: 0, validRecords: 0, dataQualityScore: 0 } };
+        }
+      }
+    },
+    
+    // 获取数据流量信息
+    getDataFlow: async () => {
+      try {
+        const data = await arbitrageSDK.qingxi.getDataFlow();
+        return { data };
+      } catch (error) {
+        console.error('SDK获取数据流量失败:', error);
+        // 备用API调用
+        try {
+          const response = await apiClient.get('/api/qingxi/data/flow');
+          return response;
+        } catch (apiError) {
+          console.error('直接API调用也失败:', apiError);
+          return { data: { realTimeFlow: 0, avgFlowPerMin: 0, peakFlow: 0 } };
+        }
+      }
+    },
+
+    // 获取清洗速度统计
+    getCleanStats: async () => {
+      try {
+        const data = await arbitrageSDK.qingxi.getCleanStats();
+        return { data };
+      } catch (error) {
+        console.error('SDK获取清洗速度统计失败:', error);
+        // 备用API调用
+        try {
+          const response = await apiClient.get('/api/qingxi/clean-stats');
+          return response;
+        } catch (apiError) {
+          console.error('直接API调用也失败:', apiError);
+          return { data: { totalPairs: 0, avgCleanTime: 0, fastestPair: null, slowestPair: null, allPairs: [] } };
+        }
+      }
+    },
+    
+    // 获取数据收集器状态
+    getCollectorStatus: async (collectorId) => {
+      try {
+        const data = await arbitrageSDK.qingxi.getCollectorStatus();
+        if (collectorId) {
+          const collector = data.find(c => c.id === collectorId);
+          return { data: collector || { status: 'unknown', lastUpdate: new Date().toISOString() } };
+        }
+        return { data };
+      } catch (error) {
+        console.error('SDK获取收集器状态失败:', error);
+        // 备用API调用
+        try {
+          const response = await apiClient.get('/api/qingxi/collectors');
+          const collectors = response.data.data || response.data;
+          if (collectorId) {
+            const collector = collectors.find(c => c.id === collectorId);
+            return { data: collector || { status: 'unknown' } };
+          }
+          return { data: collectors };
+        } catch (apiError) {
+          console.error('直接API调用也失败:', apiError);
+          return { data: { status: 'unknown', lastUpdate: new Date().toISOString() } };
+        }
+      }
+    }
+  },
+
+  // ===== 市场数据模块 =====  
+  market: {
+    // 获取市场数据
+    getMarketData: async (symbol, exchange) => {
+      try {
+        const data = await arbitrageSDK.qingxi.getMarketData(symbol, exchange);
+        return { data };
+      } catch (error) {
+        console.error('获取市场数据失败:', error);
+        return { data: [] };
+      }
+    },
+    
+    // 获取套利机会
+    getArbitrageOpportunities: async (params = {}) => {
+      try {
+        const data = await arbitrageSDK.qingxi.getArbitrageOpportunities(params);
+        return { data };
+      } catch (error) {
+        console.error('获取套利机会失败:', error);
+        return { data: { data: [], total: 0 } };
+      }
+    },
+  },
+
+  // ===== 策略模块 API =====
+  celue: {
+    // 获取策略列表 (真实API)
+    getStrategies: () => apiClient.get('/api/celue/strategies'),
+    
+    // 获取策略详情 (模拟实现)
+    getStrategy: (strategyId) => {
+      console.warn(`⚠️  获取策略详情 ${strategyId} - 后端API未实现，返回模拟响应`);
+      return Promise.resolve({
+        data: { id: strategyId, name: `策略 ${strategyId}`, status: 'running' }
+      });
+    },
+    
+    // 启动策略 (模拟实现)
+    startStrategy: (strategyId) => {
+      console.warn(`⚠️  启动策略 ${strategyId} - 后端API未实现，返回模拟响应`);
+      return Promise.resolve({
+        data: { success: true, message: `策略 ${strategyId} 启动成功` }
+      });
+    },
+    
+    // 停止策略 (模拟实现)
+    stopStrategy: (strategyId) => {
+      console.warn(`⚠️  停止策略 ${strategyId} - 后端API未实现，返回模拟响应`);
+      return Promise.resolve({
+        data: { success: true, message: `策略 ${strategyId} 已停止` }
+      });
+    },
+    
+    // 获取策略性能数据 (真实API)
+    getPerformance: () => apiClient.get('/api/celue/performance'),
+    
+    // 获取交易所价差对比 (真实API)
+    getExchangeComparison: () => apiClient.get('/api/celue/exchange-comparison'),
+    
+    // 获取策略执行结果 (模拟实现)
+    getStrategyResults: (strategyId) => {
+      console.warn(`⚠️  获取策略结果 ${strategyId} - 后端API未实现，返回模拟响应`);
+      return Promise.resolve({
+        data: { strategyId, results: [] }
+      });
+    },
+    
+    // 更新策略配置 (模拟实现)
+    updateStrategy: (strategyId, config) => {
+      console.warn(`⚠️  更新策略配置 ${strategyId} - 后端API未实现，返回模拟响应`);
+      return Promise.resolve({
+        data: { success: true, message: '配置更新成功' }
+      });
+    },
+  },
+
+  // ===== 风险管理模块 API =====
+  risk: {
+    // 获取风险状态 (真实API)
+    getStatus: () => apiClient.get('/api/risk/status'),
+    
+    // 获取风险指标 (真实API)
+    getMetrics: () => apiClient.get('/api/risk/metrics'),
+    
+    // 获取风险预警 (模拟实现 - 后端API未实现)
+    getAlerts: () => {
+      console.warn('⚠️  获取风险预警 - 后端API未实现，返回模拟响应');
+      const alertTypes = [
+        { title: '最大回撤超限', metric: 'maxDrawdown', severity: 'high' },
+        { title: '资金使用率过高', metric: 'capitalUtilization', severity: 'medium' },
+        { title: '市场波动加剧', metric: 'volatility', severity: 'medium' },
+        { title: '流动性不足', metric: 'liquidity', severity: 'high' },
+        { title: '交易所连接异常', metric: 'connectivity', severity: 'low' }
+      ];
+      
+      const activeAlerts = alertTypes
+        .slice(0, Math.floor(Math.random() * 4))
+        .map((alert, i) => ({
+          id: `alert_${i + 1}`,
+          title: alert.title,
+          message: `${alert.title}，当前指标已触发预警阈值，请及时关注`,
+          severity: alert.severity,
+          metric: alert.metric,
+          currentValue: `${(Math.random() * 100).toFixed(2)}%`,
+          timestamp: new Date(Date.now() - Math.random() * 3600000).toISOString()
+        }));
+        
+      return Promise.resolve({ data: activeAlerts });
+    },
+    
+    // 获取资金安全状态 (模拟实现 - 后端API未实现)
+    getFundSafety: () => {
+      console.warn('⚠️  获取资金安全 - 后端API未实现，返回模拟响应');
+      return Promise.resolve({
+        data: {
+          totalFunds: 1250000 + Math.random() * 100000 - 50000,
+          fundChange: Math.random() * 10000 - 5000,
+          safetyRating: ['excellent', 'good', 'warning'][Math.floor(Math.random() * 3)],
+          exchangeFunds: [
+            {
+              name: 'Binance',
+              amount: 450000 + Math.random() * 50000,
+              percentage: 36.0 + Math.random() * 5,
+              status: Math.random() > 0.9 ? 'warning' : 'normal'
+            },
+            {
+              name: 'OKX',
+              amount: 380000 + Math.random() * 40000,
+              percentage: 30.4 + Math.random() * 4,
+              status: 'normal'
+            },
+            {
+              name: 'Huobi',
+              amount: 320000 + Math.random() * 30000,
+              percentage: 25.6 + Math.random() * 3,
+              status: Math.random() > 0.8 ? 'warning' : 'normal'
+            },
+            {
+              name: 'Gate.io',
+              amount: 100000 + Math.random() * 20000,
+              percentage: 8.0 + Math.random() * 2,
+              status: 'normal'
+            }
+          ],
+          lastUpdated: new Date().toISOString()
+        }
+      });
+    },
+    
+    // 获取风险配置 (模拟实现 - 后端API未实现)
+    getConfig: () => {
+      console.warn('⚠️  获取风险配置 - 后端API未实现，返回模拟响应');
+      return Promise.resolve({
+        data: {
+          settings: [
+            {
+              key: 'maxDrawdown',
+              label: '最大回撤限制',
+              description: '单日最大回撤率限制',
+              value: 5.0,
+              unit: '%'
+            },
+            {
+              key: 'capitalLimit',
+              label: '资金使用上限',
+              description: '最大资金使用比例',
+              value: 80.0,
+              unit: '%'
+            },
+            {
+              key: 'positionLimit',
+              label: '单笔仓位限制',
+              description: '单笔交易最大仓位比例',
+              value: 10.0,
+              unit: '%'
+            },
+            {
+              key: 'stopLoss',
+              label: '止损阈值',
+              description: '自动止损触发阈值',
+              value: 2.0,
+              unit: '%'
+            }
+          ]
+        }
+      });
+    },
+    
+    // 更新风险配置 (模拟实现 - 后端API未实现)
+    updateConfig: (config) => {
+      console.warn('⚠️  更新风险配置 - 后端API未实现，返回模拟响应');
+      return Promise.resolve({
+        data: { success: true, message: '风险配置更新成功' }
+      });
+    },
+  },
+
+  // ===== 架构监控模块 API =====
+  architecture: {
+    // 获取服务状态列表
+    getServices: async () => {
+      console.warn('🔶 [MOCK] 架构服务状态API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+      return {
+        data: {
+          services: [
+            {
+              name: 'API网关',
+              type: 'web',
+              description: '统一API入口服务',
+              status: 'healthy',
+              response_time: 12,
+              uptime: 86400 * 5 + 3600 * 2, // 5天2小时
+              version: 'v3.2.0',
+            },
+            {
+              name: '套利引擎',
+              type: 'api',
+              description: '核心套利算法服务',
+              status: 'healthy',
+              response_time: 8,
+              uptime: 86400 * 3 + 3600 * 12, // 3天12小时
+              version: 'v5.1.0',
+            },
+            {
+              name: '数据收集器',
+              type: 'api',
+              description: '交易所数据收集服务',
+              status: 'warning',
+              response_time: 156,
+              uptime: 86400 * 1 + 3600 * 6, // 1天6小时
+              version: 'v2.3.1',
+            },
+            {
+              name: 'PostgreSQL',
+              type: 'database',
+              description: '主数据库服务',
+              status: 'healthy',
+              response_time: 3,
+              uptime: 86400 * 15 + 3600 * 8, // 15天8小时
+              version: '14.2',
+            },
+            {
+              name: 'Redis',
+              type: 'redis',
+              description: '缓存服务',
+              status: 'healthy',
+              response_time: 1,
+              uptime: 86400 * 12 + 3600 * 4, // 12天4小时
+              version: '7.0',
+            },
+            {
+              name: '消息队列',
+              type: 'message-queue',
+              description: 'RabbitMQ消息服务',
+              status: 'healthy',
+              response_time: 5,
+              uptime: 86400 * 8 + 3600 * 15, // 8天15小时
+              version: '3.9.0',
+            }
+          ]
+        }
+      };
+    },
+    
+    // 获取健康检查结果
+    getHealthCheck: async () => {
+      console.warn('🔶 [MOCK] 健康检查API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 150));
+      return {
+        data: {
+          status: 'warning',
+          checks: [
+            {
+              name: '数据库连接',
+              description: '检查主数据库连接状态',
+              status: 'pass',
+              last_check: new Date(Date.now() - 30000).toISOString()
+            },
+            {
+              name: '缓存服务',
+              description: '检查Redis缓存服务',
+              status: 'pass',
+              last_check: new Date(Date.now() - 45000).toISOString()
+            },
+            {
+              name: '消息队列',
+              description: '检查消息队列连接',
+              status: 'pass',
+              last_check: new Date(Date.now() - 60000).toISOString()
+            },
+            {
+              name: '外部API',
+              description: '检查交易所API连接',
+              status: 'fail',
+              last_check: new Date(Date.now() - 120000).toISOString()
+            },
+            {
+              name: '磁盘空间',
+              description: '检查系统磁盘使用率',
+              status: 'pass',
+              last_check: new Date(Date.now() - 90000).toISOString()
+            }
+          ]
+        }
+      };
+    },
+    
+    // 获取性能指标
+    getMetrics: async () => {
+      console.warn('🔶 [MOCK] 性能指标API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return {
+        data: {
+          metrics: {
+            cpu_usage: Math.floor(Math.random() * 40) + 20, // 20-60%
+            memory_usage: Math.floor(Math.random() * 30) + 45, // 45-75%
+            disk_usage: Math.floor(Math.random() * 20) + 30, // 30-50%
+            network_throughput: Math.floor(Math.random() * 1024 * 1024 * 10), // 0-10MB/s
+            active_connections: Math.floor(Math.random() * 200) + 50, // 50-250
+            avg_response_time: Math.floor(Math.random() * 20) + 5, // 5-25ms
+            requests_per_minute: Math.floor(Math.random() * 5000) + 1000, // 1000-6000
+            success_rate: 95 + Math.random() * 4 // 95-99%
+          }
+        }
+      };
+    },
+    
+    // 获取系统拓扑图
+    getTopology: async () => {
+      console.warn('🔶 [MOCK] 系统拓扑API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return {
+        data: {
+          components: [
+            { id: 1, name: 'Web前端', type: 'Frontend', x: 100, y: 100, status: 'healthy' },
+            { id: 2, name: 'API网关', type: 'Gateway', x: 300, y: 100, status: 'healthy' },
+            { id: 3, name: '套利引擎', type: 'Service', x: 500, y: 50, status: 'healthy' },
+            { id: 4, name: '数据收集器', type: 'Service', x: 500, y: 150, status: 'warning' },
+            { id: 5, name: 'PostgreSQL', type: 'Database', x: 700, y: 75, status: 'healthy' },
+            { id: 6, name: 'Redis', type: 'Cache', x: 700, y: 125, status: 'healthy' }
+          ],
+          connections: [
+            { from: { x: 160, y: 100 }, to: { x: 240, y: 100 }, type: 'sync' },
+            { from: { x: 360, y: 100 }, to: { x: 440, y: 75 }, type: 'sync' },
+            { from: { x: 360, y: 100 }, to: { x: 440, y: 125 }, type: 'sync' },
+            { from: { x: 560, y: 75 }, to: { x: 640, y: 75 }, type: 'sync' },
+            { from: { x: 560, y: 125 }, to: { x: 640, y: 125 }, type: 'async' }
+          ]
+        }
+      };
+    },
+    
+    // 获取依赖关系
+    getDependencies: async () => {
+      console.warn('🔶 [MOCK] 依赖关系API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 250));
+      return {
+        data: {
+          dependencies: [
+            {
+              name: 'Binance API',
+              type: '外部服务',
+              version: 'v3',
+              status: 'available',
+              latency: 45
+            },
+            {
+              name: 'OKX API',
+              type: '外部服务',
+              version: 'v5',
+              status: 'available',
+              latency: 62
+            },
+            {
+              name: 'Huobi API',
+              type: '外部服务',
+              version: 'v2',
+              status: 'unavailable',
+              latency: 999
+            },
+            {
+              name: 'SMTP服务',
+              type: '邮件服务',
+              version: 'v1',
+              status: 'available',
+              latency: 123
+            },
+            {
+              name: 'Prometheus',
+              type: '监控服务',
+              version: '2.40',
+              status: 'available',
+              latency: 8
+            },
+            {
+              name: 'Grafana',
+              type: '可视化',
+              version: '9.3',
+              status: 'available',
+              latency: 15
+            }
+          ]
+        }
+      };
+    },
+    
+    // 重启服务
+    restartService: async (serviceName) => {
+      console.warn('🔶 [MOCK] 重启服务API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return {
+        data: {
+          success: true,
+          message: `服务 ${serviceName} 重启成功`
+        }
+      };
+    },
+  },
+
+  // ===== 可观测性模块 API =====
+  observability: {
+    // 获取日志聚合数据
+    getLogs: async (params = {}) => {
+      console.warn('🔶 [MOCK] 日志聚合API - 后端接口未实现');
+      
+      const { level, module, lines = 100 } = params;
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const mockLogs = [
+        {
+          timestamp: new Date(Date.now() - 60000).toISOString(),
+          level: 'INFO',
+          module: 'arbitrage',
+          message: '套利机会检测完成，发现3个潜在机会'
+        },
+        {
+          timestamp: new Date(Date.now() - 120000).toISOString(),
+          level: 'WARN',
+          module: 'collector',
+          message: 'Binance API响应延迟较高: 850ms'
+        },
+        {
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+          level: 'ERROR',
+          module: 'risk',
+          message: '风险阈值超限：持仓比例达到85%'
+        },
+        {
+          timestamp: new Date(Date.now() - 240000).toISOString(),
+          level: 'DEBUG',
+          module: 'gateway',
+          message: '处理API请求: GET /api/system/status'
+        },
+        {
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+          level: 'INFO',
+          module: 'arbitrage',
+          message: '成功执行套利交易，收益率2.3%'
+        },
+        {
+          timestamp: new Date(Date.now() - 360000).toISOString(),
+          level: 'WARN',
+          module: 'collector',
+          message: 'OKX连接重试中，当前重试次数: 2/3'
+        }
+      ];
+      
+      return {
+        data: {
+          logs: level ? mockLogs.filter(log => log.level === level) : mockLogs
+        }
+      };
+    },
+    
+    // 获取链路追踪数据
+    getTraces: async (params = {}) => {
+      console.warn('🔶 [MOCK] 链路追踪API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      return {
+        data: {
+          traces: [
+            {
+              traceId: 'trace-001-abc123456789',
+              operation: 'arbitrage-execute',
+              duration: 245,
+              status: 'success',
+              timestamp: new Date(Date.now() - 300000).toISOString(),
+              spans: [
+                { serviceName: 'API Gateway', duration: 5 },
+                { serviceName: 'Arbitrage Engine', duration: 120 },
+                { serviceName: 'Risk Control', duration: 45 },
+                { serviceName: 'Exchange API', duration: 75 }
+              ]
+            },
+            {
+              traceId: 'trace-002-def789012345',
+              operation: 'data-collection',
+              duration: 1250,
+              status: 'success',
+              timestamp: new Date(Date.now() - 600000).toISOString(),
+              spans: [
+                { serviceName: 'Data Collector', duration: 800 },
+                { serviceName: 'Binance API', duration: 350 },
+                { serviceName: 'Database', duration: 100 }
+              ]
+            },
+            {
+              traceId: 'trace-003-ghi345678901',
+              operation: 'risk-assessment',
+              duration: 89,
+              status: 'error',
+              timestamp: new Date(Date.now() - 900000).toISOString(),
+              spans: [
+                { serviceName: 'Risk Engine', duration: 65 },
+                { serviceName: 'Database', duration: 24 }
+              ]
+            }
+          ]
+        }
+      };
+    },
+    
+    // 获取告警列表
+    getAlerts: async () => {
+      console.warn('🔶 [MOCK] 告警规则API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      return {
+        data: {
+          alerts: [
+            {
+              id: 1,
+              name: 'CPU使用率过高',
+              condition: 'cpu_usage > 80%',
+              severity: 'high',
+              enabled: true
+            },
+            {
+              id: 2,
+              name: 'API响应时间异常',
+              condition: 'response_time > 1000ms',
+              severity: 'medium',
+              enabled: true
+            },
+            {
+              id: 3,
+              name: '错误率超过阈值',
+              condition: 'error_rate > 5%',
+              severity: 'critical',
+              enabled: true
+            },
+            {
+              id: 4,
+              name: '交易所连接失败',
+              condition: 'exchange_connection == false',
+              severity: 'critical',
+              enabled: false
+            },
+            {
+              id: 5,
+              name: '内存使用率警告',
+              condition: 'memory_usage > 70%',
+              severity: 'low',
+              enabled: true
+            }
+          ]
+        }
+      };
+    },
+    
+    // 获取监控指标
+    getMetrics: async (metricName, timeRange = '1h') => {
+      console.warn('🔶 [MOCK] 监控指标API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      return {
+        data: {
+          metrics: {
+            totalRequests: Math.floor(Math.random() * 50000) + 10000,
+            errorRate: Math.random() * 5,
+            avgResponseTime: Math.floor(Math.random() * 200) + 50,
+            throughput: Math.floor(Math.random() * 1000) + 500
+          }
+        }
+      };
+    },
+    
+    // 创建自定义告警规则
+    createAlertRule: async (rule) => {
+      console.warn('🔶 [MOCK] 创建告警规则API - 后端接口未实现');
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return {
+        data: {
+          success: true,
+          message: '告警规则创建成功',
+          ruleId: Date.now()
+        }
+      };
+    },
+  },
+
+  // ===== 配置管理 API =====
+  config: {
+    // 更新系统配置
+    update: (config) => apiClient.post('/api/config/update', config),
+    
+    // 获取系统配置
+    get: () => apiClient.get('/api/config'),
+    
+    // 重载配置
+    reload: () => apiClient.post('/api/config/reload'),
+  },
+
+  // ===== Systemd控制 API =====
+  systemd: {
+    // 启动服务
+    start: (service) => apiClient.post('/api/control/systemd/start', { service }),
+    
+    // 停止服务
+    stop: (service) => apiClient.post('/api/control/systemd/stop', { service }),
+    
+    // 重启服务
+    restart: (service) => apiClient.post('/api/control/systemd/restart', { service }),
+    
+    // 获取服务状态
+    status: () => apiClient.get('/api/control/systemd/status'),
+    
+    // 获取服务日志
+    logs: (service, lines = 50) => 
+      apiClient.get(`/api/control/systemd/logs?service=${service}&lines=${lines}`),
+  },
+};
+
+// ===== 架构监控API函数 =====
+
+// 获取架构概览
+export const getArchitectureOverview = async () => {
+  console.warn('🔶 [MOCK] 架构概览API - 后端接口未实现');
+  
+  // Mock 数据
+  return {
+    data: {
+      runningServices: 8,
+      errorServices: 1,
+      databaseConnections: 3,
+      systemHealth: 92.5,
+    }
+  };
+};
+
+// 获取服务状态
+export const getServiceStatus = async () => {
+  console.warn('🔶 [MOCK] 服务状态API - 后端接口未实现');
+  
+  return {
+    data: [
+      {
+        id: 1,
+        name: '套利引擎',
+        description: '核心套利算法服务',
+        status: 'HEALTHY',
+        port: 8080,
+        version: 'v5.1.0',
+        cpuUsage: 23.5,
+        memoryUsage: 1024 * 1024 * 512, // 512MB
+        lastCheck: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        name: '数据收集器',
+        description: '市场数据收集服务',
+        status: 'HEALTHY',
+        port: 8081,
+        version: 'v2.3.1',
+        cpuUsage: 15.2,
+        memoryUsage: 1024 * 1024 * 256, // 256MB
+        lastCheck: new Date().toISOString(),
+      },
+      {
+        id: 3,
+        name: '风控引擎',
+        description: '实时风险控制服务',
+        status: 'WARNING',
+        port: 8082,
+        version: 'v1.8.2',
+        cpuUsage: 45.8,
+        memoryUsage: 1024 * 1024 * 768, // 768MB
+        lastCheck: new Date().toISOString(),
+      },
+      {
+        id: 4,
+        name: 'API网关',
+        description: '统一API入口服务',
+        status: 'HEALTHY',
+        port: 8083,
+        version: 'v3.2.0',
+        cpuUsage: 12.3,
+        memoryUsage: 1024 * 1024 * 128, // 128MB
+        lastCheck: new Date().toISOString(),
+      }
+    ]
+  };
+};
+
+// 获取数据库状态
+export const getDatabaseStatus = async () => {
+  console.warn('🔶 [MOCK] 数据库状态API - 后端接口未实现');
+  
+  return {
+    data: [
+      {
+        id: 1,
+        name: 'PostgreSQL-主库',
+        type: 'PostgreSQL 14.2',
+        connected: true,
+        connections: 45,
+        latency: 2.3,
+        size: 1024 * 1024 * 1024 * 2.5, // 2.5GB
+        diskUsage: 68.5,
+      },
+      {
+        id: 2,
+        name: 'Redis-缓存',
+        type: 'Redis 7.0',
+        connected: true,
+        connections: 12,
+        latency: 0.8,
+        size: 1024 * 1024 * 512, // 512MB
+        diskUsage: 35.2,
+      },
+      {
+        id: 3,
+        name: 'InfluxDB-时序',
+        type: 'InfluxDB 2.6',
+        connected: true,
+        connections: 8,
+        latency: 5.2,
+        size: 1024 * 1024 * 1024 * 1.2, // 1.2GB
+        diskUsage: 42.8,
+      }
+    ]
+  };
+};
+
+// 获取网络拓扑
+export const getNetworkTopology = async () => {
+  console.warn('🔶 [MOCK] 网络拓扑API - 后端接口未实现');
+  
+  return {
+    data: {
+      nodes: [
+        {
+          name: 'API网关',
+          ip: '10.0.1.100',
+          status: 'active',
+          connections: 156,
+        },
+        {
+          name: '套利引擎',
+          ip: '10.0.1.101',
+          status: 'active',
+          connections: 23,
+        },
+        {
+          name: '数据收集器',
+          ip: '10.0.1.102',
+          status: 'active',
+          connections: 45,
+        },
+        {
+          name: '风控引擎',
+          ip: '10.0.1.103',
+          status: 'inactive',
+          connections: 0,
+        },
+        {
+          name: 'PostgreSQL',
+          ip: '10.0.1.200',
+          status: 'active',
+          connections: 67,
+        },
+        {
+          name: 'Redis',
+          ip: '10.0.1.201',
+          status: 'active',
+          connections: 12,
+        }
+      ]
+    }
+  };
+};
+
+// 获取性能指标
+export const getPerformanceMetrics = async () => {
+  console.warn('🔶 [MOCK] 性能指标API - 后端接口未实现');
+  
+  return {
+    data: {
+      cpu: 34.2,
+      memory: 67.8,
+      networkIO: 1024 * 1024 * 12.5, // 12.5MB/s
+      avgLatency: 23.4,
+      systemLoad: 45.6,
+      diskUsage: 58.3,
+    }
+  };
+};
+
+// ===== 可观测性API函数 =====
+
+// 获取指标仪表盘数据
+export const getMetricsDashboard = async (timeRange = '1h') => {
+  console.warn('🔶 [MOCK] 指标仪表盘API - 后端接口未实现');
+  
+  return {
+    data: {
+      requestRate: 245.8,
+      avgResponseTime: 23.4,
+      errorRate: 0.12,
+      activeConnections: 156,
+    }
+  };
+};
+
+// 获取日志流数据
+export const getLogStreams = async () => {
+  console.warn('🔶 [MOCK] 日志流API - 后端接口未实现');
+  
+  return {
+    data: [
+      {
+        id: 1,
+        timestamp: new Date(),
+        level: 'INFO',
+        service: '套利引擎',
+        message: '成功执行套利策略 BTC/USDT，利润: 0.0023 BTC',
+        metadata: {
+          strategy: 'triangular_arbitrage',
+          pair: 'BTC/USDT',
+          profit: '0.0023'
+        }
+      },
+      {
+        id: 2,
+        timestamp: new Date(Date.now() - 5000),
+        level: 'WARN',
+        service: '数据收集器',
+        message: '币安API响应延迟超过阈值: 1200ms',
+        metadata: {
+          exchange: 'binance',
+          latency: '1200ms',
+          threshold: '800ms'
+        }
+      },
+      {
+        id: 3,
+        timestamp: new Date(Date.now() - 10000),
+        level: 'ERROR',
+        service: '风控引擎',
+        message: '检测到异常价格波动，暂停自动交易',
+        metadata: {
+          symbol: 'ETH/USDT',
+          price_change: '-8.5%',
+          action: 'pause_trading'
+        }
+      },
+      {
+        id: 4,
+        timestamp: new Date(Date.now() - 15000),
+        level: 'INFO',
+        service: 'API网关',
+        message: '新用户连接建立',
+        metadata: {
+          user_id: '12345',
+          ip: '192.168.1.100',
+          session: 'sess_abc123'
+        }
+      },
+      {
+        id: 5,
+        timestamp: new Date(Date.now() - 20000),
+        level: 'DEBUG',
+        service: '套利引擎',
+        message: '价格差异计算: Binance vs OKX',
+        metadata: {
+          binance_price: '43250.50',
+          okx_price: '43255.20',
+          spread: '4.70'
+        }
+      }
+    ]
+  };
+};
+
+// 获取告警规则数据
+export const getAlertRules = async () => {
+  console.warn('🔶 [MOCK] 告警规则API - 后端接口未实现');
+  
+  return {
+    data: [
+      {
+        id: 1,
+        name: 'API响应时间过高',
+        description: '当API平均响应时间超过500ms时触发告警',
+        status: 'FIRING',
+        severity: 'HIGH',
+        triggerCount: 3,
+        lastTriggered: new Date(Date.now() - 300000),
+        expression: 'avg(http_request_duration_seconds) > 0.5'
+      },
+      {
+        id: 2,
+        name: '错误率异常',
+        description: '当5分钟内错误率超过1%时触发告警',
+        status: 'OK',
+        severity: 'MEDIUM',
+        triggerCount: 0,
+        lastTriggered: new Date(Date.now() - 7200000),
+        expression: 'rate(http_requests_errors[5m]) > 0.01'
+      },
+      {
+        id: 3,
+        name: '内存使用率过高',
+        description: '当系统内存使用率超过85%时触发告警',
+        status: 'FIRING',
+        severity: 'HIGH',
+        triggerCount: 1,
+        lastTriggered: new Date(Date.now() - 600000),
+        expression: 'memory_usage_percent > 85'
+      },
+      {
+        id: 4,
+        name: '数据库连接数异常',
+        description: '当数据库连接数超过80时触发告警',
+        status: 'OK',
+        severity: 'LOW',
+        triggerCount: 0,
+        lastTriggered: new Date(Date.now() - 3600000),
+        expression: 'db_connections_active > 80'
+      }
+    ]
+  };
+};
+
+// 获取链路追踪数据
+export const getTraceData = async () => {
+  console.warn('🔶 [MOCK] 链路追踪API - 后端接口未实现');
+  
+  return {
+    data: [
+      {
+        traceId: '1a2b3c4d5e6f7g8h',
+        operationName: '/api/arbitrage/execute',
+        duration: 245.6,
+        spans: [
+          {
+            serviceName: 'API网关',
+            operationName: 'HTTP Request',
+            duration: 12.3
+          },
+          {
+            serviceName: '套利引擎',
+            operationName: 'calculate_arbitrage',
+            duration: 156.8
+          },
+          {
+            serviceName: '交易执行器',
+            operationName: 'execute_trades',
+            duration: 76.5
+          }
+        ]
+      },
+      {
+        traceId: '9i8h7g6f5e4d3c2b',
+        operationName: '/api/data/collect',
+        duration: 89.3,
+        spans: [
+          {
+            serviceName: 'API网关',
+            operationName: 'HTTP Request',
+            duration: 5.2
+          },
+          {
+            serviceName: '数据收集器',
+            operationName: 'fetch_market_data',
+            duration: 67.4
+          },
+          {
+            serviceName: '数据处理器',
+            operationName: 'process_data',
+            duration: 16.7
+          }
+        ]
+      },
+      {
+        traceId: 'a1b2c3d4e5f6g7h8',
+        operationName: '/api/risk/check',
+        duration: 34.7,
+        spans: [
+          {
+            serviceName: 'API网关',
+            operationName: 'HTTP Request',
+            duration: 3.1
+          },
+          {
+            serviceName: '风控引擎',
+            operationName: 'risk_assessment',
+            duration: 28.9
+          },
+          {
+            serviceName: '数据库',
+            operationName: 'SELECT risk_rules',
+            duration: 2.7
+          }
+        ]
+      }
+    ]
+  };
+};
+
+// 获取性能洞察数据
+export const getPerformanceInsights = async () => {
+  console.warn('🔶 [MOCK] 性能洞察API - 后端接口未实现');
+  
+  return {
+    data: [
+      {
+        id: 1,
+        title: '数据库查询性能瓶颈',
+        category: '数据库优化',
+        severity: 'HIGH',
+        description: '检测到交易历史查询语句执行时间过长，平均响应时间2.3秒',
+        affectedService: '套利引擎',
+        performanceImpact: '响应时间增加150%',
+        recommendations: '建议添加复合索引: (symbol, timestamp) 并考虑数据分区'
+      },
+      {
+        id: 2,
+        title: 'API限流触发频繁',
+        category: '外部依赖',
+        severity: 'MEDIUM',
+        description: '币安API调用频率接近限制，可能影响数据获取实时性',
+        affectedService: '数据收集器',
+        performanceImpact: '数据延迟平均350ms',
+        recommendations: '实现请求缓存机制，减少重复API调用，考虑升级API套餐'
+      },
+      {
+        id: 3,
+        title: '内存泄漏风险',
+        category: '资源管理',
+        severity: 'HIGH',
+        description: '套利引擎内存使用量持续增长，24小时内增长了40%',
+        affectedService: '套利引擎',
+        performanceImpact: '系统稳定性下降',
+        recommendations: '检查循环引用和未释放的对象，考虑实现定期垃圾回收'
+      },
+      {
+        id: 4,
+        title: '网络延迟不稳定',
+        category: '网络优化',
+        severity: 'MEDIUM',
+        description: '部分交易所连接延迟波动较大，影响套利机会捕获',
+        affectedService: '数据收集器',
+        performanceImpact: '套利机会识别延迟',
+        recommendations: '考虑使用多个网络节点，实现智能路由选择'
+      }
+    ]
+  };
+};
+
+// 导出API客户端实例（用于自定义请求）
+export { apiClient };
+
+// 导出基础URL
+export { API_BASE_URL };
+
+// 辅助函数：处理API错误
+export const handleApiError = (error, defaultMessage = '操作失败') => {
+  if (error.response) {
+    return error.response.data?.message || defaultMessage;
+  } else if (error.request) {
+    return '网络连接失败，请检查网络连接';
+  } else {
+    return error.message || defaultMessage;
+  }
+};
+
+// 辅助函数：检查API响应是否成功
+export const isApiSuccess = (response) => {
+  return response.data?.success === true || response.status === 200;
+};
+
+// Override architecture APIs with real endpoints
+apiService.architecture = {
+  // 获取服务状态列表 (真实API)
+  getServices: () => apiClient.get('/api/architecture/services'),
+  
+  // 获取健康检查结果 (真实API)  
+  getHealthCheck: () => apiClient.get('/api/architecture/health-check'),
+  
+  // 获取性能指标 (真实API)
+  getMetrics: () => apiClient.get('/api/architecture/metrics'),
+  
+  // 保留一些模拟功能直到后端支持
+  getTopology: async () => {
+    console.warn('🔶 [MOCK] 系统拓扑API - 后端接口未实现');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return {
+      data: {
+        components: [
+          { id: 1, name: 'Web前端', type: 'Frontend', x: 100, y: 100, status: 'healthy' },
+          { id: 2, name: 'API网关', type: 'Gateway', x: 300, y: 100, status: 'healthy' },
+          { id: 3, name: '套利引擎', type: 'Service', x: 500, y: 50, status: 'healthy' },
+          { id: 4, name: '数据收集器', type: 'Service', x: 500, y: 150, status: 'warning' },
+          { id: 5, name: 'PostgreSQL', type: 'Database', x: 700, y: 75, status: 'healthy' },
+          { id: 6, name: 'Redis', type: 'Cache', x: 700, y: 125, status: 'healthy' }
+        ],
+        connections: [
+          { from: { x: 160, y: 100 }, to: { x: 240, y: 100 }, type: 'sync' },
+          { from: { x: 360, y: 100 }, to: { x: 440, y: 75 }, type: 'sync' },
+          { from: { x: 360, y: 100 }, to: { x: 440, y: 125 }, type: 'sync' },
+          { from: { x: 560, y: 75 }, to: { x: 640, y: 75 }, type: 'sync' },
+          { from: { x: 560, y: 125 }, to: { x: 640, y: 125 }, type: 'async' }
+        ]
+      }
+    };
+  },
+  
+  getDependencies: async () => {
+    console.warn('🔶 [MOCK] 依赖关系API - 后端接口未实现');
+    await new Promise(resolve => setTimeout(resolve, 250));
+    return {
+      data: {
+        dependencies: [
+          { name: 'Binance API', type: '外部服务', version: 'v3', status: 'available', latency: 45 },
+          { name: 'OKX API', type: '外部服务', version: 'v5', status: 'available', latency: 62 },
+          { name: 'Huobi API', type: '外部服务', version: 'v2', status: 'unavailable', latency: 999 },
+        ]
+      }
+    };
+  }
+};
+
+// Override observability APIs with real endpoints
+apiService.observability = {
+  // 获取日志聚合数据 (真实API)
+  getLogs: (params = {}) => {
+    const { lines = 50 } = params;
+    return apiClient.get(`/api/observability/logs?lines=${lines}`);
+  },
+  
+  // 获取链路追踪数据 (真实API)
+  getTraces: () => apiClient.get('/api/observability/traces'),
+  
+  // 获取告警规则 (真实API)
+  getAlerts: () => apiClient.get('/api/observability/alerts'),
+  
+  // 获取指标数据 (真实API)
+  getMetrics: (category, timeRange) => apiClient.get('/api/observability/metrics')
+};
+
+export default apiService;

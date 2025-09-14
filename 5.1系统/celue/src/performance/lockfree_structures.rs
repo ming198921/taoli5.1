@@ -15,8 +15,21 @@ pub enum MarketState {
     Extreme = 2,
 }
 
-/// 使用统一的ArbitrageOpportunity，避免重复定义
-pub use common_types::ArbitrageOpportunity;
+/// 套利机会结构
+#[derive(Debug, Clone)]
+pub struct ArbitrageOpportunity {
+    pub id: u64,
+    pub strategy_type: StrategyType,
+    pub symbol: String,
+    pub exchange_buy: String,
+    pub exchange_sell: String,
+    pub buy_price: FixedPrice,
+    pub sell_price: FixedPrice,
+    pub profit: FixedPrice,
+    pub volume: FixedQuantity,
+    pub timestamp_ns: u64,
+    pub confidence_score: f32,
+}
 
 /// 策略类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -475,8 +488,21 @@ pub enum MarketState {
     Extreme = 2,
 }
 
-/// 使用统一的ArbitrageOpportunity，避免重复定义
-pub use common_types::ArbitrageOpportunity;
+/// 套利机会结构
+#[derive(Debug, Clone)]
+pub struct ArbitrageOpportunity {
+    pub id: u64,
+    pub strategy_type: StrategyType,
+    pub symbol: String,
+    pub exchange_buy: String,
+    pub exchange_sell: String,
+    pub buy_price: FixedPrice,
+    pub sell_price: FixedPrice,
+    pub profit: FixedPrice,
+    pub volume: FixedQuantity,
+    pub timestamp_ns: u64,
+    pub confidence_score: f32,
+}
 
 /// 策略类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

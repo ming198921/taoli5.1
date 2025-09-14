@@ -1,0 +1,302 @@
+{
+  "timestamp": "2025-09-09T05:47:02.586Z",
+  "frontend_url": "http://57.183.21.242:3003",
+  "api_url": "http://localhost:3000/api",
+  "pages_tested": 7,
+  "pages_passed": 4,
+  "total_tests": 21,
+  "tests_passed": 12,
+  "page_results": {
+    "策略管理页面": {
+      "name": "策略管理页面",
+      "url": "/strategy",
+      "page_content_test": {
+        "status": "SUCCESS",
+        "http_status": 200,
+        "has_react_root": true,
+        "has_title": true,
+        "has_vite_scripts": true,
+        "content_length": 632,
+        "loadable": true
+      },
+      "api_tests": [
+        {
+          "endpoint": "/strategies/list",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 94,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/monitoring/realtime",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        },
+        {
+          "endpoint": "/hotreload/status",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 87,
+          "has_data": true,
+          "data_type": "object"
+        }
+      ],
+      "element_tests": [],
+      "overall_status": "PASSED",
+      "tests_passed": 3,
+      "tests_total": 4
+    },
+    "配置管理页面": {
+      "name": "配置管理页面",
+      "url": "/config",
+      "page_content_test": {
+        "status": "SUCCESS",
+        "http_status": 200,
+        "has_react_root": true,
+        "has_title": true,
+        "has_vite_scripts": true,
+        "content_length": 632,
+        "loadable": true
+      },
+      "api_tests": [
+        {
+          "endpoint": "/config/list",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 88,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/config/versions/current",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 88,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/config/environments",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 88,
+          "has_data": true,
+          "data_type": "object"
+        }
+      ],
+      "element_tests": [],
+      "overall_status": "PASSED",
+      "tests_passed": 4,
+      "tests_total": 4
+    },
+    "交易管理页面": {
+      "name": "交易管理页面",
+      "url": "/trading",
+      "page_content_test": {
+        "status": "SUCCESS",
+        "http_status": 200,
+        "has_react_root": true,
+        "has_title": true,
+        "has_vite_scripts": true,
+        "content_length": 632,
+        "loadable": true
+      },
+      "api_tests": [
+        {
+          "endpoint": "/orders/active",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 90,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/positions/current",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 90,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/account/balance",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        }
+      ],
+      "element_tests": [],
+      "overall_status": "PASSED",
+      "tests_passed": 3,
+      "tests_total": 4
+    },
+    "性能监控页面": {
+      "name": "性能监控页面",
+      "url": "/performance",
+      "page_content_test": {
+        "status": "SUCCESS",
+        "http_status": 200,
+        "has_react_root": true,
+        "has_title": true,
+        "has_vite_scripts": true,
+        "content_length": 632,
+        "loadable": true
+      },
+      "api_tests": [
+        {
+          "endpoint": "/performance/cpu/usage",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 89,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/performance/memory/usage",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 87,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/performance/network/stats",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 88,
+          "has_data": true,
+          "data_type": "object"
+        }
+      ],
+      "element_tests": [],
+      "overall_status": "PASSED",
+      "tests_passed": 4,
+      "tests_total": 4
+    },
+    "AI模型页面": {
+      "name": "AI模型页面",
+      "url": "/ai-model",
+      "page_content_test": {
+        "status": "SUCCESS",
+        "http_status": 200,
+        "has_react_root": true,
+        "has_title": true,
+        "has_vite_scripts": true,
+        "content_length": 632,
+        "loadable": true
+      },
+      "api_tests": [
+        {
+          "endpoint": "/ml/models",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        },
+        {
+          "endpoint": "/ml/training/jobs",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        },
+        {
+          "endpoint": "/ml/datasets",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        }
+      ],
+      "element_tests": [],
+      "overall_status": "FAILED",
+      "tests_passed": 1,
+      "tests_total": 4
+    },
+    "日志管理页面": {
+      "name": "日志管理页面",
+      "url": "/logging",
+      "page_content_test": {
+        "status": "SUCCESS",
+        "http_status": 200,
+        "has_react_root": true,
+        "has_title": true,
+        "has_vite_scripts": true,
+        "content_length": 632,
+        "loadable": true
+      },
+      "api_tests": [
+        {
+          "endpoint": "/logs/stream/realtime",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 88,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/logs/levels",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        },
+        {
+          "endpoint": "/logs/search",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        }
+      ],
+      "element_tests": [],
+      "overall_status": "PARTIAL",
+      "tests_passed": 2,
+      "tests_total": 4
+    },
+    "数据清洗页面": {
+      "name": "数据清洗页面",
+      "url": "/cleaning",
+      "page_content_test": {
+        "status": "SUCCESS",
+        "http_status": 200,
+        "has_react_root": true,
+        "has_title": true,
+        "has_vite_scripts": true,
+        "content_length": 632,
+        "loadable": true
+      },
+      "api_tests": [
+        {
+          "endpoint": "/cleaning/rules/list",
+          "status": "SUCCESS",
+          "http_status": 200,
+          "response_time": 88,
+          "has_data": true,
+          "data_type": "object"
+        },
+        {
+          "endpoint": "/cleaning/exchanges/config",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        },
+        {
+          "endpoint": "/cleaning/quality/metrics",
+          "status": "FAILED",
+          "error": "Request failed with status code 404",
+          "http_status": 404
+        }
+      ],
+      "element_tests": [],
+      "overall_status": "PARTIAL",
+      "tests_passed": 2,
+      "tests_total": 4
+    }
+  },
+  "summary": {
+    "pages_success_rate": "57.1%",
+    "api_success_rate": "57.1%",
+    "total_pages": 7,
+    "passed_pages": 4,
+    "total_api_tests": 21,
+    "passed_api_tests": 12
+  }
+}

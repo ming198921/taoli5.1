@@ -1,0 +1,13 @@
+
+> arbitrage-frontend-v5.1@2.1.0 dev
+> vite
+
+
+  VITE v4.5.14  ready in 169 ms
+
+  ➜  Local:   http://localhost:80/
+  ➜  Network: http://172.31.26.146:80/
+(node:30928) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+3:54:38 PM [vite] hmr update /src/pages/dashboard/DashboardPage.tsx
+3:54:52 PM [vite] hmr update /src/App.tsx, /src/store/index.ts, /src/pages/dashboard/DashboardPage.tsx, /src/components/layout/MainLayout.tsx

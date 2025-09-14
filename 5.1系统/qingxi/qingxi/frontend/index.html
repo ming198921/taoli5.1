@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qingxi 市场数据系统 - 控制台</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <h1>Qingxi 市场数据系统</h1>
+                </div>
+                <div class="system-status">
+                    <div class="status-indicator" id="system-status">
+                        <span class="status-light"></span>
+                        <span class="status-text">检查中...</span>
+                    </div>
+                    <div class="last-update">
+                        最后更新: <span id="last-update-time">--:--:--</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 控制面板 -->
+            <section class="control-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-cog"></i> 系统控制</h2>
+                    <button class="refresh-btn" onclick="refreshAllData()">
+                        <i class="fas fa-sync-alt"></i> 刷新数据
+                    </button>
+                </div>
+                <div class="control-buttons">
+                    <button class="btn btn-primary" onclick="showExchanges()">
+                        <i class="fas fa-building"></i> 交易所状态
+                    </button>
+                    <button class="btn btn-secondary" onclick="showSymbols()">
+                        <i class="fas fa-coins"></i> 交易对管理
+                    </button>
+                    <button class="btn btn-info" onclick="showStats()">
+                        <i class="fas fa-chart-bar"></i> 系统统计
+                    </button>
+                    <button class="btn btn-warning" onclick="showOrderbook()">
+                        <i class="fas fa-list"></i> 订单簿查看
+                    </button>
+                </div>
+            </section>
+
+            <!-- 统计卡片 -->
+            <section class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="active-exchanges">--</h3>
+                        <p>活跃交易所</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="total-symbols">--</h3>
+                        <p>监控交易对</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="orderbook-count">--</h3>
+                        <p>订单簿数量</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="update-rate">--</h3>
+                        <p>更新频率 (次/秒)</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 数据展示区域 -->
+            <section class="data-display">
+                <div class="display-header">
+                    <h2 id="display-title">系统概览</h2>
+                    <div class="display-controls">
+                        <select id="exchange-filter" onchange="filterData()">
+                            <option value="">所有交易所</option>
+                        </select>
+                        <button class="btn btn-small" onclick="exportData()">
+                            <i class="fas fa-download"></i> 导出
+                        </button>
+                    </div>
+                </div>
+                <div class="display-content" id="display-content">
+                    <!-- 动态内容将在这里显示 -->
+                    <div class="welcome-message">
+                        <i class="fas fa-rocket"></i>
+                        <h3>欢迎使用 Qingxi 市场数据系统</h3>
+                        <p>请从上方控制面板选择要查看的功能模块</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <p>&copy; 2024 Qingxi 市场数据系统 v1.0</p>
+                </div>
+                <div class="footer-right">
+                    <span>API端点: http://localhost:50061</span>
+                    <span class="separator">|</span>
+                    <span>运行时间: <span id="uptime">--</span></span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>加载中...</p>
+        </div>
+    </div>
+
+    <!-- 错误提示 -->
+    <div class="error-toast" id="error-toast">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span id="error-message"></span>
+        <button onclick="hideError()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- 成功提示 -->
+    <div class="success-toast" id="success-toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="success-message"></span>
+        <button onclick="hideSuccess()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

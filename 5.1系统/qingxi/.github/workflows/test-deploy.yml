@@ -1,0 +1,93 @@
+name: Test and Deploy (Simplified)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+  K8S_NAMESPACE: qingxi-market-data
+  K8S_DEPLOYMENT_NAME: qingxi-app
+  K8S_SERVICE_NAME: qingxi-api-service
+
+jobs:
+  build-and-test:
+    name: Build and Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: clippy,rustfmt
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check code formatting
+        run: cd qingxi && cargo fmt -- --check
+
+      - name: Run Clippy
+        run: cd qingxi && cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cd qingxi && cargo test --all
+
+  deploy-to-kubernetes:
+    name: Deploy to Kubernetes (Test)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    environment:
+      name: production
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Kubeconfig availability
+        run: |
+          if [ -z "${{ secrets.KUBECONFIG_BASE64 }}" ]; then
+            echo "KUBECONFIG_BASE64 secret not available, skipping Kubernetes deployment"
+            exit 78
+          fi
+
+      - name: Set up Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_BASE64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify Kubernetes connection
+        run: kubectl cluster-info
+
+      - name: Deploy Kubernetes Resources
+        uses: azure/k8s-deploy@v4
+        with:
+          action: deploy
+          namespace: ${{ env.K8S_NAMESPACE }}
+          manifests: |
+            qingxi/k8s/namespace.yaml
+            qingxi/k8s/configmap.yaml
+            qingxi/k8s/secret.yaml
+            qingxi/k8s/qingxi-app-deployment.yaml
+            qingxi/k8s/qingxi-api-service.yaml
+
+      - name: Check deployment status
+        run: |
+          kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT_NAME }} --namespace ${{ env.K8S_NAMESPACE }} --timeout=300s
+          kubectl get pods --namespace ${{ env.K8S_NAMESPACE }}
+          kubectl get services --namespace ${{ env.K8S_NAMESPACE }}

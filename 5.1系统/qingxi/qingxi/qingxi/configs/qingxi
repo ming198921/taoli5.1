@@ -1,0 +1,91 @@
+[general]
+log_level = "info"
+metrics_enabled = true
+
+[api_server]
+host = "0.0.0.0"
+port = 50051
+metrics_port_offset = 1
+health_port_offset = 2
+http_port_offset = 10
+orderbook_depth_limit = 20
+symbols_list_limit = 100
+
+[central_manager]
+event_buffer_size = 1000
+
+[[sources]]
+id = "binance_spot"
+adapter_type = "binance"
+enabled = true
+exchange_id = "binance"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT"]
+ws_endpoint = "wss://stream.binance.com:9443/ws/btcusdt@depth@100ms"
+rest_url = "https://api.binance.com"
+
+[[sources]]
+id = "huobi_spot"
+adapter_type = "huobi"
+enabled = true
+exchange_id = "huobi"
+symbols = ["BTCUSDT", "ETHUSDT"]
+ws_endpoint = "wss://api.huobi.pro/ws"
+rest_url = "https://api.huobi.pro"
+
+[[sources]]
+id = "okx_spot"
+adapter_type = "okx"
+enabled = true
+exchange_id = "okx"
+symbols = ["BTC-USDT", "ETH-USDT"]
+ws_endpoint = "wss://ws.okx.com:8443/ws/v5/public"
+rest_url = "https://www.okx.com"
+
+[[sources]]
+id = "bybit_spot"
+adapter_type = "bybit"
+enabled = true
+exchange_id = "bybit"
+symbols = ["BTCUSDT", "ETHUSDT"]
+ws_endpoint = "wss://stream.bybit.com/v5/public/spot"
+rest_url = "https://api.bybit.com"
+
+[consistency_thresholds]
+price_diff_percentage = 0.5
+timestamp_diff_ms = 5000
+sequence_gap_threshold = 10
+spread_threshold_percentage = 1.0
+critical_spread_threshold_percentage = 2.0
+max_time_diff_ms = 10000.0
+volume_consistency_threshold = 0.5
+
+[reasoner]
+api_endpoint = "http://127.0.0.1:8081"
+
+[anomaly_detection]
+spread_threshold = 2.0
+volume_threshold = 100.0
+price_change_threshold = 5.0
+spread_threshold_percentage = 1.0
+
+[performance]
+enable_batch_processing = true
+batch_size = 1000
+batch_timeout_ms = 100
+enable_simd = true
+enable_parallel_processing = true
+max_concurrent_tasks = 8
+memory_pool_size = 1048576
+enable_zero_copy = true
+
+[threading]
+num_worker_threads = 4
+enable_cpu_affinity = true
+preferred_cores = [0, 1, 2, 3]
+enable_numa_awareness = true
+
+[quality_thresholds]
+minimum_data_freshness_ms = 1000
+maximum_latency_ms = 100
+minimum_completeness_ratio = 0.95
+maximum_error_rate = 0.01

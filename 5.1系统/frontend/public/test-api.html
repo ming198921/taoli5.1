@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API测试</title>
+</head>
+<body>
+    <h1>API连接测试</h1>
+    <button onclick="testHealth()">测试健康检查</button>
+    <button onclick="testSystemStatus()">测试系统状态</button>
+    <div id="result"></div>
+
+    <script>
+        async function testHealth() {
+            try {
+                console.log('测试健康检查...');
+                const response = await fetch('/health');
+                const data = await response.json();
+                console.log('健康检查结果:', data);
+                document.getElementById('result').innerHTML = 
+                    '<h3>健康检查结果:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('健康检查失败:', error);
+                document.getElementById('result').innerHTML = 
+                    '<h3>健康检查失败:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+
+        async function testSystemStatus() {
+            try {
+                console.log('测试系统状态...');
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                console.log('系统状态结果:', data);
+                document.getElementById('result').innerHTML = 
+                    '<h3>系统状态结果:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('系统状态检查失败:', error);
+                document.getElementById('result').innerHTML = 
+                    '<h3>系统状态检查失败:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+
+        // 页面加载时自动测试
+        window.onload = function() {
+            console.log('页面加载完成，开始自动测试...');
+            testHealth();
+        };
+    </script>
+</body>
+</html>

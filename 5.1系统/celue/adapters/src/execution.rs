@@ -1,7 +1,7 @@
 //! Execution adapter for order placement
 
 use crate::{Adapter, AdapterError, AdapterResult};
-use common_types::{ArbitrageOpportunity, ExecutionResult};
+use common::{ArbitrageOpportunity, ExecutionResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -56,16 +56,11 @@ impl ExecutionAdapter {
             format!("order_{}", uuid::Uuid::new_v4()),
         ];
         
-        Ok(ExecutionResult {
-            accepted: true,
-            reason: None,
+        Ok(ExecutionResult::accepted(
+            opportunity.id.to_string(),
             order_ids,
-            executed_quantity: 1.0, // Mock quantity
-            realized_profit: opportunity.net_profit,
-            execution_time_ms: 100, // Mock time
-            slippage: 0.001, // Mock slippage
-            fees_paid: 0.01, // Mock fees
-        })
+            None,
+        ))
     }
 }
 

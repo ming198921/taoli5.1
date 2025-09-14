@@ -1,0 +1,247 @@
+# Qingxi Market Data System - OKX Books 频道测试配置
+
+# 🚀 极限性能优化配置 - 阶段1优化
+[cleaning]
+enable_optimized_cleaner = true
+enable_zero_copy = true
+enable_memory_pool = true
+enable_simd = true
+disable_debug_logging = true
+# 批处理优化 - 提升到64
+batch_size = 64
+# 内存池配置 - 扩容优化
+memory_pool_size = 4096
+vec_pool_capacity = 400
+# 新增: 快速路径优化
+enable_fast_path_validation = true
+skip_non_critical_checks = true
+enable_parallel_cleaning = true
+
+[general]
+log_level = "info"
+metrics_enabled = true
+
+[api_server]
+host = "0.0.0.0"
+port = 50051
+metrics_port_offset = 1
+health_port_offset = 2
+http_port_offset = 10
+orderbook_depth_limit = 50
+symbols_list_limit = 200
+
+[central_manager]
+event_buffer_size = 1000
+
+[consistency_thresholds]
+price_diff_percentage = 0.5
+timestamp_diff_ms = 5000
+sequence_gap_threshold = 10
+spread_threshold_percentage = 1.0
+critical_spread_threshold_percentage = 2.0
+max_time_diff_ms = 10000.0
+volume_consistency_threshold = 0.5
+
+[reasoner]
+api_endpoint = "http://127.0.0.1:8081"
+
+[anomaly_detection]
+spread_threshold = 2.0
+volume_threshold = 100.0
+price_change_threshold = 5.0
+spread_threshold_percentage = 1.0
+
+[performance]
+command_channel_size = 1000
+internal_channel_size = 1000
+cleaner_input_buffer_size = 500
+cleaner_output_buffer_size = 500
+performance_stats_interval_sec = 30
+system_readiness_timeout_sec = 600
+
+[threading]
+network_worker_threads = 3
+network_cpu_cores = [0, 1, 2]
+processing_worker_threads = 1
+processing_cpu_core = 3
+main_worker_threads = 2
+
+# 新增: 动态线程池配置
+[dynamic_threading]
+min_threads = 2
+max_threads = 16
+core_threads = 8
+idle_timeout_secs = 60
+max_queue_size = 50000
+load_check_interval_ms = 50
+cpu_threshold = 0.85
+enable_cpu_affinity = true
+enable_work_stealing = true
+
+# 🚀 SIMD优化配置 - 极限性能版
+[simd_optimization]
+enable_simd = true
+min_price = 0.0001                   # 更激进的价格过滤
+max_price = 5000000.0               # 扩大价格范围
+min_quantity = 0.00001              # 更激进的数量过滤
+price_change_threshold = 0.05       # 放宽价格变化阈值
+enable_vectorized_sorting = true
+simd_batch_size = 64                # 从16提升到64
+enable_auto_vectorization = true    # 启用编译器自动向量化
+prefetch_strategy = "aggressive"     # 激进预取策略
+simd_unroll_factor = 8              # 循环展开因子
+vectorization_threshold = 4          # 降低向量化阈值
+
+# 新增: BTreeMap订单簿配置
+[btreemap_orderbook]
+enable_btreemap = true
+max_depth_per_side = 100
+cleanup_interval_secs = 60
+max_spread_ratio = 0.1
+enable_quality_monitoring = true
+
+# 新增: 高级缓存配置
+[advanced_caching]
+max_entries = 10000
+max_memory_mb = 100
+default_ttl_secs = 3600
+cleanup_interval_secs = 60
+preload_concurrency = 4
+hit_rate_window_size = 1000
+enable_predictive_preload = true
+preload_threshold = 0.8
+
+# 🚀 渐进式数据清洗配置 - 极限优化版
+[progressive_cleaning]
+enable_zero_value_prefilter = true
+enable_strict_cleaning = false      # 禁用严格清洗以提高速度
+enable_lenient_fallback = false     # 禁用宽松回退
+enable_repair_mode = false          # 禁用修复模式
+strict_price_change_threshold = 0.02 # 更激进的阈值
+lenient_price_change_threshold = 0.05 # 更激进的阈值
+max_spread_threshold = 0.1          # 更激进的阈值
+min_orderbook_depth = 2             # 降低最小深度要求
+price_history_size = 20             # 减少历史记录
+timestamp_tolerance_ms = 15000      # 增加时间容忍度
+enable_simd = true
+# 新增: 快速路径配置
+enable_ultrafast_mode = true
+skip_detailed_validation = true
+use_pdqsort = true                  # 使用更快的排序算法
+
+[quality_thresholds]
+cache_hit_rate_threshold = 0.8
+buffer_usage_threshold = 0.8
+compression_ratio_threshold = 2.0
+data_freshness_warning_ms = 2000        # 放宽警告阈值
+data_freshness_critical_ms = 8000       # 放宽严重阈值
+max_orderbook_count = 5000              # 减少最大订单簿数量
+max_batch_size = 64                     # 增加批处理大小
+max_memory_usage_mb = 512               # 减少内存使用
+
+[cache]
+l2_directory = "cache/l2"
+l3_directory = "cache/l3" 
+log_directory = "logs/cache"
+auto_create_dirs = true
+l1_max_size = 10000
+l1_ttl_seconds = 3600
+l2_max_size_mb = 500
+l2_ttl_seconds = 7200
+redis_enabled = false
+
+# 火币数据源配置 - 修复符号格式和扩展交易对
+[[sources]]
+exchange_id = "huobi"
+enabled = true
+websocket_url = "wss://api.huobi.pro/ws"
+rest_api_url = "https://api.huobi.pro"
+api_key = "4696bdc7-0e928727-rfhfg2mkl3-18d9d"
+api_secret = "e9781b61-16f29e34-22f10a34-f6dc1"
+symbols = [
+    "btcusdt", "ethusdt", "btceth", "ethbtc", "bnbusdt",
+    "adausdt", "xrpusdt", "dotusdt", "linkusdt", "ltcusdt",
+    "bchusdt", "solusdt", "dogeusdt", "maticusdt", "avaxusdt",
+    "uniusdt", "atomusdt", "filusdt", "trxusdt", "etcusdt"
+]
+ws_endpoint = "wss://api.huobi.pro/ws"
+rest_endpoint = "https://api.huobi.pro"
+channel = "orderbook"
+reconnect_interval_sec = 5
+max_reconnect_attempts = 10
+orderbook_depth_limit = 50
+
+# 暂时禁用币安，避免地域限制错误
+[[sources]]
+exchange_id = "binance"
+enabled = false
+websocket_url = "wss://stream.binance.com:9443/ws"
+rest_api_url = "https://api.binance.com"
+symbols = [
+    "BTCUSDT", "ETHUSDT"
+]
+ws_endpoint = "wss://stream.binance.com:9443/ws"
+rest_endpoint = "https://api.binance.com"
+channel = "orderbook"
+reconnect_interval_sec = 5
+max_reconnect_attempts = 10
+orderbook_depth_limit = 50
+
+# OKX数据源配置 - 修复channel问题
+[[sources]]
+exchange_id = "okx"
+enabled = true
+websocket_url = "wss://ws.okx.com:8443/ws/v5/public"
+rest_api_url = "https://www.okx.com"
+api_key = "4f98241a-e977-438f-b0ea-535cb66fbea3"
+api_secret = "A2B8C9D7E6F4G3H2I1J0K9L8M7N6O5P4Q3R2S1T0"
+api_passphrase = "QingxiOKX2025"
+symbols = [
+    "BTC-USDT", "ETH-USDT", "BTC-BTC", "ETH-BTC", "BNB-USDT", 
+    "ADA-USDT", "XRP-USDT", "DOT-USDT", "LINK-USDT", "LTC-USDT", 
+    "BCH-USDT", "SOL-USDT", "DOGE-USDT", "MATIC-USDT", "AVAX-USDT",
+    "UNI-USDT", "ATOM-USDT", "FIL-USDT", "TRX-USDT", "ETC-USDT"
+]
+ws_endpoint = "wss://ws.okx.com:8443/ws/v5/public"
+rest_endpoint = "https://www.okx.com"
+channel = "orderbook"
+reconnect_interval_sec = 5
+max_reconnect_attempts = 10
+orderbook_depth_limit = 50
+
+# Bybit 交易所配置 - 扩展交易对
+[[sources]]
+exchange_id = "bybit"
+enabled = true
+websocket_url = "wss://stream.bybit.com/v5/public/spot"
+rest_api_url = "https://api.bybit.com"
+api_key = "b9OJiVj0V1LXi6jsJg"
+api_secret = "zqzuGGJKThGSw8K9iBYEmA44aucjSrhqgi5x"
+symbols = [
+    "BTCUSDT", "ETHUSDT", "BTCETH", "ETHBTC", "BNBUSDT",
+    "ADAUSDT", "XRPUSDT", "DOTUSDT", "LINKUSDT", "LTCUSDT",
+    "BCHUSDT", "SOLUSDT", "DOGEUSDT", "MATICUSDT", "AVAXUSDT",
+    "UNIUSDT", "ATOMUSDT", "FILUSDT", "TRXUSDT", "ETCUSDT"
+]
+ws_endpoint = "wss://stream.bybit.com/v5/public/spot"
+rest_endpoint = "https://api.bybit.com"
+channel = "orderbook"
+reconnect_interval_sec = 5
+max_reconnect_attempts = 10
+orderbook_depth_limit = 50
+
+# Gate.io 交易所配置 - 禁用
+[[sources]]
+exchange_id = "gateio"
+enabled = false
+websocket_url = "wss://api.gateio.ws/ws/v4/"
+rest_api_url = "https://api.gateio.ws/api/v4"
+symbols = [
+    "BTC_USDT", "ETH_USDT"
+]
+ws_endpoint = "wss://api.gateio.ws/ws/v4/"
+rest_endpoint = "https://api.gateio.ws/api/v4"
+channel = "orderbook"
+reconnect_interval_sec = 5
+max_reconnect_attempts = 10
+orderbook_depth_limit = 50

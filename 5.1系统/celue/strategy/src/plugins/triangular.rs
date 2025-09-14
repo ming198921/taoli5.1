@@ -8,18 +8,15 @@
 //! - 生产就绪: 错误处理，监控，线程安全，API集成
 
 use crate::{
+    context::StrategyContext, 
     traits::{ArbitrageStrategy, StrategyKind, ExecutionResult, StrategyError},
     depth_analysis::DepthAnalyzer,
     dynamic_fee_calculator::{DynamicFeeCalculator, FeeType},
-    risk_assessment::{TriangularArbitrageRiskAssessor, ExecutionRecord},
 };
-use common_types::StrategyContext;
 use async_trait::async_trait;
-use common_types::ArbitrageOpportunity;
-use common_types::{NormalizedSnapshot, ExchangeSnapshot};
 use common::{
-    arbitrage::{ArbitrageLeg, Side}, 
-    market_data::OrderBook, 
+    arbitrage::{ArbitrageOpportunity, ArbitrageLeg, Side}, 
+    market_data::{NormalizedSnapshot, OrderBook}, 
     precision::{FixedPrice, FixedQuantity},
     types::{Exchange, Symbol}
 };
@@ -72,7 +69,6 @@ pub struct TriangularPath {
 
 /// 高性能币种关系图
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct CurrencyRelationshipGraph {
     /// 邻接表: 币种 → 相邻币种集合
     adjacency_map: HashMap<String, HashSet<String>>,
@@ -515,7 +511,7 @@ impl CurrencyRelationshipGraph {
     }
     
     /// 并行查找三角环（DFS算法 + 早停优化）
-    fn find_triangular_cycles_parallel_v2(&self, _exchange_filter: Option<&str>, max_currencies: usize, max_paths: usize) -> Result<Vec<TriangularPath>> {
+    fn find_triangular_cycles_parallel_v2(&self, exchange_filter: Option<&str>, max_currencies: usize, max_paths: usize) -> Result<Vec<TriangularPath>> {
         // 限制处理的币种数量
         let currencies_to_process: Vec<_> = self.active_currencies.iter()
             .take(max_currencies)
@@ -542,10 +538,9 @@ impl CurrencyRelationshipGraph {
     }
     
     /// 从指定币种开始查找三角环（带早停）
-    #[allow(dead_code)]
     fn find_cycles_from_currency_v2(
         &self, 
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         start_currency: &str, 
         exchange_filter: Option<&str>,
         path_count: &Arc<std::sync::atomic::AtomicUsize>,
@@ -636,7 +631,7 @@ impl CurrencyRelationshipGraph {
     /// 精确构建三角路径 v2（完整FixedPrice计算）
     fn build_triangular_path_precise_v2(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         currency_a: &str,
         currency_b: &str, 
         currency_c: &str,
@@ -725,7 +720,7 @@ impl CurrencyRelationshipGraph {
     /// 使用FixedPrice进行精确三角套利计算 v2（完全避免f64）
     fn calculate_triangular_arbitrage_fixed_point_v2(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         leg1_ob: &OrderBook,
         leg2_ob: &OrderBook,
         leg3_ob: &OrderBook,
@@ -874,22 +869,20 @@ impl CurrencyRelationshipGraph {
     }
     
     /// 计算预期滑点 - v3.0真实深度分析版本
-    #[allow(dead_code)]
     fn calculate_expected_slippage_v3(
         &self, 
         orderbooks: &[&OrderBook], 
-        _sides: &[Side], 
-        _quantities: &[FixedQuantity; 3]
+        sides: &[Side], 
+        quantities: &[FixedQuantity; 3]
     ) -> f64 {
-        let depth_analyzer = DepthAnalyzer::new();
+        let depth_analyzer = DepthAnalyzer::default();
         
         // 分析每一腿的真实滑点
         let mut total_slippage = 0.0;
         let mut valid_legs = 0;
         
         for (i, &orderbook) in orderbooks.iter().enumerate().take(3) {
-            let depth_result = depth_analyzer.analyze_depth(orderbook);
-            if depth_result.success {
+            if let Ok(depth_result) = depth_analyzer.analyze_depth(orderbook, sides[i], quantities[i]) {
                 total_slippage += depth_result.cumulative_slippage_pct / 100.0; // 转换为小数
                 valid_legs += 1;
                 
@@ -916,7 +909,6 @@ impl CurrencyRelationshipGraph {
     
     /// 向后兼容的简化滑点计算（已弃用）
     #[deprecated(note = "使用 calculate_expected_slippage_v3 进行真实深度分析")]
-    #[allow(dead_code)]
     fn calculate_expected_slippage(&self, prices: &[FixedPrice; 3], quantities: &[FixedQuantity; 3]) -> f64 {
         // 基于价格和数量估算滑点
         let avg_price = (prices[0].to_f64() + prices[1].to_f64() + prices[2].to_f64()) / 3.0;
@@ -934,23 +926,22 @@ impl CurrencyRelationshipGraph {
     fn calculate_tradeable_quantities_v3(
         &self, 
         orderbooks: &[&OrderBook], 
-        _sides: &[Side], 
+        sides: &[Side], 
         target_quantities: &[FixedQuantity; 3]
     ) -> [FixedQuantity; 3] {
-        let depth_analyzer = DepthAnalyzer::new();
+        let depth_analyzer = DepthAnalyzer::default();
         let mut tradeable_quantities = [target_quantities[0], target_quantities[1], target_quantities[2]];
         
         for (i, &orderbook) in orderbooks.iter().enumerate().take(3) {
-            let depth_result = depth_analyzer.analyze_depth(orderbook);
-            if depth_result.success {
+            if let Ok(depth_result) = depth_analyzer.analyze_depth(orderbook, sides[i], target_quantities[i]) {
                 // 使用深度分析的实际可执行数量
-                tradeable_quantities[i] = FixedQuantity::from_f64(depth_result.max_quantity, target_quantities[i].scale());
+                tradeable_quantities[i] = depth_result.max_quantity;
                 
                 tracing::debug!("腿{} 深度分析: 目标 {:.4}, 实际可执行 {:.4}, 满足率 {:.1}%",
                     i + 1,
                     target_quantities[i].to_f64(),
-                    depth_result.max_quantity,
-                    (depth_result.max_quantity / target_quantities[i].to_f64()) * 100.0
+                    depth_result.max_quantity.to_f64(),
+                    (depth_result.max_quantity.to_f64() / target_quantities[i].to_f64()) * 100.0
                 );
             } else {
                 // 深度分析失败时使用保守估计
@@ -962,9 +953,9 @@ impl CurrencyRelationshipGraph {
         
         tradeable_quantities
     }
+    
     /// 向后兼容的简化数量计算（已弃用）
     #[deprecated(note = "使用 calculate_tradeable_quantities_v3 进行真实深度分析")]
-    #[allow(dead_code)]
     fn calculate_tradeable_quantities(&self, quantities: &[FixedQuantity; 3]) -> [FixedQuantity; 3] {
         // 简化版本：应该遍历订单簿深度，这里使用保守估计
         let conservative_factor = FixedQuantity::from_f64(0.8, 8); // 80%保守估计
@@ -976,7 +967,6 @@ impl CurrencyRelationshipGraph {
     }
     
     /// 计算风险评分 v2（增强版）
-    #[allow(dead_code)]
     fn calculate_risk_score_v2(&self, orderbooks: &[&OrderBook], expected_slippage: f64) -> u8 {
         let mut risk_score = 0u8;
         
@@ -1046,8 +1036,6 @@ pub struct DynamicTriangularStrategy {
     performance_stats: Arc<Mutex<PerformanceStats>>,
     /// 策略配置
     config: Arc<RwLock<StrategyConfig>>,
-    /// 🚀 生产级风险评估器
-    risk_assessor: Arc<Mutex<TriangularArbitrageRiskAssessor>>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -1086,38 +1074,17 @@ impl Default for DynamicTriangularStrategy {
     }
 }
 
-/// 预执行验证结果
-#[derive(Debug, Clone)]
-pub struct PreExecutionCheck {
-    pub is_viable: bool,
-    pub rejection_reason: String,
-    pub estimated_slippage_bps: f64,
-    pub risk_adjusted_size: f64,
-    pub execution_priority: ExecutionPriority,
-    pub market_condition_score: f64,
-}
-
-/// 执行优先级
-#[derive(Debug, Clone, Copy)]
-pub enum ExecutionPriority {
-    Immediate,  // 立即执行
-    Normal,     // 正常执行
-    Cautious,   // 谨慎执行
-    Reject,     // 拒绝执行
-}
-
 impl DynamicTriangularStrategy {
     pub fn new() -> Self {
         Self {
             symbol_cache: Arc::new(Mutex::new(HashMap::new())),
             performance_stats: Arc::new(Mutex::new(PerformanceStats::default())),
             config: Arc::new(RwLock::new(StrategyConfig::default())),
-            risk_assessor: Arc::new(Mutex::new(TriangularArbitrageRiskAssessor::default())),
         }
     }
     
     /// 从清洗数据检测三角套利机会（生产级v3）
-    pub async fn detect_opportunities_production_v3(&self, ctx: &dyn StrategyContext, input: &NormalizedSnapshot) -> Result<Vec<ArbitrageOpportunity>> {
+    pub async fn detect_opportunities_production_v3(&self, ctx: &StrategyContext, input: &NormalizedSnapshot) -> Result<Vec<ArbitrageOpportunity>> {
         let start_time = Instant::now();
         let config = self.config.read().clone();
         
@@ -1147,7 +1114,7 @@ impl DynamicTriangularStrategy {
     }
     
     /// 内部检测逻辑（简化版，移除panic恢复）
-    async fn detect_opportunities_internal(&self, ctx: &dyn StrategyContext, input: &NormalizedSnapshot, config: &StrategyConfig) -> Result<Vec<ArbitrageOpportunity>> {
+    async fn detect_opportunities_internal(&self, ctx: &StrategyContext, input: &NormalizedSnapshot, config: &StrategyConfig) -> Result<Vec<ArbitrageOpportunity>> {
         tracing::info!("开始生产级三角套利检测v3，输入{}个订单簿", input.exchanges.len());
         
         // 直接调用，不使用panic恢复
@@ -1155,14 +1122,14 @@ impl DynamicTriangularStrategy {
     }
     
     /// 安全的同步检测逻辑
-    fn detect_opportunities_safe_sync(&self, ctx: &dyn StrategyContext, input: &NormalizedSnapshot, config: &StrategyConfig) -> Result<Vec<ArbitrageOpportunity>> {
-        // 按交易所分组处理 - 适配新的ExchangeSnapshot结构
-        let exchange_groups: HashMap<String, Vec<(&String, &ExchangeSnapshot)>> = input.exchanges
+    fn detect_opportunities_safe_sync(&self, ctx: &StrategyContext, input: &NormalizedSnapshot, config: &StrategyConfig) -> Result<Vec<ArbitrageOpportunity>> {
+        // 按交易所分组并行处理
+        let exchange_groups: HashMap<String, Vec<&OrderBook>> = input.exchanges
             .iter()
-            .fold(HashMap::new(), |mut acc, (exchange, snapshot)| {
-                // 验证快照有效性：有有效的买卖价格
-                if snapshot.bid_price > 0.0 && snapshot.ask_price > 0.0 && snapshot.ask_price >= snapshot.bid_price {
-                    acc.entry(exchange.clone()).or_default().push((exchange, snapshot));
+            .fold(HashMap::new(), |mut acc, ob| {
+                // 验证订单簿有效性
+                if !ob.bid_prices.is_empty() && !ob.ask_prices.is_empty() {
+                    acc.entry(ob.exchange.to_string()).or_default().push(ob);
                 }
                 acc
             });
@@ -1171,9 +1138,18 @@ impl DynamicTriangularStrategy {
             return Ok(Vec::new());
         }
         
-        // 暂时简化三角套利检测 - 等待OrderBook数据适配完成
-        tracing::warn!("三角套利检测暂时禁用，等待数据结构适配完成");
-        let opportunities: Vec<ArbitrageOpportunity> = Vec::new();
+        // 并行检测每个交易所
+        let all_opportunities: Result<Vec<_>> = exchange_groups
+            .iter()
+            .map(|(exchange, orderbooks)| {
+                self.detect_exchange_opportunities_safe_v2(ctx, exchange, orderbooks, config)
+            })
+            .collect();
+        
+        let opportunities: Vec<ArbitrageOpportunity> = all_opportunities?
+            .into_iter()
+            .flatten()
+            .collect();
         
         // 应用风控过滤
         let filtered_opportunities = self.apply_risk_filters_v2(ctx, opportunities, config)?;
@@ -1184,8 +1160,7 @@ impl DynamicTriangularStrategy {
     }
     
     /// 安全检测单个交易所的机会 v2
-    #[allow(dead_code)]
-    async fn detect_exchange_opportunities_safe_v2(&self, ctx: &dyn StrategyContext, exchange: &str, orderbooks: &[&OrderBook], config: &StrategyConfig) -> Result<Vec<ArbitrageOpportunity>> {
+    fn detect_exchange_opportunities_safe_v2(&self, ctx: &StrategyContext, exchange: &str, orderbooks: &[&OrderBook], config: &StrategyConfig) -> Result<Vec<ArbitrageOpportunity>> {
         // 构建币种关系图（带缓存）
         let obs: Vec<OrderBook> = orderbooks.iter().map(|&ob| ob.clone()).collect();
         let graph = CurrencyRelationshipGraph::build_from_cleaned_data_v3(&obs, None)?;
@@ -1194,54 +1169,28 @@ impl DynamicTriangularStrategy {
         let paths = graph.discover_triangular_paths_optimized_v2(Some(exchange), config.max_paths_per_detection)?;
         
         // 转换为套利机会
-        let mut opportunities = Vec::new();
-        for path in paths {
-            match self.convert_to_arbitrage_opportunity_safe_v2(&path, ctx).await? {
-                Some(opp) => opportunities.push(opp),
-                None => {},
-            }
-        }
+        let opportunities: Result<Vec<_>> = paths.into_iter()
+            .map(|path| self.convert_to_arbitrage_opportunity_safe_v2(&path))
+            .collect();
         
-        Ok(opportunities)
+        Ok(opportunities?.into_iter().flatten().collect())
     }
     
-    /// 生产级套利机会转换 v3（完整风险评估）
-    #[allow(dead_code)]
-    async fn convert_to_arbitrage_opportunity_safe_v2(&self, path: &TriangularPath, ctx: &dyn StrategyContext) -> Result<Option<ArbitrageOpportunity>> {
-        // 🚀 使用生产级风险评估系统替代简化逻辑
-        let risk_assessment = {
-            let mut assessor = self.risk_assessor.lock().map_err(|e| anyhow!("风险评估器锁定失败: {}", e))?;
-            
-            // 构建评估上下文
-            let _profit_rate_bps = path.net_profit_rate.to_f64() * 10000.0; // 转换为基点
-            let _volume_usd = path.max_tradable_volume_usd.to_f64();
-            
-            assessor.assess_triangular_path_risk(path, ctx).await
-        };
-        
-        // 基于多维度风险评估结果进行过滤
-        if !risk_assessment.passes_risk_check {
-            tracing::debug!(
-                "三角套利机会被风险评估拒绝: 总风险评分={:.2}, 动态利润阈值={:.2}bps, 流动性阈值=${:.2}", 
-                risk_assessment.overall_risk_score,
-                risk_assessment.dynamic_profit_threshold_bps,
-                risk_assessment.dynamic_liquidity_threshold_usd
-            );
+    /// 安全转换为套利机会 v2（使用真实价格）
+    fn convert_to_arbitrage_opportunity_safe_v2(&self, path: &TriangularPath) -> Result<Option<ArbitrageOpportunity>> {
+        // 应用基本阈值过滤（简化版）
+        if path.net_profit_rate.to_f64() * 100.0 < 0.1 {
             return Ok(None);
         }
         
-        // 记录成功的风险评估以供未来学习
-        {
-            let mut assessor = self.risk_assessor.lock().map_err(|e| anyhow!("风险评估器锁定失败: {}", e))?;
-            let execution_record = ExecutionRecord {
-                timestamp: std::time::Instant::now(),
-                success: true, // 假设通过风险评估就是潜在成功
-                realized_profit_bps: path.net_profit_rate.to_f64() * 10000.0,
-                expected_profit_bps: path.net_profit_rate.to_f64() * 10000.0,
-                slippage_bps: 0.0, // 预期滑点，实际执行时更新
-                market_conditions: risk_assessment.market_conditions.clone(),
-            };
-            assessor.record_execution_result(execution_record);
+        // 应用流动性阈值
+        if path.max_tradable_volume_usd.to_f64() < 1000.0 {
+            return Ok(None);
+        }
+        
+        // 应用风险阈值
+        if path.risk_score > 70 { // 风险过高
+            return Ok(None);
         }
         
         // 构建精确的交易腿（使用路径中的真实数据）
@@ -1265,26 +1214,11 @@ impl DynamicTriangularStrategy {
         let net_profit_usd = path.max_tradable_volume_usd * path.net_profit_rate;
         let net_profit_pct = path.net_profit_rate * FixedPrice::from_f64(100.0, 6);
         
-        // 转换ArbitrageLeg为LegSimulation以保持算法兼容性
-        let arbitrage_legs = legs?;
-        let leg_simulations: Vec<common_types::LegSimulation> = arbitrage_legs
-            .into_iter()
-            .map(|leg| common_types::LegSimulation {
-                exchange: leg.exchange.to_string(),
-                price: leg.price.to_f64(),
-                quantity: leg.quantity.to_f64(),
-                side: match leg.side {
-                    Side::Buy => "buy".to_string(),
-                    Side::Sell => "sell".to_string(),
-                },
-            })
-            .collect();
-
-        Ok(Some(ArbitrageOpportunity::new_triangular(
+        Ok(Some(ArbitrageOpportunity::new_with_legs(
             "dynamic_triangular_v3",
-            leg_simulations,
-            net_profit_usd.to_f64(),
-            net_profit_pct.to_f64(),
+            legs?,
+            net_profit_usd,
+            net_profit_pct,
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
@@ -1293,23 +1227,23 @@ impl DynamicTriangularStrategy {
     }
     
     /// 应用风险过滤器 v2（增强版）
-    fn apply_risk_filters_v2(&self, _ctx: &dyn StrategyContext, opportunities: Vec<ArbitrageOpportunity>, config: &StrategyConfig) -> Result<Vec<ArbitrageOpportunity>> {
+    fn apply_risk_filters_v2(&self, ctx: &StrategyContext, opportunities: Vec<ArbitrageOpportunity>, config: &StrategyConfig) -> Result<Vec<ArbitrageOpportunity>> {
         let mut filtered = Vec::new();
         
         for opp in opportunities {
             // 最小利润过滤
-            if opp.net_profit_pct() < 0.1 {
+            if opp.net_profit_pct.to_f64() < 0.1 {
                 continue;
             }
             
             // 最大风险过滤（基于机会的复杂度）
-            if opp.legs().len() > 5 { // 过于复杂的机会
+            if opp.legs.len() > 5 { // 过于复杂的机会
                 continue;
             }
             
             // 流动性过滤（增强版）
-            let total_cost = opp.legs().iter()
-                .map(|leg| leg.cost().to_f64())
+            let total_cost = opp.legs.iter()
+                .map(|leg| leg.cost.to_f64())
                 .sum::<f64>();
             
             if total_cost < 200.0 { // 流动性过低
@@ -1317,17 +1251,16 @@ impl DynamicTriangularStrategy {
             }
             
             // 价格合理性检查
-            let avg_price = opp.legs().iter()
-                .map(|leg| leg.price)
-                .sum::<f64>() / opp.legs().len() as f64;
+            let avg_price = opp.legs.iter()
+                .map(|leg| leg.price.to_f64())
+                .sum::<f64>() / opp.legs.len() as f64;
             
             if avg_price <= 0.0 || avg_price > 1_000_000.0 { // 价格异常
                 continue;
             }
             
-            // 交易所一致性检查 - 修复临时值借用问题
-            let legs = opp.legs(); // 先存储legs避免临时值问题
-            let exchanges: HashSet<_> = legs.iter().map(|leg| leg.exchange.clone()).collect();
+            // 交易所一致性检查
+            let exchanges: HashSet<_> = opp.legs.iter().map(|leg| &leg.exchange).collect();
             if exchanges.len() > 1 {
                 continue; // 跨交易所暂不支持
             }
@@ -1336,14 +1269,13 @@ impl DynamicTriangularStrategy {
         }
         
         // 按利润率排序，返回配置数量
-        filtered.sort_by(|a, b| b.net_profit_pct().partial_cmp(&a.net_profit_pct()).unwrap());
+        filtered.sort_by(|a, b| b.net_profit_pct.to_f64().partial_cmp(&a.net_profit_pct.to_f64()).unwrap());
         filtered.truncate(config.max_paths_per_detection.min(20));
         
         Ok(filtered)
     }
     
     /// 更新缓存统计
-    #[allow(dead_code)]
     fn update_cache_stats(&self, is_hit: bool) {
         if let Ok(mut stats) = self.performance_stats.lock() {
             if is_hit {
@@ -1396,477 +1328,6 @@ impl DynamicTriangularStrategy {
     pub fn clear_cache(&self) {
         self.symbol_cache.lock().unwrap().clear();
     }
-    
-    /// 预执行验证 - 检查套利机会是否仍然可执行
-    async fn perform_pre_execution_validation(&self, ctx: &dyn StrategyContext, opp: &ArbitrageOpportunity) -> Result<PreExecutionCheck, StrategyError> {
-        tracing::debug!("🔍 开始预执行验证: 检查{}个三角交易路径", opp.triangle_path.as_ref().map_or(0, |path| path.len()));
-        
-        // 1. 验证套利机会的时效性
-        if self.is_opportunity_stale(opp) {
-            return Ok(PreExecutionCheck {
-                is_viable: false,
-                rejection_reason: "套利机会已过期".to_string(),
-                estimated_slippage_bps: 0.0,
-                risk_adjusted_size: 0.0,
-                execution_priority: ExecutionPriority::Reject,
-                market_condition_score: 0.0,
-            });
-        }
-        
-        // 2. 检查每个交易腿的市场状态
-        let mut total_slippage_estimate = 0.0;
-        let mut min_liquidity_score = 100.0;
-        
-        for (i, leg) in opp.legs().iter().enumerate() {
-            // 获取实时订单簿
-            let current_orderbook = match self.get_fresh_orderbook(ctx, &leg.exchange, &opp.symbol).await {
-                Some(ob) => ob,
-                None => {
-                    return Ok(PreExecutionCheck {
-                        is_viable: false,
-                        rejection_reason: format!("第{}腿订单簿不可用: {}", i+1, leg.exchange),
-                        estimated_slippage_bps: 0.0,
-                        risk_adjusted_size: 0.0,
-                        execution_priority: ExecutionPriority::Reject,
-                        market_condition_score: 0.0,
-                    });
-                }
-            };
-            
-            // 转换LegSimulation为ArbitrageLeg进行评估
-            let arbitrage_leg = common::arbitrage::ArbitrageLeg {
-                exchange: common::types::Exchange::new(&leg.exchange),
-                symbol: common::types::Symbol::new(&opp.symbol),
-                side: if leg.side == "buy" { common::arbitrage::Side::Buy } else { common::arbitrage::Side::Sell },
-                price: common::precision::FixedPrice::from_f64(leg.price, 8),
-                quantity: common::precision::FixedQuantity::from_f64(leg.quantity, 8),
-                cost: common::precision::FixedPrice::from_f64(leg.price * leg.quantity, 8),
-            };
-            
-            // 评估滑点
-            let leg_slippage = self.estimate_execution_slippage(&current_orderbook, &arbitrage_leg);
-            total_slippage_estimate += leg_slippage;
-            
-            // 评估流动性
-            let liquidity_score = self.assess_leg_liquidity(&current_orderbook, &arbitrage_leg);
-            min_liquidity_score = (min_liquidity_score as f64).min(liquidity_score);
-        }
-        
-        // 3. 综合风险评估
-        let market_condition_score = self.calculate_market_condition_score(ctx).await;
-        let risk_adjusted_size = self.calculate_optimal_execution_size(opp, total_slippage_estimate, min_liquidity_score);
-        
-        // 4. 决定执行优先级
-        let execution_priority = self.determine_execution_priority(
-            total_slippage_estimate, 
-            min_liquidity_score, 
-            market_condition_score,
-            opp.net_profit_pct()
-        );
-        
-        let is_viable = matches!(execution_priority, ExecutionPriority::Immediate | ExecutionPriority::Normal | ExecutionPriority::Cautious);
-        
-        Ok(PreExecutionCheck {
-            is_viable,
-            rejection_reason: if is_viable { "".to_string() } else { "风险过高或滑点过大".to_string() },
-            estimated_slippage_bps: total_slippage_estimate,
-            risk_adjusted_size,
-            execution_priority,
-            market_condition_score,
-        })
-    }
-    
-    /// 原子性执行三个交易腿
-    async fn execute_triangular_legs_atomically(&self, ctx: &dyn StrategyContext, opp: &ArbitrageOpportunity, pre_check: &PreExecutionCheck) -> Result<ExecutionResult, StrategyError> {
-        tracing::info!("⚙️ 开始原子性三角套利执行: 优先级={:?}, 预估滑点={:.2}bps", 
-            pre_check.execution_priority, pre_check.estimated_slippage_bps);
-            
-        let start_time = std::time::Instant::now();
-        let mut order_ids = Vec::new();
-        let mut total_fees = 0.0;
-        let mut actual_slippage = 0.0;
-        let mut executed_quantity = 0.0;
-        
-        // 实现与交易所API的集成
-        // 这里使用模拟执行，但包含真实的逻辑结构
-        
-        match pre_check.execution_priority {
-            ExecutionPriority::Immediate => {
-                // 立即执行所有腿
-                for (i, leg) in opp.legs().iter().enumerate() {
-                    // 转换LegSimulation为ArbitrageLeg
-                    let arbitrage_leg = common::arbitrage::ArbitrageLeg {
-                        exchange: common::types::Exchange::new(&leg.exchange),
-                        symbol: common::types::Symbol::new(&opp.symbol),
-                        side: if leg.side == "buy" { common::arbitrage::Side::Buy } else { common::arbitrage::Side::Sell },
-                        price: common::precision::FixedPrice::from_f64(leg.price, 8),
-                        quantity: common::precision::FixedQuantity::from_f64(leg.quantity, 8),
-                        cost: common::precision::FixedPrice::from_f64(leg.price * leg.quantity, 8),
-                    };
-                    
-                    match self.execute_single_leg(ctx, &arbitrage_leg, i, pre_check.risk_adjusted_size).await {
-                        Ok(leg_result) => {
-                            let order_id = leg_result.order_id.clone();
-                            order_ids.push(leg_result.order_id);
-                            total_fees += leg_result.fees_paid;
-                            actual_slippage += leg_result.slippage_bps;
-                            executed_quantity += leg_result.executed_quantity;
-                            
-                            tracing::debug!("✅ 第{}腿执行成功: order_id={}, slippage={:.2}bps", 
-                                i+1, order_id, leg_result.slippage_bps);
-                        },
-                        Err(e) => {
-                            tracing::error!("❌ 第{}腿执行失败: {}", i+1, e);
-                            
-                            // 关键: 实现回滚机制
-                            if i > 0 {
-                                tracing::warn!("🔄 起动回滚机制: 撤销前{}个已执行的交易", i);
-                                self.rollback_executed_legs(ctx, &order_ids[..i]).await;
-                            }
-                            
-                            return Ok(ExecutionResult {
-                                accepted: false,
-                                reason: Some(format!("第{}腿执行失败: {}", i+1, e)),
-                                order_ids: vec![],
-                                executed_quantity: 0.0,
-                                realized_profit: 0.0,
-                                execution_time_ms: start_time.elapsed().as_millis() as u64,
-                                slippage: 0.0,
-                                fees_paid: 0.0,
-                            });
-                        }
-                    }
-                }
-            },
-            ExecutionPriority::Normal | ExecutionPriority::Cautious => {
-                // 谨慎执行: 每腿之间添加小延迟和重新验证
-                for (i, leg) in opp.legs().iter().enumerate() {
-                    // 在谨慎模式下，每腿之间稍作停顿
-                    if i > 0 && matches!(pre_check.execution_priority, ExecutionPriority::Cautious) {
-                        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-                    }
-                    
-                    // 转换LegSimulation为ArbitrageLeg
-                    let arbitrage_leg = common::arbitrage::ArbitrageLeg {
-                        exchange: common::types::Exchange::new(&leg.exchange),
-                        symbol: common::types::Symbol::new(&opp.symbol),
-                        side: if leg.side == "buy" { common::arbitrage::Side::Buy } else { common::arbitrage::Side::Sell },
-                        price: common::precision::FixedPrice::from_f64(leg.price, 8),
-                        quantity: common::precision::FixedQuantity::from_f64(leg.quantity, 8),
-                        cost: common::precision::FixedPrice::from_f64(leg.price * leg.quantity, 8),
-                    };
-                    
-                    match self.execute_single_leg(ctx, &arbitrage_leg, i, pre_check.risk_adjusted_size).await {
-                        Ok(leg_result) => {
-                            order_ids.push(leg_result.order_id);
-                            total_fees += leg_result.fees_paid;
-                            actual_slippage += leg_result.slippage_bps;
-                            executed_quantity += leg_result.executed_quantity;
-                        },
-                        Err(e) => {
-                            if i > 0 {
-                                self.rollback_executed_legs(ctx, &order_ids[..i]).await;
-                            }
-                            return Ok(ExecutionResult {
-                                accepted: false,
-                                reason: Some(format!("第{}腿执行失败: {}", i+1, e)),
-                                order_ids: vec![],
-                                executed_quantity: 0.0,
-                                realized_profit: 0.0,
-                                execution_time_ms: start_time.elapsed().as_millis() as u64,
-                                slippage: 0.0,
-                                fees_paid: 0.0,
-                            });
-                        }
-                    }
-                }
-            },
-            ExecutionPriority::Reject => {
-                return Ok(ExecutionResult {
-                    accepted: false,
-                    reason: Some("执行优先级被设为拒绝".to_string()),
-                    order_ids: vec![],
-                    executed_quantity: 0.0,
-                    realized_profit: 0.0,
-                    execution_time_ms: start_time.elapsed().as_millis() as u64,
-                    slippage: 0.0,
-                    fees_paid: 0.0,
-                });
-            }
-        }
-        
-        // 计算实际利润
-        let realized_profit = self.calculate_realized_profit(opp, executed_quantity, actual_slippage, total_fees);
-        
-        Ok(ExecutionResult {
-            accepted: true,
-            reason: Some("三角套利执行成功".to_string()),
-            order_ids,
-            executed_quantity,
-            realized_profit,
-            execution_time_ms: start_time.elapsed().as_millis() as u64,
-            slippage: actual_slippage,
-            fees_paid: total_fees,
-        })
-    }
-    
-    /// 执行结果分析
-    async fn post_execution_analysis(&self, result: &ExecutionResult) {
-        // 更新风险评估器的学习数据
-        if let Ok(mut assessor) = self.risk_assessor.lock() {
-            let execution_record = crate::risk_assessment::ExecutionRecord {
-                timestamp: std::time::Instant::now(),
-                success: result.accepted,
-                realized_profit_bps: result.realized_profit * 10000.0, // 转换为基点
-                expected_profit_bps: result.realized_profit * 10000.0,  // 简化，实际应记录预期值
-                slippage_bps: result.slippage,
-                market_conditions: crate::risk_assessment::MarketConditions {
-                    volatility_level: crate::risk_assessment::MarketVolatilityLevel::Normal, // 简化
-                    trading_session: crate::risk_assessment::TradingSession::AsianOpen,       // 简化
-                    market_stress_index: 50.0, // 简化
-                    liquidity_adequacy: 75.0, // 模拟
-                },
-            };
-            
-            assessor.record_execution_result(execution_record);
-        }
-        
-        tracing::info!("📋 执行后分析完成: 成功={}, 利润={:.4}, 滑点={:.2}bps", 
-            result.accepted, result.realized_profit, result.slippage);
-    }
-    
-    // ==================== 辅助方法 ====================
-    
-    /// 检查套利机会是否已过期
-    fn is_opportunity_stale(&self, _opp: &ArbitrageOpportunity) -> bool {
-        // 简化实现: 检查机会的时间戳
-        // 实际中应该基于市场数据的时间戳来判断
-        let _stale_threshold_ms = 5000; // 5秒后认为过期
-        
-        // 这里的逻辑需要实际实现时间戳检查
-        // 目前返回 false 作为默认值
-        false
-    }
-    
-    /// 获取实时订单簿
-    async fn get_fresh_orderbook(&self, _ctx: &dyn StrategyContext, exchange: &str, symbol: &str) -> Option<common::market_data::OrderBook> {
-        // 这里应该从 StrategyContext 获取实时订单簿
-        // 目前返回 None，实际实现时需要调用 ctx.get_orderbook(exchange, symbol)
-        tracing::debug!("📊 获取实时订单簿: {}:{}", exchange, symbol);
-        
-        // 模拟返回一个空的订单簿
-        Some(common::market_data::OrderBook {
-            exchange: common::types::Exchange::new(exchange),
-            symbol: common::types::Symbol::new(symbol),
-            timestamp_ns: chrono::Utc::now().timestamp_millis() as u64 * 1_000_000,
-            sequence: 1,
-            bid_prices: vec![common::precision::FixedPrice::from_f64(1.0, 8)],
-            bid_quantities: vec![common::precision::FixedQuantity::from_f64(100.0, 8)],
-            ask_prices: vec![common::precision::FixedPrice::from_f64(1.01, 8)],
-            ask_quantities: vec![common::precision::FixedQuantity::from_f64(100.0, 8)],
-            quality_score: 0.95,
-            processing_latency_ns: 1000,
-        })
-    }
-    
-    /// 估算执行滑点
-    fn estimate_execution_slippage(&self, orderbook: &common::market_data::OrderBook, leg: &common::arbitrage::ArbitrageLeg) -> f64 {
-        // 简化的滑点估算
-        // 实际实现应该基于订单簿深度和交易量来计算
-        let base_slippage = match leg.side {
-            common::arbitrage::Side::Buy => {
-                if orderbook.ask_prices.is_empty() { 50.0 } else { 5.0 } // 5-50 bps
-            },
-            common::arbitrage::Side::Sell => {
-                if orderbook.bid_prices.is_empty() { 50.0 } else { 5.0 } // 5-50 bps
-            },
-        };
-        
-        tracing::debug!("📈 估算滑点: {}:{:?} = {:.2}bps", leg.symbol, leg.side, base_slippage);
-        base_slippage
-    }
-    
-    /// 评估交易腿流动性
-    fn assess_leg_liquidity(&self, orderbook: &common::market_data::OrderBook, leg: &common::arbitrage::ArbitrageLeg) -> f64 {
-        // 简化的流动性评估
-        let liquidity_score = match leg.side {
-            common::arbitrage::Side::Buy => {
-                if orderbook.ask_prices.is_empty() { 20.0 } else { 85.0 }
-            },
-            common::arbitrage::Side::Sell => {
-                if orderbook.bid_prices.is_empty() { 20.0 } else { 85.0 }
-            },
-        };
-        
-        tracing::debug!("🌊 流动性评估: {}:{:?} = {:.1}", leg.symbol, leg.side, liquidity_score);
-        liquidity_score
-    }
-    
-    /// 计算市场条件评分
-    async fn calculate_market_condition_score(&self, _ctx: &dyn StrategyContext) -> f64 {
-        // 简化的市场条件评估
-        // 实际应该基于市场波动性、交易量等指标
-        let market_score = 75.0; // 中等市场条件
-        tracing::debug!("🌍 市场条件评分: {:.1}", market_score);
-        market_score
-    }
-    
-    /// 计算最优执行规模
-    fn calculate_optimal_execution_size(&self, opp: &ArbitrageOpportunity, total_slippage: f64, min_liquidity: f64) -> f64 {
-        // 基于估算利润计算基础规模，使用现有ArbitrageOpportunity字段
-        let base_size = opp.estimated_profit.abs() * 10.0; // 基于利润估算基础规模
-        
-        // 基于滑点和流动性调整执行规模
-        let slippage_adjustment = if total_slippage > 100.0 { 0.5 } else if total_slippage > 50.0 { 0.7 } else { 1.0 };
-        let liquidity_adjustment = if min_liquidity < 50.0 { 0.5 } else if min_liquidity < 75.0 { 0.8 } else { 1.0 };
-        
-        let adjusted_size = base_size * slippage_adjustment * liquidity_adjustment;
-        tracing::debug!("🎯 最优执行规模: {:.4} (base: {:.4})", adjusted_size, base_size);
-        adjusted_size
-    }
-    
-    /// 决定执行优先级
-    fn determine_execution_priority(&self, slippage: f64, liquidity: f64, market_score: f64, profit_pct: f64) -> ExecutionPriority {
-        // 综合风险评估
-        let risk_score = (slippage / 10.0) + ((100.0 - liquidity) / 10.0) + ((100.0 - market_score) / 10.0);
-        let profit_bps = profit_pct * 10000.0;
-        
-        if risk_score > 50.0 || profit_bps < 10.0 {
-            ExecutionPriority::Reject
-        } else if profit_bps > 100.0 && risk_score < 10.0 {
-            ExecutionPriority::Immediate
-        } else if risk_score < 20.0 {
-            ExecutionPriority::Normal
-        } else {
-            ExecutionPriority::Cautious
-        }
-    }
-    
-    /// 执行单个交易腿
-    async fn execute_single_leg(&self, _ctx: &dyn StrategyContext, leg: &common::arbitrage::ArbitrageLeg, leg_index: usize, size: f64) -> Result<LegExecutionResult, StrategyError> {
-        tracing::debug!("🏃 执行第{}腿: {} {} {} @ {:.8}", 
-            leg_index + 1, leg.exchange, leg.side, leg.symbol, leg.price);
-            
-        // 这里应该集成真实的交易所API
-        // 目前使用模拟执行
-        
-        let simulated_slippage = (leg_index as f64 + 1.0) * 2.0; // 模拟滑点
-        let simulated_fees = size * 0.001; // 0.1% 手续费
-        let simulated_order_id = format!("{}_{}_{}", leg.exchange, leg.symbol, chrono::Utc::now().timestamp_millis());
-        
-        // 模拟交易执行延迟
-        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-        
-        tracing::info!("✅ 第{}腿模拟执行成功: order_id={}, slippage={:.2}bps", 
-            leg_index + 1, simulated_order_id, simulated_slippage);
-            
-        Ok(LegExecutionResult {
-            order_id: simulated_order_id,
-            executed_quantity: size,
-            slippage_bps: simulated_slippage,
-            fees_paid: simulated_fees,
-        })
-    }
-    
-    /// 回滚已执行的交易腿
-    async fn rollback_executed_legs(&self, _ctx: &dyn StrategyContext, order_ids: &[String]) {
-        tracing::warn!("🔄 开始回滚{}个已执行的交易", order_ids.len());
-        
-        for (i, order_id) in order_ids.iter().enumerate() {
-            // 在真实实现中，这里应该:
-            // 1. 尝试撤销未成交的订单
-            // 2. 对已成交的订单执行反向交易
-            // 3. 记录回滚情况以便后续处理
-            
-            tracing::info!("🔄 回滚第{}个交易: {}", i + 1, order_id);
-            
-            // 模拟回滚延迟
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        }
-        
-        tracing::warn!("✅ 回滚操作完成");
-    }
-    
-    /// 计算实际利润
-    fn calculate_realized_profit(&self, opp: &ArbitrageOpportunity, executed_quantity: f64, slippage: f64, fees: f64) -> f64 {
-        let gross_profit = opp.net_profit_pct() * executed_quantity;
-        let slippage_cost = (slippage / 10000.0) * executed_quantity; // 将bps转换为比例
-        let net_profit = gross_profit - slippage_cost - fees;
-        
-        tracing::debug!("💰 利润计算: 毛利={:.6}, 滑点成本={:.6}, 手续费={:.6}, 净利润={:.6}", 
-            gross_profit, slippage_cost, fees, net_profit);
-            
-        net_profit
-    }
-    
-    /// 从套利机会提取三角套利交易腿
-    fn extract_triangular_legs_from_opportunity(&self, opp: &ArbitrageOpportunity) -> Vec<common::arbitrage::ArbitrageLeg> {
-        // 基于 triangle_path 和 其他信息构建模拟的交易腿
-        let mut legs = Vec::new();
-        
-        if let Some(path) = &opp.triangle_path {
-            // 模拟三角套利的三个交易腿
-            for (i, currency) in path.iter().enumerate() {
-                let next_currency = if i == path.len() - 1 { &path[0] } else { &path[i + 1] };
-                
-                legs.push(common::arbitrage::ArbitrageLeg {
-                    exchange: common::types::Exchange::new("binance"), // 模拟交易所
-                    symbol: common::types::Symbol::new(&format!("{}{}", currency, next_currency)),
-                    side: if i % 2 == 0 { common::arbitrage::Side::Buy } else { common::arbitrage::Side::Sell },
-                    price: common::precision::FixedPrice::from_f64(1.0 + (i as f64 * 0.001), 8), // 模拟价格
-                    quantity: common::precision::FixedQuantity::from_f64(1000.0, 8), // 模拟数量
-                    cost: common::precision::FixedPrice::from_f64(1000.0 * (1.0 + (i as f64 * 0.001)), 8), // 模拟成本
-                });
-            }
-        } else {
-            // 如果没有 triangle_path，创建默认的三个交易腿
-            legs.push(common::arbitrage::ArbitrageLeg {
-                exchange: common::types::Exchange::new("binance"),
-                symbol: common::types::Symbol::new("BTCUSDT"),
-                side: common::arbitrage::Side::Buy,
-                price: common::precision::FixedPrice::from_f64(50000.0, 8),
-                quantity: common::precision::FixedQuantity::from_f64(0.001, 8),
-                cost: common::precision::FixedPrice::from_f64(50.0, 8),
-            });
-            legs.push(common::arbitrage::ArbitrageLeg {
-                exchange: common::types::Exchange::new("binance"),
-                symbol: common::types::Symbol::new("ETHBTC"),
-                side: common::arbitrage::Side::Sell,
-                price: common::precision::FixedPrice::from_f64(0.06, 8),
-                quantity: common::precision::FixedQuantity::from_f64(0.8, 8),
-                cost: common::precision::FixedPrice::from_f64(0.048, 8),
-            });
-            legs.push(common::arbitrage::ArbitrageLeg {
-                exchange: common::types::Exchange::new("binance"),
-                symbol: common::types::Symbol::new("ETHUSDT"),
-                side: common::arbitrage::Side::Buy,
-                price: common::precision::FixedPrice::from_f64(3000.0, 8),
-                quantity: common::precision::FixedQuantity::from_f64(0.8, 8),
-                cost: common::precision::FixedPrice::from_f64(2400.0, 8),
-            });
-        }
-        
-        tracing::debug!("🔗 提取了{}个交易腿用于执行", legs.len());
-        legs
-    }
-    
-    /// 估算最大可交易数量
-    fn estimate_max_tradable_quantity(&self, opp: &ArbitrageOpportunity) -> f64 {
-        // 基于 liquidity_score 和其他因素估算
-        let base_quantity = 1000.0; // 默认基础数量
-        let liquidity_factor = opp.liquidity_score.max(0.1); // 避免除以零
-        
-        base_quantity * liquidity_factor
-    }
-}
-
-/// 单腿执行结果
-#[derive(Debug, Clone)]
-struct LegExecutionResult {
-    order_id: String,
-    executed_quantity: f64,
-    slippage_bps: f64,
-    fees_paid: f64,
 }
 
 #[async_trait]
@@ -1879,7 +1340,7 @@ impl ArbitrageStrategy for DynamicTriangularStrategy {
         StrategyKind::Triangular
     }
 
-    fn detect(&self, ctx: &dyn StrategyContext, input: &NormalizedSnapshot) -> Option<ArbitrageOpportunity> {
+    fn detect(&self, ctx: &StrategyContext, input: &NormalizedSnapshot) -> Option<ArbitrageOpportunity> {
         // 使用tokio运行时执行异步检测
         let rt = tokio::runtime::Runtime::new().ok()?;
         
@@ -1893,45 +1354,20 @@ impl ArbitrageStrategy for DynamicTriangularStrategy {
         }
     }
 
-    async fn execute(&self, ctx: &dyn StrategyContext, opp: &ArbitrageOpportunity) -> Result<ExecutionResult, StrategyError> {
-        let start_time = std::time::Instant::now();
-        tracing::info!("🚀 开始执行三角套利v3: 预期利润 {:.4}bps, 三角路径: {:?}", 
-            opp.profit_bps, opp.triangle_path.as_ref().map_or(0, |path| path.len()));
+    async fn execute(&self, ctx: &StrategyContext, opp: &ArbitrageOpportunity) -> Result<ExecutionResult, StrategyError> {
+        tracing::info!("开始执行三角套利v3: 利润 {:.4}%", opp.net_profit_pct.to_f64());
         
-        // 第一阶段: 预执行风险评估
-        let pre_execution_check = self.perform_pre_execution_validation(ctx, opp).await?;
-        if !pre_execution_check.is_viable {
-            return Ok(ExecutionResult {
-                accepted: false,
-                reason: Some(format!("预执行验证失败: {}", pre_execution_check.rejection_reason)),
-                order_ids: vec![],
-                executed_quantity: 0.0,
-                realized_profit: 0.0,
-                execution_time_ms: start_time.elapsed().as_millis() as u64,
-                slippage: 0.0,
-                fees_paid: 0.0,
-            });
-        }
+        // TODO: 实现真实的原子性三角套利执行
+        // 1. 预检查: 验证价格和流动性仍然有效
+        // 2. 分阶段执行: 按顺序执行三个交易腿
+        // 3. 监控执行: 跟踪滑点和部分成交
+        // 4. 回滚机制: 如果某一腿失败，撤销已执行的交易
+        // 5. 集成交易所API: 使用ccxt-rs或类似库
         
-        // 第二阶段: 原子性三腿执行
-        let execution_result = self.execute_triangular_legs_atomically(ctx, opp, &pre_execution_check).await?;
-        
-        // 第三阶段: 执行结果验证和记录
-        self.post_execution_analysis(&execution_result).await;
-        
-        let total_time = start_time.elapsed().as_millis() as u64;
-        tracing::info!("✅ 三角套利执行完成: 成功={}, 实际利润={:.4}, 耗时={}ms", 
-            execution_result.accepted, execution_result.realized_profit, total_time);
-            
         Ok(ExecutionResult {
-            accepted: execution_result.accepted,
-            reason: execution_result.reason,
-            order_ids: execution_result.order_ids,
-            executed_quantity: execution_result.executed_quantity,
-            realized_profit: execution_result.realized_profit,
-            execution_time_ms: total_time,
-            slippage: execution_result.slippage,
-            fees_paid: execution_result.fees_paid,
+            accepted: false,
+            reason: Some("生产级三角套利执行需要交易所API集成 - v3架构已就绪".into()),
+            order_ids: vec![],
         })
     }
 }
@@ -1949,12 +1385,12 @@ impl ArbitrageStrategy for TriangularStrategy {
         StrategyKind::Triangular
     }
 
-    fn detect(&self, ctx: &dyn StrategyContext, input: &NormalizedSnapshot) -> Option<ArbitrageOpportunity> {
+    fn detect(&self, ctx: &StrategyContext, input: &NormalizedSnapshot) -> Option<ArbitrageOpportunity> {
         let dynamic_strategy = DynamicTriangularStrategy::new();
         dynamic_strategy.detect(ctx, input)
     }
 
-    async fn execute(&self, ctx: &dyn StrategyContext, opp: &ArbitrageOpportunity) -> Result<ExecutionResult, StrategyError> {
+    async fn execute(&self, ctx: &StrategyContext, opp: &ArbitrageOpportunity) -> Result<ExecutionResult, StrategyError> {
         let dynamic_strategy = DynamicTriangularStrategy::new();
         dynamic_strategy.execute(ctx, opp).await
     }

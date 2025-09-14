@@ -1,0 +1,329 @@
+//! # 核心类型定义
+//!
+//! 本模块定义了系统中使用的核心数据类型，包括交易对、订单簿、交易更新等。
+
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use chrono::{DateTime, Utc};
+use ordered_float::OrderedFloat;
+use std::fmt;
+
+/// 交易所标识符
+pub type ExchangeId = String;
+
+/// 交易对符号
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct Symbol {
+    /// 基础货币，如BTC
+    pub base: String,
+    /// 计价货币，如USDT
+    pub quote: String,
+}
+
+impl Symbol {
+    /// 创建新的交易对符号
+    pub fn new(base: &str, quote: &str) -> Self {
+        Self {
+            base: base.to_string(),
+            quote: quote.to_string(),
+        }
+    }
+}
+
+impl fmt::Display for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}/{}", self.base, self.quote)
+    }
+}
+
+/// 订单簿条目，表示为(价格, 数量)对
+pub type OrderBookEntry = (OrderedFloat<f64>, OrderedFloat<f64>);
+
+/// 订单簿结构
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OrderBook {
+    /// 交易对符号
+    pub symbol: Symbol,
+    /// 买单列表，按价格降序排列
+    pub bids: Vec<OrderBookEntry>,
+    /// 卖单列表，按价格升序排列
+    pub asks: Vec<OrderBookEntry>,
+    /// 时间戳（毫秒）
+    pub timestamp: i64,
+    /// 数据来源交易所
+    pub source: ExchangeId,
+    /// 序列ID（如果有）
+    pub sequence_id: Option<u64>,
+}
+
+impl OrderBook {
+    /// 创建新的空订单簿
+    pub fn new(symbol: Symbol, source: ExchangeId, timestamp: i64) -> Self {
+        Self {
+            symbol,
+            bids: Vec::new(),
+            asks: Vec::new(),
+            timestamp,
+            source,
+            sequence_id: None,
+        }
+    }
+    
+    /// 获取买一价
+    pub fn best_bid(&self) -> Option<&OrderBookEntry> {
+        self.bids.first()
+    }
+    
+    /// 获取卖一价
+    pub fn best_ask(&self) -> Option<&OrderBookEntry> {
+        self.asks.first()
+    }
+    
+    /// 计算买卖价差
+    pub fn spread(&self) -> Option<f64> {
+        match (self.best_ask(), self.best_bid()) {
+            (Some(ask), Some(bid)) => Some((ask.0 - bid.0).into_inner()),
+            _ => None,
+        }
+    }
+    
+    /// 计算买卖价差百分比
+    pub fn spread_percentage(&self) -> Option<f64> {
+        match (self.best_ask(), self.best_bid()) {
+            (Some(ask), Some(bid)) => {
+                let spread = (ask.0 - bid.0).into_inner();
+                let mid_price = (ask.0 + bid.0).into_inner() / 2.0;
+                Some(spread / mid_price * 100.0)
+            },
+            _ => None,
+        }
+    }
+    
+    /// 获取订单簿深度（买卖单总量）
+    pub fn depth(&self) -> (f64, f64) {
+        let bid_depth: f64 = self.bids.iter().map(|(_, qty)| qty.into_inner()).sum();
+        let ask_depth: f64 = self.asks.iter().map(|(_, qty)| qty.into_inner()).sum();
+        (bid_depth, ask_depth)
+    }
+
+    pub fn bbo(&self) -> Option<BBO> {
+        let best_bid = self.bids.first().cloned();
+        let best_ask = self.asks.first().cloned();
+        if let (Some(bid), Some(ask)) = (best_bid, best_ask) {
+            Some(BBO { bid, ask })
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct BBO {
+    pub bid: OrderBookEntry,
+    pub ask: OrderBookEntry,
+}
+
+impl BBO {
+    pub fn mid_price(&self) -> f64 {
+        (self.bid.0.into_inner() + self.ask.0.into_inner()) / 2.0
+    }
+}
+
+/// 交易方向
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum TradeSide {
+    /// 买入
+    Buy,
+    /// 卖出
+    Sell,
+}
+
+/// 交易更新
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TradeUpdate {
+    /// 交易对符号
+    pub symbol: Symbol,
+    /// 交易价格
+    pub price: OrderedFloat<f64>,
+    /// 交易数量
+    pub quantity: OrderedFloat<f64>,
+    /// 时间戳（毫秒）
+    pub timestamp: i64,
+    /// 交易方向
+    pub side: TradeSide,
+    /// 数据来源交易所
+    pub source: ExchangeId,
+    /// 交易ID（如果有）
+    pub trade_id: Option<String>,
+}
+
+/// 市场数据快照
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MarketDataSnapshot {
+    /// 交易对符号
+    pub symbol: Symbol,
+    /// 数据来源交易所
+    pub source: ExchangeId,
+    /// 时间戳（毫秒）
+    pub timestamp: i64,
+    /// 订单簿数据（如果有）
+    pub orderbook: Option<OrderBook>,
+    /// 交易更新列表
+    pub trades: Vec<TradeUpdate>,
+    /// 接收时间戳（用于延迟计算）
+    pub processing_latency_micros: Option<i64>,
+}
+
+impl MarketDataSnapshot {
+    pub fn new(symbol: Symbol, source: ExchangeId) -> Self {
+        Self {
+            symbol,
+            source,
+            timestamp: 0,
+            orderbook: None,
+            trades: Vec::new(),
+            processing_latency_micros: None,
+        }
+    }
+}
+
+/// 市场源配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketSourceConfig {
+    /// 交易所ID
+    pub exchange_id: ExchangeId,
+    /// WebSocket端点
+    pub ws_endpoint: String,
+    /// REST API端点
+    pub rest_api_url: Option<String>,
+    /// 交易对符号
+    pub symbol: Symbol,
+    /// 是否激活
+    pub active: bool,
+    /// 更新间隔（毫秒）
+    pub update_interval_ms: u64,
+    /// 订阅详情列表
+    pub subscriptions: Vec<SubscriptionDetail>,
+    /// 心跳配置
+    pub heartbeat_config: Option<HeartbeatConfig>,
+}
+
+/// 订阅详情
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubscriptionDetail {
+    /// 频道类型（如"orderbook"、"trades"）
+    pub channel_type: String,
+    /// 内部使用的交易对符号
+    pub internal_symbol: Symbol,
+    /// 交易所使用的交易对符号
+    pub exchange_symbol: String,
+}
+
+/// 心跳配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HeartbeatConfig {
+    /// 心跳间隔（毫秒）
+    pub interval_ms: u64,
+    /// 心跳消息内容
+    pub message: String,
+}
+
+/// 速率限制配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RateLimitConfig {
+    /// 每秒请求数
+    pub requests_per_second: u32,
+    /// 突发大小
+    pub burst_size: u32,
+}
+
+/// 异常类型
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum AnomalyType {
+    /// 价格异常
+    PriceSpike,
+    /// 交易量异常
+    VolumeSpike,
+    /// 价差异常
+    CrossedSpread,
+    /// 数据缺口
+    DataGap,
+    /// 延迟异常
+    LatencySpike,
+}
+
+/// 异常严重程度
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum AnomalySeverity {
+    /// 警告
+    Warning,
+    /// 严重
+    Critical,
+}
+
+/// 异常检测结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnomalyDetectionResult {
+    /// 交易对符号
+    pub symbol: Symbol,
+    /// 数据来源交易所
+    pub source: ExchangeId,
+    /// 异常类型
+    pub anomaly_type: AnomalyType,
+    /// 严重程度
+    pub severity: AnomalySeverity,
+    /// 描述
+    pub description: String,
+    /// 时间戳
+    pub timestamp: DateTime<Utc>,
+    /// 元数据
+    pub metadata: HashMap<String, String>,
+}
+
+/// 一致性检查阈值
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConsistencyThresholds {
+    /// 价格差异百分比
+    pub price_diff_percentage: f64,
+    /// 时间戳差异（毫秒）
+    pub timestamp_diff_ms: i64,
+}
+
+/// 健康状态
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum HealthStatus {
+    /// 健康
+    Healthy,
+    /// 降级
+    Degraded,
+    /// 不健康
+    Unhealthy,
+}
+
+/// API状态类型
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ApiStatusKind {
+    /// 健康状态
+    Health,
+    /// 一致性状态
+    Consistency,
+    /// 异常状态
+    Anomaly,
+}
+
+/// 一致性检查结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConsistencyCheckResult {
+    /// 交易对符号
+    pub symbol: Symbol,
+    /// 是否一致
+    pub is_consistent: bool,
+    /// 检查的交易所列表
+    pub exchanges: Vec<ExchangeId>,
+    /// 最大价格差异（百分比）
+    pub max_price_diff_pct: f64,
+    /// 最大时间戳差异（毫秒）
+    pub max_timestamp_diff_ms: i64,
+    /// 时间戳
+    pub timestamp: DateTime<Utc>,
+} 

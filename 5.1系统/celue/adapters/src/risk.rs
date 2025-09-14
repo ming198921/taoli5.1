@@ -1,7 +1,7 @@
 //! Risk management adapter
 
 use crate::{Adapter, AdapterError, AdapterResult};
-use common_types::ArbitrageOpportunity;
+use common::ArbitrageOpportunity;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::collections::HashMap;
@@ -174,7 +174,7 @@ impl RiskAdapter {
         let _config = self.config.read().await;
         
         // 检查利润是否过低（可能是数据错误）
-        if opportunity.net_profit_pct() < 0.001 {
+        if opportunity.net_profit_pct.to_f64() < 0.001 {
             return Ok(Some(RiskDecision {
                 approved: false,
                 reason: Some("Profit too low, possible data error".to_string()),
@@ -185,7 +185,7 @@ impl RiskAdapter {
         }
         
         // 检查利润是否异常高（可能是价格错误）
-        if opportunity.net_profit_pct() > 0.1 { // 10%
+        if opportunity.net_profit_pct.to_f64() > 0.1 { // 10%
             return Ok(Some(RiskDecision {
                 approved: false,
                 reason: Some("Profit suspiciously high, possible price error".to_string()),
@@ -203,8 +203,8 @@ impl RiskAdapter {
         let exchange_states = self.exchange_risk_states.read().await;
         
         // 检查相关交易所是否被暂停
-        for leg in &opportunity.legs() {
-            if let Some(state) = exchange_states.get(&leg.exchange) {
+        for leg in &opportunity.legs {
+            if let Some(state) = exchange_states.get(&leg.exchange.to_string()) {
                 if state.is_suspended {
                     if let Some(until) = state.suspension_until {
                         if Utc::now() < until {
@@ -294,12 +294,12 @@ impl RiskAdapter {
         let config = self.config.read().await;
         
         // 检查价格偏差是否过大
-        if opportunity.net_profit_pct() * 100.0 > config.abnormal_price_deviation_pct {
+        if opportunity.net_profit_pct.to_f64() * 100.0 > config.abnormal_price_deviation_pct {
             return Ok(Some(RiskDecision {
                 approved: false,
                 reason: Some(format!(
                     "Price deviation too large: {:.2}% > {:.1}%", 
-                    opportunity.net_profit_pct() * 100.0,
+                    opportunity.net_profit_pct.to_f64() * 100.0,
                     config.abnormal_price_deviation_pct
                 )),
                 max_quantity: None,
@@ -326,7 +326,7 @@ impl RiskAdapter {
         }
         
         // 基于利润大小调整
-        let profit_pct = opportunity.net_profit_pct() * 100.0;
+        let profit_pct = opportunity.net_profit_pct.to_f64() * 100.0;
         if profit_pct > 5.0 {
             risk_level += 1; // 高利润需要更谨慎
         }
@@ -352,8 +352,8 @@ impl RiskAdapter {
         }
         
         // 基于机会本身的大小调整
-        if let Some(first_leg) = opportunity.legs().first() {
-            let opportunity_size = first_leg.cost().to_f64();
+        if let Some(first_leg) = opportunity.legs.first() {
+            let opportunity_size = first_leg.cost.to_f64();
             max_qty = max_qty.min(opportunity_size);
         }
         
@@ -385,8 +385,8 @@ impl RiskAdapter {
     async fn update_exchange_risk_states(&self, opportunity: &ArbitrageOpportunity, success: bool) -> AdapterResult<()> {
         let mut exchange_states = self.exchange_risk_states.write().await;
         
-        for leg in &opportunity.legs() {
-            let state = exchange_states.entry(leg.exchange.clone()).or_insert_with(ExchangeRiskState::default);
+        for leg in &opportunity.legs {
+            let state = exchange_states.entry(leg.exchange.to_string()).or_insert_with(ExchangeRiskState::default);
             
             state.last_health_check = Utc::now();
             

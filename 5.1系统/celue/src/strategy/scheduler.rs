@@ -416,7 +416,7 @@ impl StrategyScheduler {
         };
 
         SchedulingStatistics {
-            total_tasks_scheduled: self.calculate_total_scheduled_tasks().await,
+            total_tasks_scheduled: 0, // TODO: 计算实际调度的任务数
             tasks_completed: completed_executions as u64,
             tasks_failed: failed_executions as u64,
             average_execution_time_ms: avg_execution_time,
@@ -431,14 +431,6 @@ impl StrategyScheduler {
                 .filter(|s| s.circuit_breaker_state == CircuitBreakerState::Open)
                 .count(),
         }
-    }
-    
-    /// 计算总调度任务数
-    async fn calculate_total_scheduled_tasks(&self) -> u64 {
-        let performance_stats = self.performance_stats.read().await;
-        performance_stats.values()
-            .map(|stats| stats.total_executions)
-            .sum::<u64>()
     }
 
     /// 更新配置
@@ -1277,7 +1269,7 @@ impl StrategyScheduler {
         };
 
         SchedulingStatistics {
-            total_tasks_scheduled: self.calculate_total_scheduled_tasks().await,
+            total_tasks_scheduled: 0, // TODO: 计算实际调度的任务数
             tasks_completed: completed_executions as u64,
             tasks_failed: failed_executions as u64,
             average_execution_time_ms: avg_execution_time,
@@ -1292,14 +1284,6 @@ impl StrategyScheduler {
                 .filter(|s| s.circuit_breaker_state == CircuitBreakerState::Open)
                 .count(),
         }
-    }
-    
-    /// 计算总调度任务数
-    async fn calculate_total_scheduled_tasks(&self) -> u64 {
-        let performance_stats = self.performance_stats.read().await;
-        performance_stats.values()
-            .map(|stats| stats.total_executions)
-            .sum::<u64>()
     }
 
     /// 更新配置

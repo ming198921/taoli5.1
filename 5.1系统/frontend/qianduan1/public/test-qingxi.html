@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>清洗模块API测试</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>清洗模块API测试</h1>
+    <button onclick="testCollectors()">测试获取收集器列表</button>
+    <button onclick="testDataQuality()">测试数据质量</button>
+    <button onclick="testDataFlow()">测试数据流量</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        
+        async function testCollectors() {
+            try {
+                console.log('测试收集器API...');
+                const response = await fetch(`${API_BASE_URL}/api/qingxi/collectors`);
+                const data = await response.json();
+                console.log('收集器结果:', data);
+                document.getElementById('results').innerHTML = 
+                    '<h3>收集器列表:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('收集器API错误:', error);
+                document.getElementById('results').innerHTML = 
+                    '<h3>收集器错误:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+        
+        async function testDataQuality() {
+            try {
+                console.log('测试数据质量API...');
+                const response = await fetch(`${API_BASE_URL}/api/qingxi/data/quality`);
+                const data = await response.json();
+                console.log('数据质量结果:', data);
+                document.getElementById('results').innerHTML = 
+                    '<h3>数据质量:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('数据质量API错误:', error);
+                document.getElementById('results').innerHTML = 
+                    '<h3>数据质量错误:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+        
+        async function testDataFlow() {
+            try {
+                console.log('测试数据流量API...');
+                const response = await fetch(`${API_BASE_URL}/api/qingxi/data/flow`);
+                const data = await response.json();
+                console.log('数据流量结果:', data);
+                document.getElementById('results').innerHTML = 
+                    '<h3>数据流量:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('数据流量API错误:', error);
+                document.getElementById('results').innerHTML = 
+                    '<h3>数据流量错误:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+
+        // 页面加载时自动测试收集器API
+        window.onload = function() {
+            testCollectors();
+        };
+    </script>
+</body>
+</html>

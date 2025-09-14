@@ -1,0 +1,208 @@
+# .github/workflows/main.yml
+
+name: Qingxi CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main # 确保这里是 main 分支
+  pull_request:
+    branches:
+      - main # 确保这里是 main 分支
+  workflow_dispatch: # 允许手动触发
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+  DOCKER_IMAGE_NAME: qingxi-data
+  DOCKER_REGISTRY_USER: wangshengming  # 使用正确的Docker Hub用户名
+  K8S_NAMESPACE: qingxi-market-data
+  K8S_DEPLOYMENT_NAME: qingxi-app
+  K8S_SERVICE_NAME: qingxi-api-service
+
+jobs:
+  build-and-test:
+    name: Build and Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # 将仓库拉取到 Runner 的工作目录的根目录
+          # 这样 Dockerfile 中的 ../Cargo.lock 就能被找到
+          path: .
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: clippy,rustfmt
+
+      - name: Install Protoc # <-- 新增步骤
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      - name: Cache Cargo Dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: "v2-cargo-${{ runner.os }}-${{ hashFiles('qingxi/Cargo.lock') }}"
+
+      - name: Run Clippy (Linting)
+        run: cd qingxi && cargo clippy -- -D warnings
+
+      - name: Run Rustfmt (Formatting)
+        run: cd qingxi && cargo fmt --check
+
+      - name: Build Project (Release)
+        run: cd qingxi && cargo build --release
+
+      - name: Run Unit and Integration Tests
+        run: cd qingxi && cargo test --all
+
+      - name: Run Benchmarks
+        run: cd qingxi && cargo bench --all || true 
+        continue-on-error: true
+
+  build-and-push-docker-image:
+    name: Build & Push Docker Image  
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Docker credentials
+        run: |
+          if [ -z "${{ secrets.DOCKER_USERNAME }}" ] || [ -z "${{ secrets.DOCKER_TOKEN }}" ]; then
+            echo "Docker credentials not available, skipping Docker build"
+            exit 78  # Neutral exit code to skip remaining steps
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: . # <-- 保持上下文为仓库根目录
+          file: ./qingxi/Dockerfile # <-- **新增这一行，明确指定 Dockerfile 的位置**
+          push: true
+          tags: ${{ env.DOCKER_REGISTRY_USER }}/${{ env.DOCKER_IMAGE_NAME }}:latest,${{ env.DOCKER_REGISTRY_USER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-to-kubernetes:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build-and-push-docker-image  # 现在依赖Docker构建
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # 将仓库拉取到 Runner 的工作目录的根目录
+          # 这样 Dockerfile 中的 ../Cargo.lock 就能被找到
+          path: .
+          
+      # --- 设置Kubernetes上下文 ---
+      - name: Set Kubernetes Context
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+
+      # --- 创建 Docker Registry Secret ---
+      - name: Create Docker Registry Secret
+        run: |
+          kubectl create namespace ${{ env.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret docker-registry docker-hub-secret \
+            --docker-server=docker.io \
+            --docker-username="${{ secrets.DOCKER_USERNAME }}" \
+            --docker-password="${{ secrets.DOCKER_TOKEN }}" \
+            --docker-email="${{ secrets.DOCKER_EMAIL }}" \
+            --namespace=${{ env.K8S_NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f - 
+      
+      # --- 核心部署Action ---
+      - name: Deploy Application to Kubernetes
+        uses: azure/k8s-deploy@v4
+        with:
+          action: deploy
+          strategy: basic
+          manifests: |
+            qingxi/k8s/namespace.yaml 
+            qingxi/k8s/configmap.yaml
+            qingxi/k8s/secret.yaml
+            qingxi/k8s/qingxi-app-deployment.yaml
+            qingxi/k8s/qingxi-api-service.yaml
+          images: |
+            ${{ env.DOCKER_REGISTRY_USER }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+          namespace: ${{ env.K8S_NAMESPACE }}
+
+      # --- 详细诊断步骤 ---
+      - name: Diagnose Pod Issues
+        if: always()
+        run: |
+          echo "=== Kubernetes Cluster Info ==="
+          kubectl cluster-info
+          
+          echo "=== Node Status and Resources ==="
+          kubectl get nodes -o wide
+          kubectl describe nodes | grep -A 5 "Allocated resources"
+          
+          echo "=== Cluster Resource Usage ==="
+          kubectl top nodes || echo "Metrics server not available"
+          
+          echo "=== Pod Status ==="
+          kubectl get pods -n ${{ env.K8S_NAMESPACE }} -o wide
+          
+          echo "=== Pod Events ==="
+          kubectl get events -n ${{ env.K8S_NAMESPACE }} --sort-by='.lastTimestamp'
+          
+          echo "=== Pod Descriptions ==="
+          kubectl describe pods -n ${{ env.K8S_NAMESPACE }}
+          
+          echo "=== ReplicaSet Status ==="
+          kubectl get rs -n ${{ env.K8S_NAMESPACE }} -o wide
+          
+          echo "=== Deployment Status ==="
+          kubectl describe deployment/${{ env.K8S_DEPLOYMENT_NAME }} -n ${{ env.K8S_NAMESPACE }}
+          
+          echo "=== Resource Quotas ==="
+          kubectl describe resourcequota -n ${{ env.K8S_NAMESPACE }} || echo "No resource quotas"
+          
+          echo "=== Namespace Resource Limits ==="
+          kubectl describe limitrange -n ${{ env.K8S_NAMESPACE }} || echo "No limit ranges"
+          
+          echo "=== Pod Logs (if any pods exist) ==="
+          PODS=$(kubectl get pods -n ${{ env.K8S_NAMESPACE }} -o jsonpath='{.items[*].metadata.name}')
+          if [ ! -z "$PODS" ]; then
+            for pod in $PODS; do
+              echo "--- Logs for pod: $pod ---"
+              kubectl logs $pod -n ${{ env.K8S_NAMESPACE }} --previous --tail=50 || echo "No previous logs"
+              kubectl logs $pod -n ${{ env.K8S_NAMESPACE }} --tail=50 || echo "No current logs"
+            done
+          else
+            echo "No pods found"
+          fi
+
+      - name: Verify Deployment Rollout
+        run: |
+          echo "Checking deployment rollout status..."
+          if kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT_NAME }} -n ${{ env.K8S_NAMESPACE }} --timeout=300s; then
+            echo "✅ Deployment ${{ env.K8S_DEPLOYMENT_NAME }} in namespace ${{ env.K8S_NAMESPACE }} rolled out successfully."
+          else
+            echo "❌ Deployment failed to roll out within timeout"
+            exit 1
+          fi

@@ -64,3 +64,10 @@ impl MinProfitModel {
         FixedPrice::from_raw((dynamic_profit_bps * 100) as i64, 6)
     }
 }
+
+        // 1 basis point = 0.0001.
+        // We use a scale of 6 for high precision percentages.
+        // 1 bps = 100 raw value with scale 6.
+        FixedPrice::from_raw((dynamic_profit_bps * 100) as i64, 6)
+    }
+}

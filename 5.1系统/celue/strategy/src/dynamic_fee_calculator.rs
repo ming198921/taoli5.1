@@ -3,7 +3,7 @@
 //! 替代硬编码手续费，通过context.fee_precision_repo实时获取，
 //! 并提供智能缓存和降级策略。
 
-use common_types::StrategyContext;
+use crate::context::StrategyContext;
 use common::{
     precision::FixedPrice,
     types::Exchange,
@@ -23,7 +23,6 @@ pub enum FeeType {
 
 /// 缓存的费率条目
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct CachedFeeEntry {
     fee_rate: FixedPrice,
     last_updated: Instant,
@@ -32,7 +31,6 @@ struct CachedFeeEntry {
 
 /// 费率来源
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 enum FeeSource {
     Repo,        // 从fee_precision_repo获取
     Context,     // 从context获取
@@ -114,7 +112,7 @@ impl DynamicFeeCalculator {
     /// 获取动态费率 - 主要API
     pub fn get_fee_rate(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         exchange: &str,
         fee_type: FeeType,
     ) -> FixedPrice {
@@ -157,7 +155,7 @@ impl DynamicFeeCalculator {
     /// 从各种来源获取费率
     fn fetch_fee_rate(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         exchange: &str,
         fee_type: FeeType,
     ) -> FixedPrice {
@@ -188,39 +186,33 @@ impl DynamicFeeCalculator {
     /// 从fee_precision_repo获取费率
     fn get_rate_from_repo(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         exchange: &Exchange,
         fee_type: FeeType,
     ) -> Option<FixedPrice> {
         self.stats.write().repo_queries += 1;
         
-        let rate = match fee_type {
-            FeeType::Taker => ctx.get_taker_fee(exchange.as_str()),
-            FeeType::Maker => ctx.get_maker_fee(exchange.as_str()),
-        };
-        
-        if rate > 0.0 {
-            Some(FixedPrice::from_f64(rate, 6))
-        } else {
-            None
+        match fee_type {
+            FeeType::Taker => ctx.get_taker_fee(exchange),
+            FeeType::Maker => ctx.get_maker_fee(exchange),
         }
     }
 
     /// 从context获取费率
     fn get_rate_from_context(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         exchange: &Exchange,
-        _fee_type: FeeType,
+        fee_type: FeeType,
     ) -> Option<FixedPrice> {
         // 通过fee_precision_repo的bps接口获取
         let exchange_str = exchange.as_str();
         
-        if let Some(repo) = ctx.fee_precision_repo() {
-            if let Some(fee_bps) = repo.get_fee(exchange_str, "rate_bps") {
-                let fee_rate = fee_bps / 10000.0; // bps转换为小数
-                return Some(FixedPrice::from_f64(fee_rate, 6));
-            }
+        if let Some(fee_bps) = ctx.fee_precision_repo
+            .get_fee_rate_bps_for_exchange(exchange_str) {
+            
+            let fee_rate = fee_bps / 10000.0; // bps转换为小数
+            return Some(FixedPrice::from_f64(fee_rate, 6));
         }
         
         None
@@ -249,7 +241,7 @@ impl DynamicFeeCalculator {
     /// 确定费率来源
     fn determine_source(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         exchange: &str,
         fee_type: FeeType,
     ) -> FeeSource {
@@ -284,7 +276,7 @@ impl DynamicFeeCalculator {
     /// 批量获取三角套利费率
     pub fn get_triangular_fee_rates(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         exchanges: &[&str],
         is_taker: &[bool], // 每一腿是否为taker
     ) -> Result<Vec<FixedPrice>> {
@@ -305,7 +297,7 @@ impl DynamicFeeCalculator {
     /// 智能费率建议 - 为三角套利选择最优交易所组合
     pub fn suggest_optimal_exchanges(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         available_exchanges: &[&str],
         _target_volume_usd: f64,
     ) -> Vec<(String, FixedPrice)> {
@@ -347,7 +339,7 @@ impl DynamicFeeCalculator {
     }
 
     /// 预热缓存 - 预先加载常用交易所费率
-    pub fn warmup_cache(&self, ctx: &dyn StrategyContext, exchanges: &[&str]) {
+    pub fn warmup_cache(&self, ctx: &StrategyContext, exchanges: &[&str]) {
         tracing::info!("预热费率缓存，交易所: {:?}", exchanges);
         
         for &exchange in exchanges {
@@ -384,8 +376,8 @@ mod tests {
     fn test_cache_behavior() {
         let calculator = DynamicFeeCalculator::new(Duration::from_millis(100));
         let fee_repo = Arc::new(FeePrecisionRepoImpl::default());
-        let strategy_config = StrategyConfig::default();
-        let ctx = StrategyContext::new(fee_repo, strategy_config, None, None, None, None);
+        let metrics = Arc::new(adapters::metrics::AdapterMetrics::new());
+        let ctx = StrategyContext::new(fee_repo, metrics);
         
         // 第一次调用应该缓存未命中
         let rate1 = calculator.get_fee_rate(&ctx, "binance", FeeType::Taker);

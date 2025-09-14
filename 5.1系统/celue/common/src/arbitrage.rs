@@ -3,26 +3,14 @@
 use crate::precision::{FixedPrice, FixedQuantity};
 use crate::types::{Exchange, Symbol};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
-
-// Import the unified definitions but give them different names to avoid conflicts
-pub use common_types::ArbitrageOpportunity as UnifiedArbitrageOpportunity;
-pub use common_types::StrategyType as UnifiedStrategyType;
 
 /// Represents the side of an order (buy or sell).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Side {
     Buy,
     Sell,
-}
-
-impl std::fmt::Display for Side {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Side::Buy => write!(f, "Buy"),
-            Side::Sell => write!(f, "Sell"),
-        }
-    }
 }
 
 /// Represents one leg of an arbitrage trade.
@@ -36,11 +24,9 @@ pub struct ArbitrageLeg {
     pub cost: FixedPrice, // Total cost/proceeds for this leg (price * quantity)
 }
 
-/// 高精度套利机会结构体 - 用于需要FixedPrice精确计算的场景
-/// 与统一的ArbitrageOpportunity不同，此版本使用FixedPrice进行高精度数值计算
-/// 在高频交易场景中避免浮点数精度误差
+/// Represents a detected arbitrage opportunity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PrecisionArbitrageOpportunity {
+pub struct ArbitrageOpportunity {
     pub id: Uuid,
     pub strategy_name: String,
     pub legs: Vec<ArbitrageLeg>,
@@ -55,10 +41,10 @@ pub struct PrecisionArbitrageOpportunity {
     /// Time-to-live for this opportunity in nanoseconds.
     pub ttl_ns: u64,
     /// Arbitrary metadata for audit/tracing
-    pub tags: Vec<String>,
+    pub tags: HashMap<String, String>,
 }
 
-impl PrecisionArbitrageOpportunity {
+impl ArbitrageOpportunity {
     /// Creates a new inter-exchange arbitrage opportunity.
     pub fn new_inter_exchange(
         strategy_name: &str,
@@ -84,7 +70,7 @@ impl PrecisionArbitrageOpportunity {
             net_profit_pct,
             created_at_ns: clock_time_ns,
             ttl_ns: 150_000_000, // 150ms, as per documentation
-            tags: Vec::new(),
+            tags: HashMap::new(),
         }
     }
 
@@ -114,7 +100,7 @@ impl PrecisionArbitrageOpportunity {
             net_profit_pct,
             created_at_ns: clock_time_ns,
             ttl_ns: 150_000_000,
-            tags: Vec::new(),
+            tags: HashMap::new(),
         }
     }
 }

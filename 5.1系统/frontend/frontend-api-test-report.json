@@ -1,0 +1,2819 @@
+{
+  "summary": {
+    "timestamp": "2025-09-09T06:19:39.749Z",
+    "total_apis": 387,
+    "passed": 126,
+    "failed": 261,
+    "success_rate": "32.56%",
+    "services": {
+      "strategy": {
+        "total": 38,
+        "passed": 13,
+        "failed": 25,
+        "success_rate": "34.21%"
+      },
+      "config": {
+        "total": 96,
+        "passed": 48,
+        "failed": 48,
+        "success_rate": "50.00%"
+      },
+      "trading": {
+        "total": 41,
+        "passed": 12,
+        "failed": 29,
+        "success_rate": "29.27%"
+      },
+      "performance": {
+        "total": 67,
+        "passed": 27,
+        "failed": 40,
+        "success_rate": "40.30%"
+      },
+      "aiModel": {
+        "total": 48,
+        "passed": 0,
+        "failed": 48,
+        "success_rate": "0.00%"
+      },
+      "logging": {
+        "total": 45,
+        "passed": 13,
+        "failed": 32,
+        "success_rate": "28.89%"
+      },
+      "cleaning": {
+        "total": 52,
+        "passed": 13,
+        "failed": 39,
+        "success_rate": "25.00%"
+      }
+    }
+  },
+  "detailed_results": {
+    "strategy": {
+      "total": 38,
+      "passed": 13,
+      "failed": 25,
+      "tests": {
+        "GET /strategies/list": {
+          "description": "获取策略列表",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"health\":\"healthy\",\"id\":\"strategy_common\",\"last_update\":\"2025-09-09T05:20:19.833447461Z\",\"name\":\"Strategy common\",\"performance\":{\"cpu_usage\":0,\"disk_usage\":54122,\"memory_usage\":6496,\"network",
+          "responseTime": "N/A"
+        },
+        "GET /strategies/strategy_common": {
+          "description": "获取策略详情",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"health\":\"healthy\",\"id\":\"strategy_common\",\"last_update\":\"2025-09-09T05:20:19.833447461Z\",\"name\":\"Strategy common\",\"performance\":{\"cpu_usage\":0,\"disk_usage\":54122,\"memory_usage\":6496,\"network_",
+          "responseTime": "N/A"
+        },
+        "POST /strategies/strategy_common/start": {
+          "description": "启动策略",
+          "success": false,
+          "status": 400,
+          "error": "Request failed with status code 400",
+          "responseTime": "N/A"
+        },
+        "POST /strategies/strategy_common/stop": {
+          "description": "停止策略",
+          "success": false,
+          "status": 400,
+          "error": "Request failed with status code 400",
+          "responseTime": "N/A"
+        },
+        "POST /strategies/strategy_common/restart": {
+          "description": "重启策略",
+          "success": false,
+          "status": 400,
+          "error": "Request failed with status code 400",
+          "responseTime": "N/A"
+        },
+        "POST /strategies/strategy_common/pause": {
+          "description": "暂停策略",
+          "success": false,
+          "status": 400,
+          "error": "Request failed with status code 400",
+          "responseTime": "N/A"
+        },
+        "POST /strategies/strategy_common/resume": {
+          "description": "恢复策略",
+          "success": false,
+          "status": 400,
+          "error": "Request failed with status code 400",
+          "responseTime": "N/A"
+        },
+        "GET /strategies/strategy_common/status": {
+          "description": "获取策略状态",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"health\":\"healthy\",\"id\":\"strategy_common\",\"last_update\":\"2025-09-09T06:19:12.599158139Z\",\"name\":\"Strategy common\",\"performance\":{\"cpu_usage\":0,\"disk_usage\":54120,\"memory_usage\":6602,\"network_",
+          "responseTime": "N/A"
+        },
+        "GET /strategies/strategy_common/config": {
+          "description": "获取策略配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"enabled\":true,\"parameters\":{\"max_position\":1000,\"risk_level\":\"medium\",\"stop_loss\":0.05},\"strategy_id\":\"strategy_common\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:12.6",
+          "responseTime": "N/A"
+        },
+        "POST /strategies/strategy_common/config": {
+          "description": "更新策略配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /strategies/strategy_common/logs": {
+          "description": "获取策略日志",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"level\":\"info\",\"message\":\"策略 strategy_common 正常运行\",\"timestamp\":1757398752}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:12.868563337Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /strategies/strategy_common/metrics": {
+          "description": "获取策略指标",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"cpu_usage\":0,\"disk_usage\":54122,\"memory_usage\":6496,\"network_usage\":5398.853446006775,\"response_time\":2,\"throughput\":10000},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:1",
+          "responseTime": "N/A"
+        },
+        "GET /monitoring/realtime": {
+          "description": "获取实时状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /monitoring/health": {
+          "description": "获取系统健康状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /monitoring/performance": {
+          "description": "获取性能概览",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /monitoring/alerts": {
+          "description": "获取活跃告警",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /monitoring/metrics/cpu": {
+          "description": "获取CPU指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /monitoring/metrics/memory": {
+          "description": "获取内存指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /monitoring/metrics/network": {
+          "description": "获取网络指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /monitoring/metrics/history": {
+          "description": "获取历史指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /debug/sessions": {
+          "description": "列出调试会话",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /debug/sessions": {
+          "description": "创建调试会话",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /debug/sessions/test": {
+          "description": "获取调试会话",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "DELETE /debug/sessions/test": {
+          "description": "删除调试会话",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /debug/breakpoints/test": {
+          "description": "列出断点",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /debug/breakpoints/test": {
+          "description": "添加断点",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "DELETE /debug/breakpoints/test/1": {
+          "description": "删除断点",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /debug/variables/test": {
+          "description": "获取变量",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /debug/stack/test": {
+          "description": "获取调用栈",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /hotreload/status": {
+          "description": "获取重载状态",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:13.063003693Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /hotreload/strategy_common/status": {
+          "description": "获取策略重载状态",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"message\":\"策略从未重载过\",\"status\":\"never_reloaded\",\"strategy_id\":\"strategy_common\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:13.151846681Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /hotreload/strategy_common/reload": {
+          "description": "重载策略",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /hotreload/strategy_common/enable": {
+          "description": "启用热重载",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"enabled\":true,\"message\":\"热重载已启用\",\"strategy_id\":\"strategy_common\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:13.327755623Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /hotreload/strategy_common/disable": {
+          "description": "禁用热重载",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"enabled\":false,\"message\":\"热重载已禁用\",\"strategy_id\":\"strategy_common\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:13.416482194Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /hotreload/strategy_common/validate": {
+          "description": "验证变更",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /hotreload/strategy_common/rollback": {
+          "description": "回滚变更",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"message\":\"已回滚到上一个版本\",\"rollback_successful\":true,\"strategy_id\":\"strategy_common\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:13.595918346Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /hotreload/history": {
+          "description": "获取重载历史",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:13.686432695Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /hotreload/config": {
+          "description": "获取重载配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"auto_reload\":false,\"backup_enabled\":true,\"reload_delay_ms\":1000,\"watch_directories\":[\"/home/ubuntu/5.1xitong/5.1系统/celue\"]},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:1",
+          "responseTime": "N/A"
+        }
+      }
+    },
+    "config": {
+      "total": 96,
+      "passed": 48,
+      "failed": 48,
+      "tests": {
+        "GET /config/list": {
+          "description": "列出所有配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"category\":\"database\",\"created_at\":\"2025-09-09T05:20:23.493895640Z\",\"created_by\":\"system\",\"default_value\":\"localhost\",\"description\":\"Database host address\",\"environment\":\"production\",\"id\":\"d",
+          "responseTime": "N/A"
+        },
+        "GET /config/database.host": {
+          "description": "获取配置值",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"category\":\"database\",\"created_at\":\"2025-09-09T05:20:23.493895640Z\",\"created_by\":\"system\",\"default_value\":\"localhost\",\"description\":\"Database host address\",\"environment\":\"production\",\"id\":\"db",
+          "responseTime": "N/A"
+        },
+        "PUT /config/database.host": {
+          "description": "设置配置值",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "DELETE /config/test.key": {
+          "description": "删除配置项",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":null,\"message\":\"Config not found\",\"success\":false,\"timestamp\":\"2025-09-09T06:19:14.127686081Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/database.host/metadata": {
+          "description": "获取配置元数据",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"key\":\"database.host\",\"metadata\":{}},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:14.215119261Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/database.host/history": {
+          "description": "获取配置历史",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"key\":\"database.host\",\"timestamp\":\"2025-09-09T06:19:14.301542876Z\"}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:14.301547019Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/batch/get": {
+          "description": "批量获取配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/batch/set": {
+          "description": "批量设置配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/batch/delete": {
+          "description": "批量删除配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/search": {
+          "description": "搜索配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/tree": {
+          "description": "获取配置树",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"tree\":{}},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:14.745492931Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/tree/database": {
+          "description": "获取配置子树",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"path\":\"database\",\"subtree\":{}},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:14.833831544Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/export": {
+          "description": "导出配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/import": {
+          "description": "导入配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/validate": {
+          "description": "验证配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/schema": {
+          "description": "获取配置模式",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"schema\":{}},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:15.188480388Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/schema": {
+          "description": "更新配置模式",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/defaults": {
+          "description": "获取默认配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"defaults\":{}},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:15.369473139Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/defaults": {
+          "description": "设置默认配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/diff": {
+          "description": "配置差异比较",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/merge": {
+          "description": "合并配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/backup": {
+          "description": "备份配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/restore": {
+          "description": "恢复配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/stats": {
+          "description": "获取配置统计",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"categories\":{},\"total_configs\":0},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:15.911938432Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions": {
+          "description": "列出所有版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.001337642Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions": {
+          "description": "创建新版本",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/current": {
+          "description": "获取当前版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"current_version\":\"1.0.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.180327467Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/latest": {
+          "description": "获取最新版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"latest_version\":\"1.0.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.268690665Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/v1.0": {
+          "description": "获取版本详情",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"status\":\"active\",\"version\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.356770899Z\"}",
+          "responseTime": "N/A"
+        },
+        "DELETE /config/versions/v1.0": {
+          "description": "删除版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"message\":\"Deleted\",\"version\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.445697451Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/v1.0/deploy": {
+          "description": "部署版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"message\":\"Deployed\",\"version\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.534517112Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/v1.0/rollback": {
+          "description": "回滚版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"message\":\"Rolled back\",\"version\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.627086670Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/v1.0/compare/v2.0": {
+          "description": "比较版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"comparison\":{}},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.720737663Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/v1.0/changes": {
+          "description": "获取版本变更",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"changes\":[],\"version\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.808092269Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/v1.0/validate": {
+          "description": "验证版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"valid\":true,\"version\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.895900765Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/v1.0/conflicts": {
+          "description": "检查冲突",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"conflicts\":[]},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:16.983247268Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/branch": {
+          "description": "创建分支",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/merge": {
+          "description": "合并版本",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/tag": {
+          "description": "标记版本",
+          "success": false,
+          "status": 500,
+          "error": "Request failed with status code 500",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/tags": {
+          "description": "列出标签",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"tag\":\"v1.0.0\",\"version\":\"1.0.0\"}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:17.331061735Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/tags/stable": {
+          "description": "获取标签版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"tag\":\"stable\",\"version\":\"1.0.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:17.417984731Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/v1.0/lock": {
+          "description": "锁定版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"locked\":true,\"version\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:17.504903649Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/v1.0/unlock": {
+          "description": "解锁版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"locked\":false,\"version\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:17.592818297Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/v1.0/clone": {
+          "description": "克隆版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"clone\":\"1bac38ed-7824-4fab-accc-04c708cd0e20\",\"original\":\"v1.0\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:17.682802626Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/versions/gc": {
+          "description": "垃圾回收版本",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"cleaned_versions\":0},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:17.770476797Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/audit": {
+          "description": "获取版本审计",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"action\":\"create\",\"timestamp\":\"2025-09-09T06:19:17.857755510Z\"}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:17.857761364Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/versions/permissions": {
+          "description": "获取版本权限",
+          "success": false,
+          "status": 500,
+          "error": "Request failed with status code 500",
+          "responseTime": "N/A"
+        },
+        "PUT /config/versions/permissions": {
+          "description": "设置版本权限",
+          "success": false,
+          "status": 500,
+          "error": "Request failed with status code 500",
+          "responseTime": "N/A"
+        },
+        "GET /config/hot-reload/status": {
+          "description": "获取重载状态",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:18.125560564Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/enable": {
+          "description": "启用热重载",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"hot_reload\":\"enabled\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:18.216701846Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/disable": {
+          "description": "禁用热重载",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"hot_reload\":\"disabled\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:18.304744453Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/trigger": {
+          "description": "触发重载",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/validate": {
+          "description": "验证重载",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/preview": {
+          "description": "预览重载",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/rollback": {
+          "description": "回滚重载",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"rollback\":\"completed\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:18.669754427Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/hot-reload/history": {
+          "description": "获取重载历史",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"status\":\"success\",\"timestamp\":\"2025-09-09T06:19:18.759366127Z\"}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:18.759371270Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/hot-reload/services": {
+          "description": "列出重载服务",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"service\":\"config-service\",\"status\":\"active\"}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:18.846944130Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/hot-reload/services/config": {
+          "description": "获取服务重载状态",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"reload_status\":\"ready\",\"service\":\"config\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:18.934839702Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/services/config/trigger": {
+          "description": "触发服务重载",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"reload\":\"triggered\",\"service\":\"config\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:19.021721964Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/batch": {
+          "description": "批量重载",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/schedule": {
+          "description": "计划重载",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/hot-reload/schedule/1": {
+          "description": "获取计划重载",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"schedule_id\":\"1\",\"status\":\"pending\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:19.283681958Z\"}",
+          "responseTime": "N/A"
+        },
+        "DELETE /config/hot-reload/schedule/1": {
+          "description": "取消计划重载",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"cancelled\":true,\"schedule_id\":\"1\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:19.370744670Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/hot-reload/hooks": {
+          "description": "列出重载钩子",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"enabled\":true,\"hook\":\"pre_reload\"}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:19.457694889Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/hot-reload/hooks": {
+          "description": "添加重载钩子",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "DELETE /config/hot-reload/hooks/1": {
+          "description": "删除重载钩子",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"hook_id\":\"1\",\"removed\":true},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:19.632898903Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments": {
+          "description": "列出所有环境",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"name\":\"production\",\"status\":\"active\"}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:19.723071223Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments": {
+          "description": "创建新环境",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production": {
+          "description": "获取环境详情",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"environment\":\"production\",\"status\":\"active\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:19.899439298Z\"}",
+          "responseTime": "N/A"
+        },
+        "PUT /config/environments/production": {
+          "description": "更新环境",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "DELETE /config/environments/test": {
+          "description": "删除环境",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"deleted\":true,\"environment\":\"test\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:20.074346162Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/config": {
+          "description": "获取环境配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /config/environments/production/config": {
+          "description": "设置环境配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/activate": {
+          "description": "激活环境",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/deactivate": {
+          "description": "停用环境",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/status": {
+          "description": "获取环境状态",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"environment\":\"production\",\"status\":\"healthy\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:20.515497694Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/clone": {
+          "description": "克隆环境",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/sync": {
+          "description": "同步环境",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/diff/test": {
+          "description": "比较环境",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"diff\":{}},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:20.780424751Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/promote": {
+          "description": "提升环境",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/variables": {
+          "description": "获取环境变量",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"environment\":\"production\",\"variables\":{}},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:20.958046448Z\"}",
+          "responseTime": "N/A"
+        },
+        "PUT /config/environments/production/variables": {
+          "description": "设置环境变量",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/secrets": {
+          "description": "获取环境密钥",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /config/environments/production/secrets": {
+          "description": "设置环境密钥",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/permissions": {
+          "description": "获取环境权限",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /config/environments/production/permissions": {
+          "description": "设置环境权限",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/audit": {
+          "description": "获取环境审计",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/backup": {
+          "description": "备份环境",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/restore": {
+          "description": "恢复环境",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/health": {
+          "description": "环境健康检查",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/validate": {
+          "description": "验证环境",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"environment\":\"production\",\"valid\":true},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:21.857145913Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/metrics": {
+          "description": "获取环境指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/reset": {
+          "description": "重置环境",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/production/templates": {
+          "description": "获取环境模板",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /config/environments/production/apply-template": {
+          "description": "应用环境模板",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /config/environments/current": {
+          "description": "获取当前环境",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"environment\":\"current\",\"status\":\"active\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:22.299900404Z\"}",
+          "responseTime": "N/A"
+        }
+      }
+    },
+    "trading": {
+      "total": 41,
+      "passed": 12,
+      "failed": 29,
+      "tests": {
+        "GET /orders/active": {
+          "description": "获取活跃订单",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:22.387867336Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /orders/history": {
+          "description": "获取历史订单",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"created_at\":\"2025-09-09T06:19:22.474674302Z\",\"id\":\"order_001\",\"price\":45000,\"quantity\":0.1,\"side\":\"buy\",\"status\":\"filled\",\"symbol\":\"BTCUSDT\"}],\"message\":\"Success\",\"success\":true,\"timestamp\"",
+          "responseTime": "N/A"
+        },
+        "GET /orders/1": {
+          "description": "获取订单详情",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /orders": {
+          "description": "创建订单",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /orders/1/cancel": {
+          "description": "取消订单",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"message\":\"Order cancelled successfully\",\"order_id\":\"1\",\"status\":\"cancelled\"},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:22.739207534Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /orders/1/modify": {
+          "description": "修改订单",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "POST /orders/batch": {
+          "description": "批量下单",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "POST /orders/batch/cancel": {
+          "description": "批量取消",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /orders/status/1": {
+          "description": "获取订单状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /orders/fills/1": {
+          "description": "获取订单成交",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /orders/conditional": {
+          "description": "条件订单",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "GET /orders/conditional": {
+          "description": "获取条件订单",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /orders/stop-loss": {
+          "description": "止损订单",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "POST /orders/take-profit": {
+          "description": "止盈订单",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "GET /orders/statistics": {
+          "description": "订单统计",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /positions/list": {
+          "description": "获取仓位列表",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"average_price\":0,\"current_price\":0,\"quantity\":0,\"realized_pnl\":0,\"symbol\":\"list\",\"unrealized_pnl\":0},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:23.704120481Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /positions/current": {
+          "description": "获取当前仓位",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"current_price\":46000,\"entry_price\":45000,\"margin_used\":4500,\"quantity\":0.5,\"side\":\"long\",\"symbol\":\"BTCUSDT\",\"unrealized_pnl\":500}],\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09",
+          "responseTime": "N/A"
+        },
+        "GET /positions/BTC-USDT": {
+          "description": "获取指定仓位",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"average_price\":0,\"current_price\":0,\"quantity\":0,\"realized_pnl\":0,\"symbol\":\"BTC-USDT\",\"unrealized_pnl\":0},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:23.879357481Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /positions/BTC-USDT/pnl": {
+          "description": "获取仓位盈亏",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"pnl_percentage\":0,\"realized_pnl\":0,\"symbol\":\"BTC-USDT\",\"total_pnl\":0,\"unrealized_pnl\":0},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:23.966706590Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /positions/BTC-USDT/close": {
+          "description": "平仓",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /positions/BTC-USDT/hedge": {
+          "description": "对冲",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /positions/summary": {
+          "description": "仓位汇总",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"average_price\":0,\"current_price\":0,\"quantity\":0,\"realized_pnl\":0,\"symbol\":\"summary\",\"unrealized_pnl\":0},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:24.234281159Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /positions/history": {
+          "description": "历史仓位",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"average_price\":0,\"current_price\":0,\"quantity\":0,\"realized_pnl\":0,\"symbol\":\"history\",\"unrealized_pnl\":0},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:24.327038614Z\"}",
+          "responseTime": "N/A"
+        },
+        "GET /positions/limits": {
+          "description": "仓位限制",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"average_price\":0,\"current_price\":0,\"quantity\":0,\"realized_pnl\":0,\"symbol\":\"limits\",\"unrealized_pnl\":0},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:24.417900748Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /positions/limits": {
+          "description": "设置限制",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "GET /account/balance": {
+          "description": "获取账户余额",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /account/info": {
+          "description": "获取账户信息",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /account/assets": {
+          "description": "获取资产列表",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /account/assets/BTC": {
+          "description": "获取指定资产",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /account/transfer": {
+          "description": "账户转账",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /account/transfer/history": {
+          "description": "转账历史",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /account/fees": {
+          "description": "手续费信息",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /account/settings": {
+          "description": "账户设置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /risk/profile": {
+          "description": "风险概况",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /risk/limits": {
+          "description": "风险限制",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"max_daily_loss\":5000,\"max_leverage\":10,\"max_position_size\":10000},\"message\":\"Success\",\"success\":true,\"timestamp\":\"2025-09-09T06:19:24.690440874Z\"}",
+          "responseTime": "N/A"
+        },
+        "POST /risk/limits": {
+          "description": "设置风险限制",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "GET /risk/exposure": {
+          "description": "风险敞口",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /risk/var": {
+          "description": "VaR计算",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /risk/alert": {
+          "description": "风险告警",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /risk/alerts": {
+          "description": "风险告警列表",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"acknowledged\":false,\"id\":\"risk_alert_001\",\"message\":\"Leverage exceeds recommended limit\",\"severity\":\"warning\",\"timestamp\":\"2025-09-09T06:19:25.130839316Z\",\"type\":\"high_leverage\"},{\"acknowle",
+          "responseTime": "N/A"
+        },
+        "POST /risk/emergency-stop": {
+          "description": "紧急停止",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        }
+      }
+    },
+    "performance": {
+      "total": 67,
+      "passed": 27,
+      "failed": 40,
+      "tests": {
+        "GET /performance/cpu/usage": {
+          "description": "获取CPU使用率",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"cores\":8,\"load_average\":[1.2,1.1,1.3],\"per_core_usage\":[42.1,48.3,44.7,46.9,43.2,49.1,45.8,47.6],\"timestamp\":\"2025-09-09T06:19:25.303851836Z\",\"usage_percent\":45.5},\"message\":\"Success\",\"succe",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/cores": {
+          "description": "获取CPU核心信息",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"architecture\":\"x86_64\",\"logical_cores\":8,\"model\":\"Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz\",\"physical_cores\":4,\"threads_per_core\":2,\"timestamp\":\"2025-09-09T06:19:25.390501116Z\",\"vendor\":\"Int",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/load": {
+          "description": "获取系统负载",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/processes": {
+          "description": "获取进程信息",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"processes\":[{\"cpu_percent\":6,\"cpu_time\":130,\"name\":\"process_1\",\"nice\":0,\"pid\":1001,\"priority\":20,\"threads\":2},{\"cpu_percent\":7,\"cpu_time\":140,\"name\":\"process_2\",\"nice\":0,\"pid\":1002,\"priority",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/threads": {
+          "description": "获取线程信息",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/cpu/optimize": {
+          "description": "CPU优化",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"applied_settings\":{\"frequency\":3200,\"governor\":\"performance\"},\"category\":\"cpu\",\"performance_impact\":15.5,\"recommendations\":[\"Consider enabling CPU turbo boost\",\"Review CPU affinity for criti",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/temperature": {
+          "description": "获取CPU温度",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"cpu_temperature\":68.5,\"critical_temperature\":100,\"per_core_temperature\":[67.2,69.1,68.8,68.9,67.5,69.3,68.1,68.7],\"status\":\"normal\",\"timestamp\":\"2025-09-09T06:19:25.832769037Z\",\"warning_temp",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/frequency": {
+          "description": "获取CPU频率",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"current_frequency\":3200,\"max_frequency\":4700,\"min_frequency\":800,\"per_core_frequency\":[3200,3150,3180,3220,3190,3210,3170,3200],\"scaling_driver\":\"intel_pstate\",\"timestamp\":\"2025-09-09T06:19:",
+          "responseTime": "N/A"
+        },
+        "POST /performance/cpu/frequency/set": {
+          "description": "设置CPU频率",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/affinity": {
+          "description": "获取CPU亲和性",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/cpu/affinity/set": {
+          "description": "设置CPU亲和性",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/cache": {
+          "description": "获取缓存信息",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"l1_data_cache\":{\"hit_rate\":95.2,\"hits\":1000000,\"misses\":50000,\"size\":\"32KB\"},\"l1_instruction_cache\":{\"hit_rate\":95.5,\"hits\":950000,\"misses\":45000,\"size\":\"32KB\"},\"l2_cache\":{\"hit_rate\":96.4,\"",
+          "responseTime": "N/A"
+        },
+        "POST /performance/cpu/cache/clear": {
+          "description": "清理缓存",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/scheduler": {
+          "description": "获取调度信息",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"runqueue_length\":2,\"scheduler\":\"CFS\",\"scheduler_policy\":\"SCHED_NORMAL\",\"scheduler_stats\":{\"context_switches\":1000000,\"involuntary_switches\":200000,\"voluntary_switches\":800000},\"time_slice\":4",
+          "responseTime": "N/A"
+        },
+        "POST /performance/cpu/scheduler/tune": {
+          "description": "调度优化",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/bottlenecks": {
+          "description": "检测瓶颈",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/predictions": {
+          "description": "负载预测",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/cpu/history": {
+          "description": "历史数据",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/usage": {
+          "description": "获取内存使用率",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"available\":12582912,\"buffers\":524288,\"cached\":2097152,\"free\":8388608,\"shared\":262144,\"timestamp\":\"2025-09-09T06:19:26.901776550Z\",\"total\":16777216,\"used\":8388608,\"used_percent\":50},\"message\"",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/allocation": {
+          "description": "内存分配",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/fragmentation": {
+          "description": "内存碎片",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"fragmentation_index\":0.15,\"free_pages_by_order\":{\"0\":12800,\"1\":6400,\"2\":3200,\"3\":1600,\"4\":800,\"5\":400,\"6\":200,\"7\":100,\"8\":50,\"9\":25,\"10\":12},\"timestamp\":\"2025-09-09T06:19:27.076904154Z\",\"unu",
+          "responseTime": "N/A"
+        },
+        "POST /performance/memory/defrag": {
+          "description": "内存整理",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/swap": {
+          "description": "交换分区",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"free\":3145728,\"swap_in\":10240,\"swap_out\":20480,\"timestamp\":\"2025-09-09T06:19:27.249344195Z\",\"total\":4194304,\"used\":1048576,\"used_percent\":25},\"message\":\"Success\",\"success\":true,\"timestamp\":\"",
+          "responseTime": "N/A"
+        },
+        "POST /performance/memory/swap/manage": {
+          "description": "交换管理",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/cache": {
+          "description": "内存缓存",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"buffer_cache\":524288,\"cache_hit_ratio\":95.5,\"dirty_pages\":32768,\"page_cache\":2097152,\"slab_cache\":262144,\"timestamp\":\"2025-09-09T06:19:27.424798524Z\",\"writeback_pages\":4096},\"message\":\"Succe",
+          "responseTime": "N/A"
+        },
+        "POST /performance/memory/cache/clear": {
+          "description": "清理缓存",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"cleared_types\":[\"page_cache\",\"dentries\",\"inodes\"],\"freed_memory\":1048576,\"message\":\"Memory caches cleared successfully\",\"timestamp\":\"2025-09-09T06:19:27.511269659Z\"},\"message\":\"Success\",\"suc",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/leaks": {
+          "description": "内存泄漏检测",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"potential_leaks\":[{\"confidence\":0.85,\"leak_rate\":\"2.3 MB/hour\",\"memory_growth\":15.5,\"name\":\"suspicious_process\",\"pid\":1234},{\"confidence\":0.73,\"leak_rate\":\"1.8 MB/hour\",\"memory_growth\":12.1,",
+          "responseTime": "N/A"
+        },
+        "POST /performance/memory/gc": {
+          "description": "垃圾回收",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"collection_time_ms\":45,\"memory_freed\":524288,\"message\":\"Garbage collection triggered successfully\",\"objects_collected\":15000,\"timestamp\":\"2025-09-09T06:19:27.685282175Z\"},\"message\":\"Success\"",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/pools": {
+          "description": "内存池",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/memory/pools/create": {
+          "description": "创建内存池",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/numa": {
+          "description": "NUMA信息",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"nodes\":{\"node_0\":{\"cpu_count\":4,\"cpus\":[0,1,2,3],\"distance\":[10,20],\"memory_free\":4194304,\"memory_total\":8388608},\"node_1\":{\"cpu_count\":4,\"cpus\":[4,5,6,7],\"distance\":[20,10],\"memory_free\":41",
+          "responseTime": "N/A"
+        },
+        "POST /performance/memory/numa/optimize": {
+          "description": "NUMA优化",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/compression": {
+          "description": "内存压缩",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/memory/history": {
+          "description": "历史数据",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/interfaces": {
+          "description": "网络接口",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"interfaces\":[{\"duplex\":\"full\",\"ip_addresses\":[\"192.168.1.100\",\"fe80::21a:2bff:fe3c:4d5e\"],\"mac_address\":\"00:1a:2b:3c:4d:5e\",\"mtu\":1500,\"name\":\"eth0\",\"speed\":\"1000 Mbps\",\"status\":\"up\",\"type\":",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/bandwidth": {
+          "description": "带宽使用",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"current_rx_mbps\":125.5,\"current_tx_mbps\":67.8,\"interface\":\"eth0\",\"max_rx_mbps\":850,\"max_tx_mbps\":920,\"timestamp\":\"2025-09-09T06:19:28.388259562Z\",\"utilization_rx_percent\":14.8,\"utilization_t",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/latency": {
+          "description": "网络延迟",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"avg_latency\":13.1,\"max_latency\":13.7,\"measurements\":[{\"latency_ms\":12.8,\"sequence\":1,\"status\":\"success\"},{\"latency_ms\":13.1,\"sequence\":2,\"status\":\"success\"},{\"latency_ms\":13.4,\"sequence\":3,\"",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/throughput": {
+          "description": "吞吐量",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/connections": {
+          "description": "连接统计",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"connections\":[{\"local_address\":\"192.168.1.100:22\",\"pid\":1234,\"process\":\"sshd\",\"protocol\":\"tcp\",\"remote_address\":\"192.168.1.50:54321\",\"state\":\"ESTABLISHED\"},{\"local_address\":\"0.0.0.0:80\",\"pid",
+          "responseTime": "N/A"
+        },
+        "POST /performance/network/optimize": {
+          "description": "网络优化",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"applied_settings\":{\"tcp_congestion_control\":\"bbr\",\"tcp_window_scaling\":true},\"category\":\"network\",\"performance_impact\":18.7,\"recommendations\":[\"Tune network buffer sizes\",\"Enable network int",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/buffers": {
+          "description": "缓冲区状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/network/buffers/tune": {
+          "description": "缓冲区调优",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/queues": {
+          "description": "队列状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/network/queues/optimize": {
+          "description": "队列优化",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/tcp": {
+          "description": "TCP参数",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/network/tcp/tune": {
+          "description": "TCP调优",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/firewall": {
+          "description": "防火墙状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/routes": {
+          "description": "路由表",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/network/history": {
+          "description": "历史数据",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/usage": {
+          "description": "磁盘使用率",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"filesystem\":\"ext4\",\"free_space\":53687091200,\"inodes_free\":6225920,\"inodes_total\":6553600,\"inodes_used\":327680,\"inodes_used_percent\":5,\"path\":\"/\",\"timestamp\":\"2025-09-09T06:19:29.625869673Z\",",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/iops": {
+          "description": "IOPS统计",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"block_size\":4096,\"device\":\"sda\",\"mixed_workload_iops\":10500,\"random_read_iops\":12000,\"random_write_iops\":8000,\"sequential_read_iops\":850,\"sequential_write_iops\":750,\"test_duration\":30,\"times",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/throughput": {
+          "description": "磁盘吞吐量",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/latency": {
+          "description": "磁盘延迟",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"device\":\"sda\",\"read_latency\":{\"avg_ms\":2.5,\"max_ms\":15.2,\"min_ms\":0.1,\"p50_ms\":2.1,\"p95_ms\":8.3,\"p99_ms\":12.7},\"timestamp\":\"2025-09-09T06:19:29.895799529Z\",\"write_latency\":{\"avg_ms\":4.1,\"max",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/queue": {
+          "description": "I/O队列",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/disk/optimize": {
+          "description": "磁盘优化",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"applied_settings\":{\"read_ahead\":256,\"scheduler\":\"mq-deadline\"},\"category\":\"disk\",\"performance_impact\":22.1,\"recommendations\":[\"Consider using SSD-optimized mount options\",\"Enable periodic TR",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/cache": {
+          "description": "磁盘缓存",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"cache_hit_ratio\":92.5,\"cache_size\":134217728,\"device\":\"sda\",\"dirty_data\":8388608,\"read_cache_enabled\":true,\"timestamp\":\"2025-09-09T06:19:30.160023975Z\",\"write_cache_enabled\":true},\"message\":",
+          "responseTime": "N/A"
+        },
+        "POST /performance/disk/cache/tune": {
+          "description": "缓存调优",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/scheduler": {
+          "description": "I/O调度器",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"available_schedulers\":[\"none\",\"mq-deadline\",\"bfq\",\"kyber\"],\"current_scheduler\":\"mq-deadline\",\"device\":\"sda\",\"queue_depth\":32,\"read_expire\":500,\"timestamp\":\"2025-09-09T06:19:30.335812185Z\",\"w",
+          "responseTime": "N/A"
+        },
+        "POST /performance/disk/scheduler/set": {
+          "description": "设置调度器",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/fragmentation": {
+          "description": "磁盘碎片",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/disk/defrag": {
+          "description": "磁盘整理",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/health": {
+          "description": "磁盘健康",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/smart": {
+          "description": "SMART信息",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/raids": {
+          "description": "RAID状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /performance/disk/raids/optimize": {
+          "description": "RAID优化",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/filesystem": {
+          "description": "文件系统",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /performance/disk/history": {
+          "description": "历史数据",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        }
+      }
+    },
+    "aiModel": {
+      "total": 48,
+      "passed": 0,
+      "failed": 48,
+      "tests": {
+        "GET /ml/models": {
+          "description": "获取模型列表",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/models/risk-v1": {
+          "description": "获取模型详情",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/models": {
+          "description": "创建模型",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /ml/models/risk-v1": {
+          "description": "更新模型",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "DELETE /ml/models/test-model": {
+          "description": "删除模型",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/models/risk-v1/deploy": {
+          "description": "部署模型",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/models/risk-v1/undeploy": {
+          "description": "撤销部署",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/models/risk-v1/status": {
+          "description": "获取模型状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/models/risk-v1/metrics": {
+          "description": "获取模型指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/models/risk-v1/versions": {
+          "description": "获取模型版本",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/models/risk-v1/versions": {
+          "description": "创建模型版本",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/models/risk-v1/backup": {
+          "description": "备份模型",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/models/risk-v1/restore": {
+          "description": "恢复模型",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/models/templates": {
+          "description": "获取模型模板",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/models/from-template": {
+          "description": "从模板创建",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/training/jobs": {
+          "description": "获取训练任务",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/training/jobs": {
+          "description": "创建训练任务",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/training/jobs/job-1": {
+          "description": "获取训练详情",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/training/jobs/job-1/start": {
+          "description": "开始训练",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/training/jobs/job-1/stop": {
+          "description": "停止训练",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/training/jobs/job-1/pause": {
+          "description": "暂停训练",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/training/jobs/job-1/resume": {
+          "description": "恢复训练",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/training/jobs/job-1/logs": {
+          "description": "获取训练日志",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/training/jobs/job-1/progress": {
+          "description": "获取训练进度",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/training/jobs/job-1/checkpoints": {
+          "description": "获取检查点",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/training/jobs/job-1/checkpoints/restore": {
+          "description": "恢复检查点",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/training/history": {
+          "description": "训练历史",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/inference/services": {
+          "description": "推理服务列表",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/inference/services": {
+          "description": "创建推理服务",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/inference/services/service-1": {
+          "description": "获取推理服务",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/inference/services/service-1/start": {
+          "description": "启动推理服务",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/inference/services/service-1/stop": {
+          "description": "停止推理服务",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/inference/predict": {
+          "description": "执行推理",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/inference/batch": {
+          "description": "批量推理",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/inference/services/service-1/metrics": {
+          "description": "推理服务指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/inference/services/service-1/health": {
+          "description": "推理服务健康",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/inference/history": {
+          "description": "推理历史",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/features/pipelines": {
+          "description": "特征管道列表",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/features/pipelines": {
+          "description": "创建特征管道",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/features/pipelines/price-features": {
+          "description": "获取特征管道",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /ml/features/pipelines/price-features": {
+          "description": "更新特征管道",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "DELETE /ml/features/pipelines/test-features": {
+          "description": "删除特征管道",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/features/pipelines/price-features/execute": {
+          "description": "执行特征提取",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/features/pipelines/price-features/status": {
+          "description": "特征管道状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/features/store": {
+          "description": "特征存储",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/features/store": {
+          "description": "存储特征",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /ml/features/transformers": {
+          "description": "特征转换器",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /ml/features/validate": {
+          "description": "特征验证",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        }
+      }
+    },
+    "logging": {
+      "total": 45,
+      "passed": 13,
+      "failed": 32,
+      "tests": {
+        "GET /logs/stream/realtime": {
+          "description": "获取实时日志流",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"level\":\"info\",\"message\":\"数据处理正常\",\"metadata\":{\"module\":\"data_processor\"},\"service\":\"qingxi\",\"timestamp\":1757398771}],\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"d771ca0c-ecf",
+          "responseTime": "N/A"
+        },
+        "GET /logs/stream/by-service/config": {
+          "description": "按服务过滤日志",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"level\":\"info\",\"message\":\"config 服务日志\",\"metadata\":{\"filtered_by\":\"service\"},\"service\":\"config\",\"timestamp\":1757398771}],\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"2d73d9a1-",
+          "responseTime": "N/A"
+        },
+        "GET /logs/stream/by-level/info": {
+          "description": "按级别过滤日志",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"level\":\"info\",\"message\":\"info 级别日志\",\"metadata\":{\"filtered_by\":\"level\"},\"service\":\"system\",\"timestamp\":1757398771}],\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"f8db028c-ee79",
+          "responseTime": "N/A"
+        },
+        "POST /logs/stream/search": {
+          "description": "搜索日志内容",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /logs/stream/by-component/trading": {
+          "description": "按组件过滤",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/stream/by-user/system": {
+          "description": "按用户过滤",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /logs/stream/filter": {
+          "description": "自定义过滤",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/stream/tail": {
+          "description": "日志尾部流",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"level\":\"info\",\"message\":\"最新日志\",\"metadata\":{\"type\":\"tail\"},\"service\":\"system\",\"timestamp\":1757398771}],\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"78864596-16fe-410c-b689-5e",
+          "responseTime": "N/A"
+        },
+        "POST /logs/stream/subscribe": {
+          "description": "订阅日志",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /logs/stream/unsubscribe": {
+          "description": "取消订阅",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/stream/subscribers": {
+          "description": "订阅者列表",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /logs/stream/pause": {
+          "description": "暂停日志流",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":\"日志流已暂停\",\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"e80d7122-c55d-4295-9993-d1c26593aeab\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"logging-service\",\"version\":\"1.0",
+          "responseTime": "N/A"
+        },
+        "POST /logs/stream/resume": {
+          "description": "恢复日志流",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":\"日志流已恢复\",\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"e5db887b-841e-4b26-b954-857a15350a80\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"logging-service\",\"version\":\"1.0",
+          "responseTime": "N/A"
+        },
+        "GET /logs/stream/stats": {
+          "description": "流统计信息",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"active_connections\":12,\"messages_per_second\":450,\"total_streams\":5},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"804fdbfb-eb3b-44cd-bc7b-adeda9a937d9\",\"server_info\":{\"instanc",
+          "responseTime": "N/A"
+        },
+        "POST /logs/stream/export": {
+          "description": "导出日志流",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/levels": {
+          "description": "获取日志级别配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"celue\":\"debug\",\"qingxi\":\"info\",\"risk\":\"warning\"},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"e0848869-ddd6-4e83-bbcd-ba8b3f4a22a1\",\"server_info\":{\"instance_id\":\"instance-1\",",
+          "responseTime": "N/A"
+        },
+        "PUT /logs/config/levels": {
+          "description": "设置日志级别配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/retention": {
+          "description": "获取保留策略",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"compression_enabled\":true,\"max_size_gb\":100,\"retention_days\":30},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"c328cad1-ace7-4d46-9230-09c24580dee5\",\"server_info\":{\"instance_i",
+          "responseTime": "N/A"
+        },
+        "PUT /logs/config/retention": {
+          "description": "设置保留策略",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/rotation": {
+          "description": "获取轮转配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"keep_files\":7,\"max_file_size_mb\":100,\"rotation_type\":\"daily\"},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"e1a672f7-e50f-4a44-8521-c858662ca316\",\"server_info\":{\"instance_id\":",
+          "responseTime": "N/A"
+        },
+        "PUT /logs/config/rotation": {
+          "description": "设置轮转配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/formats": {
+          "description": "获取格式配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /logs/config/formats": {
+          "description": "设置格式配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/destinations": {
+          "description": "获取目标配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /logs/config/destinations": {
+          "description": "设置目标配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/filters": {
+          "description": "获取过滤器配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"action\":\"highlight\",\"id\":\"1\",\"pattern\":\"ERROR\"},{\"action\":\"filter\",\"id\":\"2\",\"pattern\":\"WARN\"}],\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"a662742f-a8db-4316-a237-3fa998e4a",
+          "responseTime": "N/A"
+        },
+        "PUT /logs/config/filters": {
+          "description": "设置过滤器配置",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/sampling": {
+          "description": "获取采样配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"enabled\":true,\"high_volume_sampling\":0.01,\"sampling_rate\":0.1},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"a2818251-ae6a-4e6d-ad06-3806ca9d7a89\",\"server_info\":{\"instance_id\"",
+          "responseTime": "N/A"
+        },
+        "PUT /logs/config/sampling": {
+          "description": "设置采样配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/buffering": {
+          "description": "获取缓冲配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /logs/config/buffering": {
+          "description": "设置缓冲配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /logs/config/reload": {
+          "description": "重载配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/config/validate": {
+          "description": "验证配置",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/analysis/stats": {
+          "description": "获取日志统计",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"error_count\":1250,\"error_rate\":1,\"info_count\":118250,\"total_logs\":125000,\"warning_count\":5500},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"fb0d1df5-f488-4069-a065-2821261d39",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/anomaly": {
+          "description": "异常检测",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/patterns": {
+          "description": "模式分析",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/trends": {
+          "description": "趋势分析",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/correlation": {
+          "description": "关联分析",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/clustering": {
+          "description": "聚类分析",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/timeline": {
+          "description": "时间线分析",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/frequency": {
+          "description": "频率分析",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/sentiment": {
+          "description": "情感分析",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/analysis/reports": {
+          "description": "分析报告列表",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /logs/analysis/reports/report-1": {
+          "description": "获取分析报告",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /logs/analysis/export": {
+          "description": "导出分析结果",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        }
+      }
+    },
+    "cleaning": {
+      "total": 52,
+      "passed": 13,
+      "failed": 39,
+      "tests": {
+        "GET /cleaning/rules/list": {
+          "description": "列出所有清洗规则",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"actions\":[\"remove\"],\"conditions\":[\"duplicate_key\"],\"description\":\"移除重复记录\",\"enabled\":true,\"id\":\"rule_001\",\"name\":\"数据去重规则\",\"priority\":1,\"rule_type\":\"deduplication\"}],\"error\":null,\"metadata\":{",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/create": {
+          "description": "创建新的清洗规则",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/rules/rule_001": {
+          "description": "获取清洗规则详情",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"actions\":[\"action1\"],\"conditions\":[\"condition1\"],\"description\":\"规则描述\",\"enabled\":true,\"id\":\"rule_001\",\"name\":\"示例规则\",\"priority\":1,\"rule_type\":\"validation\"},\"error\":null,\"metadata\":{\"execution_",
+          "responseTime": "N/A"
+        },
+        "PUT /cleaning/rules/rule_001": {
+          "description": "更新清洗规则",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "DELETE /cleaning/rules/test-rule": {
+          "description": "删除清洗规则",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":\"规则 test-rule 已删除\",\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"c00f6b68-06d6-41a5-b218-4e87cdecbaa5\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"cleaning-service\",\"ve",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/rule_001/enable": {
+          "description": "启用清洗规则",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":\"规则 rule_001 已启用\",\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"d412177c-7519-4ad7-8f88-c3d2d71b132b\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"cleaning-service\",\"ver",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/rule_001/disable": {
+          "description": "禁用清洗规则",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":\"规则 rule_001 已禁用\",\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"0dd417ef-37be-45a0-913e-3dc89ffcb233\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"cleaning-service\",\"ver",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/rule_001/test": {
+          "description": "测试清洗规则",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/rules/rule_001/stats": {
+          "description": "获取规则统计",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/rules/rule_001/history": {
+          "description": "获取规则历史",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/rule_001/clone": {
+          "description": "克隆清洗规则",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/import": {
+          "description": "导入清洗规则",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/rules/export": {
+          "description": "导出清洗规则",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"download_url\":\"/api/cleaning/rules/download/export_123.json\",\"export_id\":\"6314b7b4-e107-4602-b92e-1187f940fc8b\"},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"faf0871c-49c3-40",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/validate": {
+          "description": "验证清洗规则",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/rules/templates": {
+          "description": "获取规则模板",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[{\"id\":\"template_1\",\"name\":\"数据去重模板\",\"type\":\"deduplication\"},{\"id\":\"template_2\",\"name\":\"数据验证模板\",\"type\":\"validation\"}],\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"a6fc46b6-5deb-",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/from-template": {
+          "description": "从模板创建",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/rules/categories": {
+          "description": "获取规则分类",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"actions\":[\"action1\"],\"conditions\":[\"condition1\"],\"description\":\"规则描述\",\"enabled\":true,\"id\":\"categories\",\"name\":\"示例规则\",\"priority\":1,\"rule_type\":\"validation\"},\"error\":null,\"metadata\":{\"executio",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/batch/enable": {
+          "description": "批量启用",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/rules/batch/disable": {
+          "description": "批量禁用",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/rules/conflicts": {
+          "description": "检查规则冲突",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"actions\":[\"action1\"],\"conditions\":[\"condition1\"],\"description\":\"规则描述\",\"enabled\":true,\"id\":\"conflicts\",\"name\":\"示例规则\",\"priority\":1,\"rule_type\":\"validation\"},\"error\":null,\"metadata\":{\"execution",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/exchanges": {
+          "description": "列出所有交易所",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":[\"binance\",\"okx\",\"huobi\"],\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"bfd244d6-cd49-4ad2-b1df-53e32e88ba62\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"cleaning-servi",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/exchanges/binance/config": {
+          "description": "获取交易所配置",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"batch_size\":1000,\"enabled\":true},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"710ed773-1f32-4e76-8100-e41ad883facf\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"clean",
+          "responseTime": "N/A"
+        },
+        "PUT /cleaning/exchanges/binance/config": {
+          "description": "更新交易所配置",
+          "success": false,
+          "status": 415,
+          "error": "Request failed with status code 415",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/exchanges/binance/symbols": {
+          "description": "获取交易对列表",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"symbols\":[\"BTC/USDT\",\"ETH/USDT\"]},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"f3156abe-0782-4020-8620-2e3ed9c5ef72\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"clea",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/exchanges/binance/symbols": {
+          "description": "添加交易对",
+          "success": false,
+          "status": 405,
+          "error": "Request failed with status code 405",
+          "responseTime": "N/A"
+        },
+        "DELETE /cleaning/exchanges/binance/symbols/ETHUSDT": {
+          "description": "删除交易对",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/exchanges/binance/status": {
+          "description": "获取交易所状态",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/exchanges/binance/connect": {
+          "description": "连接交易所",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/exchanges/binance/disconnect": {
+          "description": "断开连接",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/exchanges/binance/limits": {
+          "description": "获取API限制",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /cleaning/exchanges/binance/limits": {
+          "description": "设置API限制",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/exchanges/binance/credentials": {
+          "description": "获取认证信息",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /cleaning/exchanges/binance/credentials": {
+          "description": "更新认证信息",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/exchanges/binance/health": {
+          "description": "健康检查",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/exchanges/binance/metrics": {
+          "description": "获取指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/exchanges/binance/test": {
+          "description": "测试连接",
+          "success": true,
+          "status": 200,
+          "data": "{\"data\":{\"message\":\"配置测试通过\",\"test_passed\":true},\"error\":null,\"metadata\":{\"execution_time_ms\":0,\"request_id\":\"1df41b20-dd06-48ab-a590-86a2b8f90cef\",\"server_info\":{\"instance_id\":\"instance-1\",\"service\":\"",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/quality/score": {
+          "description": "获取数据质量分数",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/quality/metrics": {
+          "description": "获取质量指标",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/quality/check": {
+          "description": "质量检查",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/quality/issues": {
+          "description": "获取质量问题",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/quality/fix": {
+          "description": "修复质量问题",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/quality/rules": {
+          "description": "获取质量规则",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/quality/rules": {
+          "description": "创建质量规则",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "PUT /cleaning/quality/rules/rule-1": {
+          "description": "更新质量规则",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "DELETE /cleaning/quality/rules/rule-1": {
+          "description": "删除质量规则",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/quality/history": {
+          "description": "质量历史",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/quality/trends": {
+          "description": "质量趋势",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/quality/baseline": {
+          "description": "设置基线",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/quality/baseline": {
+          "description": "获取基线",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/quality/alert": {
+          "description": "设置质量告警",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "GET /cleaning/quality/alerts": {
+          "description": "获取质量告警",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        },
+        "POST /cleaning/quality/report": {
+          "description": "生成质量报告",
+          "success": false,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "responseTime": "N/A"
+        }
+      }
+    }
+  },
+  "test_info": {
+    "test_time": "2025-09-09T06:19:39.750Z",
+    "api_base_url": "http://localhost:3000/api",
+    "frontend_url": "http://57.183.21.242:3003",
+    "total_services": 7
+  }
+}

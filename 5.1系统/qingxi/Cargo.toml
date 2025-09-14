@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "qingxi",
+]
+
+# 可选：定义一些在所有成员中共享的配置
+# [workspace.dependencies]
+# tokio = { version = "1.29", features = ["full"] }
+# serde = { version = "1.0", features = ["derive"] }
+# ...
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+strip = true

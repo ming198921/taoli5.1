@@ -1,0 +1,191 @@
+[general]
+log_level = "info"
+metrics_enabled = true
+
+[api_server]
+host = "127.0.0.1"  # 生产环境建议使用具体IP或内网IP
+port = 50051
+metrics_port_offset = 1
+health_port_offset = 2
+http_port_offset = 10
+orderbook_depth_limit = 20
+symbols_list_limit = 100
+
+[central_manager]
+event_buffer_size = 1000
+
+[[sources]]
+id = "binance_spot"
+adapter_type = "binance"
+enabled = true
+exchange_id = "binance"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT", "XRPUSDT", "DOTUSDT", "MATICUSDT", "AVAXUSDT", "LTCUSDT", "UNIUSDT", "LINKUSDT", "ATOMUSDT", "XLMUSDT", "VETUSDT", "FILUSDT", "TRXUSDT", "EOSUSDT", "XMRUSDT", "NEOUSDT", "DASHUSDT", "IOTAUSDT", "ALGOUSDT", "ZECUSDT", "COMPUSDT", "YFIUSDT", "MKRUSDT", "AAVEUSDT", "SUSHIUSDT", "SNXUSDT", "CRVUSDT", "1INCHUSDT", "BALUSDT", "RENUSDT", "KNCUSDT", "ZRXUSDT", "UMAUSDT", "BANDUSDT", "ALPHAUSDT", "REEFUSDT", "OCEANUSDT", "INJUSDT", "AUDIOUSDT", "CTSIUSDT", "AKROUSDT", "RAYUSDT", "SRMUSDT", "FIDAUSDT", "OOKIUSDT", "SPELLUSDT", "GALAUSDT", "MANAUSDT", "SANDUSDT", "APEUSDT", "LRCUSDT", "ENJUSDT", "CHZUSDT", "BATUSDT", "ZILUSDT", "HOTUSDT", "ICXUSDT", "QTUMUSDT", "LSKUSDT", "SCUSDT", "ZENUSDT", "WAVESUSDT", "KMDUSDT", "ARKUSDT", "STRATUSDT", "BNTUSDT", "STORJUSDT", "ANTUSDT", "OMGUSDT", "GASUSDT", "POWRUSDT", "SUBUSDT", "ENGUSDT", "SALTUSDT", "FUNUSDT", "REQUSDT", "VIBUSDT", "POEUSDT", "FUELUSDT", "MTLUSDT", "DNTUSDT", "ASTUSDT", "TNBUSDT", "DLTUSDT", "AMBUSDT", "BCPTUSDT", "ARNUSDT", "GVTUSDT", "CDTUSDT", "GXSUSDT", "POAUSDT", "QSPUSDT"]
+ws_endpoint = "wss://stream.binance.com:9443/ws/"
+rest_url = "https://api.binance.com"
+channel = "depth20@100ms"
+
+[[sources]]
+id = "huobi_spot"
+adapter_type = "huobi"
+enabled = true
+exchange_id = "huobi"
+symbols = ["BTCUSDT", "ETHUSDT", "ADAUSDT", "SOLUSDT", "XRPUSDT", "DOTUSDT", "MATICUSDT", "AVAXUSDT", "LTCUSDT", "UNIUSDT", "LINKUSDT", "ATOMUSDT", "XLMUSDT", "VETUSDT", "FILUSDT", "TRXUSDT", "EOSUSDT", "XMRUSDT", "NEOUSDT", "DASHUSDT", "IOTAUSDT", "ALGOUSDT", "ZECUSDT", "COMPUSDT", "YFIUSDT", "MKRUSDT", "AAVEUSDT", "SUSHIUSDT", "SNXUSDT", "CRVUSDT", "1INCHUSDT", "BALUSDT", "RENUSDT", "KNCUSDT", "ZRXUSDT", "UMAUSDT", "BANDUSDT", "ALPHAUSDT", "REEFUSDT", "OCEANUSDT", "INJUSDT", "AUDIOUSDT", "CTSIUSDT", "AKROUSDT", "RAYUSDT", "SRMUSDT", "FIDAUSDT", "OOKIUSDT", "SPELLUSDT", "GALAUSDT", "MANAUSDT", "SANDUSDT", "APEUSDT", "LRCUSDT", "ENJUSDT", "CHZUSDT", "BATUSDT", "ZILUSDT", "HOTUSDT", "ICXUSDT", "QTUMUSDT", "LSKUSDT", "SCUSDT", "ZENUSDT", "WAVESUSDT", "KMDUSDT", "ARKUSDT", "STRATUSDT", "BNTUSDT", "STORJUSDT", "ANTUSDT", "OMGUSDT", "GASUSDT", "POWRUSDT", "SUBUSDT", "ENGUSDT", "SALTUSDT", "FUNUSDT", "REQUSDT", "VIBUSDT", "POEUSDT", "FUELUSDT", "MTLUSDT", "DNTUSDT", "ASTUSDT", "TNBUSDT", "DLTUSDT", "AMBUSDT", "BCPTUSDT", "ARNUSDT", "GVTUSDT", "CDTUSDT", "GXSUSDT", "POAUSDT", "QSPUSDT"]
+ws_endpoint = "wss://api.huobi.pro/ws"
+rest_url = "https://api.huobi.pro"
+channel = "market.depth.step0"
+
+[[sources]]
+id = "okx_spot"
+adapter_type = "okx"
+enabled = true
+exchange_id = "okx"
+symbols = ["BTC-USDT", "ETH-USDT", "ADA-USDT", "SOL-USDT", "XRP-USDT", "DOT-USDT", "MATIC-USDT", "AVAX-USDT", "LTC-USDT", "UNI-USDT", "LINK-USDT", "ATOM-USDT", "XLM-USDT", "VET-USDT", "FIL-USDT", "TRX-USDT", "EOS-USDT", "XMR-USDT", "NEO-USDT", "DASH-USDT", "IOTA-USDT", "ALGO-USDT", "ZEC-USDT", "COMP-USDT", "YFI-USDT", "MKR-USDT", "AAVE-USDT", "SUSHI-USDT", "SNX-USDT", "CRV-USDT", "1INCH-USDT", "BAL-USDT", "REN-USDT", "KNC-USDT", "ZRX-USDT", "UMA-USDT", "BAND-USDT", "ALPHA-USDT", "REEF-USDT", "OCEAN-USDT", "INJ-USDT", "AUDIO-USDT", "CTSI-USDT", "AKRO-USDT", "RAY-USDT", "SRM-USDT", "FIDA-USDT", "OOKI-USDT", "SPELL-USDT", "GALA-USDT", "MANA-USDT", "SAND-USDT", "APE-USDT", "LRC-USDT", "ENJ-USDT", "CHZ-USDT", "BAT-USDT", "ZIL-USDT", "HOT-USDT", "ICX-USDT", "QTUM-USDT", "LSK-USDT", "SC-USDT", "ZEN-USDT", "WAVES-USDT", "KMD-USDT", "ARK-USDT", "STRAT-USDT", "BNT-USDT", "STORJ-USDT", "ANT-USDT", "OMG-USDT", "GAS-USDT", "POWR-USDT", "SUB-USDT", "ENG-USDT", "SALT-USDT", "FUN-USDT", "REQ-USDT", "VIB-USDT", "POE-USDT", "FUEL-USDT", "MTL-USDT", "DNT-USDT", "AST-USDT", "TNB-USDT", "DLT-USDT", "AMB-USDT", "BCPT-USDT", "ARN-USDT", "GVT-USDT", "CDT-USDT", "GXS-USDT", "POA-USDT", "QSP-USDT"]
+ws_endpoint = "wss://ws.okx.com:8443/ws/v5/public"
+rest_url = "https://www.okx.com"
+channel = "books5"
+
+[[sources]]
+id = "kucoin_spot"
+adapter_type = "kucoin"
+enabled = true
+exchange_id = "kucoin"
+symbols = ["BTC-USDT", "ETH-USDT", "ADA-USDT", "SOL-USDT", "XRP-USDT", "DOT-USDT", "MATIC-USDT", "AVAX-USDT", "LTC-USDT", "UNI-USDT", "LINK-USDT", "ATOM-USDT", "XLM-USDT", "VET-USDT", "FIL-USDT", "TRX-USDT", "EOS-USDT", "XMR-USDT", "NEO-USDT", "DASH-USDT", "IOTA-USDT", "ALGO-USDT", "ZEC-USDT", "COMP-USDT", "YFI-USDT", "MKR-USDT", "AAVE-USDT", "SUSHI-USDT", "SNX-USDT", "CRV-USDT", "1INCH-USDT", "BAL-USDT", "REN-USDT", "KNC-USDT", "ZRX-USDT", "UMA-USDT", "BAND-USDT", "ALPHA-USDT", "REEF-USDT", "OCEAN-USDT", "INJ-USDT", "AUDIO-USDT", "CTSI-USDT", "AKRO-USDT", "RAY-USDT", "SRM-USDT", "FIDA-USDT", "OOKI-USDT", "SPELL-USDT", "GALA-USDT"]
+ws_endpoint = "wss://ws-api.kucoin.com/endpoint"
+rest_url = "https://api.kucoin.com"
+channel = "level2"
+
+[[sources]]
+id = "coinbase_spot"
+adapter_type = "coinbase"
+enabled = true
+exchange_id = "coinbase"
+symbols = ["BTC-USD", "ETH-USD", "ADA-USD", "SOL-USD", "XRP-USD", "DOT-USD", "MATIC-USD", "AVAX-USD", "LTC-USD", "UNI-USD", "LINK-USD", "ATOM-USD", "XLM-USD", "VET-USD", "FIL-USD", "TRX-USD", "EOS-USD", "XMR-USD", "NEO-USD", "DASH-USD", "IOTA-USD", "ALGO-USD", "ZEC-USD", "COMP-USD", "YFI-USD", "MKR-USD", "AAVE-USD", "SUSHI-USD", "SNX-USD", "CRV-USD", "1INCH-USD", "BAL-USD", "REN-USD", "KNC-USD", "ZRX-USD", "UMA-USD", "BAND-USD", "ALPHA-USD", "REEF-USD", "OCEAN-USD", "INJ-USD", "AUDIO-USD", "CTSI-USD", "AKRO-USD", "RAY-USD", "SRM-USD", "FIDA-USD", "OOKI-USD", "SPELL-USD", "GALA-USD"]
+ws_endpoint = "wss://ws-feed.exchange.coinbase.com"
+rest_url = "https://api.exchange.coinbase.com"
+channel = "level2"
+
+[[sources]]
+id = "bybit_spot"
+adapter_type = "bybit"
+enabled = true
+exchange_id = "bybit"
+symbols = ["BTCUSDT", "ETHUSDT", "ADAUSDT", "SOLUSDT", "XRPUSDT", "DOTUSDT", "MATICUSDT", "AVAXUSDT", "LTCUSDT", "UNIUSDT", "LINKUSDT", "ATOMUSDT", "XLMUSDT", "VETUSDT", "FILUSDT", "TRXUSDT", "EOSUSDT", "XMRUSDT", "NEOUSDT", "DASHUSDT", "IOTAUSDT", "ALGOUSDT", "ZECUSDT", "COMPUSDT", "YFIUSDT", "MKRUSDT", "AAVEUSDT", "SUSHIUSDT", "SNXUSDT", "CRVUSDT", "1INCHUSDT", "BALUSDT", "RENUSDT", "KNCUSDT", "ZRXUSDT", "UMAUSDT", "BANDUSDT", "ALPHAUSDT", "REEFUSDT", "OCEANUSDT", "INJUSDT", "AUDIOUSDT", "CTSIUSDT", "AKROUSDT", "RAYUSDT", "SRMUSDT", "FIDAUSDT", "OOKIUSDT", "SPELLUSDT", "GALAUSDT", "MANAUSDT", "SANDUSDT", "APEUSDT", "LRCUSDT", "ENJUSDT", "CHZUSDT", "BATUSDT", "ZILUSDT", "HOTUSDT", "ICXUSDT", "QTUMUSDT", "LSKUSDT", "SCUSDT", "ZENUSDT", "WAVESUSDT", "KMDUSDT", "ARKUSDT", "STRATUSDT", "BNTUSDT", "STORJUSDT", "ANTUSDT", "OMGUSDT", "GASUSDT", "POWRUSDT", "SUBUSDT", "ENGUSDT", "SALTUSDT", "FUNUSDT", "REQUSDT", "VIBUSDT", "POEUSDT", "FUELUSDT", "MTLUSDT", "DNTUSDT", "ASTUSDT", "TNBUSDT", "DLTUSDT", "AMBUSDT", "BCPTUSDT", "ARNUSDT", "GVTUSDT", "CDTUSDT", "GXSUSDT", "POAUSDT", "QSPUSDT"]
+ws_endpoint = "wss://stream.bybit.com/v5/public/spot"
+rest_url = "https://api.bybit.com"
+channel = "orderbook.200"
+
+[consistency_thresholds]
+price_diff_percentage = 0.5
+timestamp_diff_ms = 5000
+sequence_gap_threshold = 10
+spread_threshold_percentage = 1.0
+critical_spread_threshold_percentage = 2.0
+max_time_diff_ms = 10000.0
+volume_consistency_threshold = 0.5
+
+[reasoner]
+api_endpoint = "http://reasoner-service:8081"
+
+[anomaly_detection]
+spread_threshold = 2.0
+volume_threshold = 100.0
+price_change_threshold = 5.0
+spread_threshold_percentage = 1.0
+
+[performance]
+enable_batch_processing = true
+batch_size = 10000
+batch_timeout_ms = 50
+enable_simd = true
+enable_parallel_processing = true
+max_concurrent_tasks = 16
+memory_pool_size = 2097152
+enable_zero_copy = true
+performance_stats_interval_sec = 10
+system_readiness_timeout_sec = 30
+
+[threading]
+num_worker_threads = 8
+enable_cpu_affinity = true
+preferred_cores = [0, 1, 2, 3, 4, 5, 6, 7]
+enable_numa_awareness = true
+network_worker_threads = 6
+processing_worker_threads = 4
+main_worker_threads = 2
+
+[quality_thresholds]
+minimum_data_freshness_ms = 1000
+maximum_latency_ms = 100
+minimum_completeness_ratio = 0.95
+maximum_error_rate = 0.01
+cache_hit_rate_threshold = 0.8
+buffer_usage_threshold = 0.8
+compression_ratio_threshold = 2.0
+
+# 新增缓存配置段
+[cache]
+l2_directory = "cache/l2"
+l3_directory = "cache/l3" 
+log_directory = "logs"
+auto_create_dirs = true
+
+# 新增配置段 - 解决硬编码问题
+[exchanges]
+bybit_orderbook_depth = 60
+binance_orderbook_depth = 100
+event_buffer_size = 5000
+
+[memory_pools]
+orderbook_entry_pool_size = 1000
+trade_update_pool_size = 5000
+snapshot_pool_size = 500
+f64_buffer_pool_size = 1000
+usize_buffer_pool_size = 1000
+default_vec_capacity = 100
+cleaner_buffer_size = 1000
+
+[algorithm_scoring]
+depth_score_max = 30.0
+liquidity_score_baseline = 1000.0
+liquidity_score_max = 25.0
+spread_score_max = 30.0
+spread_ratio_threshold = 0.05
+balance_score_max = 20.0
+
+[memory_allocator]
+zero_allocation_buffer_size = 131072
+large_buffer_size = 262144
+huge_buffer_size = 1048576
+small_chunks_capacity = 1024
+chunk_sizes = [64, 128, 256, 512, 1024]
+large_buffer_sizes = [131072, 262144, 524288, 1048576]
+size_threshold = 1024
+test_iterations = 1000000
+test_allocation_sizes = [128, 1024, 4096]
+
+[cleaner]
+memory_pool_size = 131072
+batch_size = 50000
+orderbook_capacity = 5000
+zero_alloc_buffer_count = 131072
+thread_count = 8
+target_latency_ns = 50000
+orderbook_bid_capacity = 5000
+orderbook_ask_capacity = 5000
+reserved_bid_capacity = 5000
+reserved_ask_capacity = 5000
+volume_top_count = 20
+
+[batch]
+max_batch_size = 1000
+max_wait_time_ms = 10
+concurrency = 4
+enable_compression = false
+buffer_multiplier = 10
+
+[benchmark]
+iterations = 1000
+orderbook_depth = 20
+trade_count = 50
+warmup_iterations = 100
+verbose_output = false

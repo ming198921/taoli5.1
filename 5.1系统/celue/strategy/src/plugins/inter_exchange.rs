@@ -1,19 +1,16 @@
 //! Inter-exchange arbitrage strategy implementation.
 
 use crate::{
+    context::StrategyContext,
     traits::{ArbitrageStrategy, ExecutionResult, StrategyError, StrategyKind},
 };
-use common_types::StrategyContext;
 use async_trait::async_trait;
-use common_types::ArbitrageOpportunity;
-use common_types::{NormalizedSnapshot, ExchangeSnapshot};
 use common::{
-    arbitrage::{ArbitrageLeg, Side},
-    market_data::OrderBook,
+    arbitrage::{ArbitrageLeg, ArbitrageOpportunity, Side},
+    market_data::{NormalizedSnapshot, OrderBook},
     precision::{FixedPrice, FixedQuantity},
 };
 use itertools::Itertools;
-use uuid::Uuid;
 
 pub struct InterExchangeStrategy;
 
@@ -29,7 +26,7 @@ impl ArbitrageStrategy for InterExchangeStrategy {
 
     fn detect(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         input: &NormalizedSnapshot,
     ) -> Option<ArbitrageOpportunity> {
         if input.exchanges.len() < 2 {
@@ -38,43 +35,25 @@ impl ArbitrageStrategy for InterExchangeStrategy {
 
         let min_profit_pct = ctx.current_min_profit_pct();
 
-        // 使用ExchangeSnapshot数据进行套利检测
-        if input.exchanges.len() < 2 {
-            return None;
-        }
-        
-        let exchange_snapshots: Vec<(&String, &ExchangeSnapshot)> = input
+        // Only consider order books for the same symbol as the snapshot
+        let same_symbol_books: Vec<&OrderBook> = input
             .exchanges
             .iter()
+            .filter(|ob| ob.symbol == input.symbol)
             .collect();
+        if same_symbol_books.len() < 2 {
+            return None;
+        }
 
         // Iterate over all unique pairs of exchanges for the same symbol
-        for ((exchange_a, snapshot_a), (exchange_b, snapshot_b)) in exchange_snapshots.iter().tuple_combinations() {
-            // 简化版套利检测：基于价格差直接计算
-            let buy_price = snapshot_a.ask_price;  // 在A交易所买入（支付ask价格）
-            let sell_price = snapshot_b.bid_price; // 在B交易所卖出（获得bid价格）
-            
-            if sell_price > buy_price {
-                let profit_pct = (sell_price - buy_price) / buy_price;
-                if profit_pct >= min_profit_pct {
-                    // 创建套利机会
-                    return Some(self.create_opportunity(
-                        &input.symbol, exchange_a, exchange_b, buy_price, sell_price, profit_pct
-                    ));
-                }
+        for (book_a, book_b) in same_symbol_books.iter().copied().tuple_combinations() {
+            // Opportunity: Buy on A, Sell on B
+            if let Some(opp) = self.find_opportunity(ctx, book_a, book_b, min_profit_pct) {
+                return Some(opp);
             }
-            
-            // 反向检测：在B买入，在A卖出
-            let buy_price_b = snapshot_b.ask_price;
-            let sell_price_a = snapshot_a.bid_price;
-            
-            if sell_price_a > buy_price_b {
-                let profit_pct = (sell_price_a - buy_price_b) / buy_price_b;
-                if profit_pct >= min_profit_pct {
-                    return Some(self.create_opportunity(
-                        &input.symbol, exchange_b, exchange_a, buy_price_b, sell_price_a, profit_pct
-                    ));
-                }
+            // Opportunity: Buy on B, Sell on A
+            if let Some(opp) = self.find_opportunity(ctx, book_b, book_a, min_profit_pct) {
+                return Some(opp);
             }
         }
         None
@@ -82,7 +61,7 @@ impl ArbitrageStrategy for InterExchangeStrategy {
 
     async fn execute(
         &self,
-        _ctx: &dyn StrategyContext,
+        _ctx: &StrategyContext,
         _opportunity: &ArbitrageOpportunity,
     ) -> Result<ExecutionResult, StrategyError> {
         // For simulation mode, we return success
@@ -90,21 +69,15 @@ impl ArbitrageStrategy for InterExchangeStrategy {
             accepted: true,
             reason: Some("Simulation execution".to_string()),
             order_ids: vec!["sim_001".to_string(), "sim_002".to_string()],
-            executed_quantity: 1.0,
-            realized_profit: 0.1,
-            execution_time_ms: 50,
-            slippage: 0.001,
-            fees_paid: 0.005,
         })
     }
 }
 
 impl InterExchangeStrategy {
     /// Find arbitrage opportunity between two exchanges
-    #[allow(dead_code)]
     fn find_opportunity(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         buy_book: &OrderBook,
         sell_book: &OrderBook,
         min_profit_pct: FixedPrice,
@@ -136,54 +109,49 @@ impl InterExchangeStrategy {
         let max_buy_qty = buy_price.quantity;
         let max_sell_qty = sell_price.quantity;
         let mut trade_qty = if max_buy_qty < max_sell_qty { max_buy_qty } else { max_sell_qty };
-        if let Some(repo) = ctx.fee_precision_repo() {
-            if let Some(step) = repo.get_fee(&buy_book.symbol.to_string(), "step_size") {
-                // snap down to nearest step
-                let step_scaled = FixedQuantity::from_f64(step, trade_qty.scale());
-                let steps = (trade_qty.raw_value() / step_scaled.raw_value()).max(1);
-                trade_qty = FixedQuantity::from_raw(steps * step_scaled.raw_value(), trade_qty.scale());
-            }
+        if let Some(step) = ctx.fee_precision_repo.get_step_size_for_symbol(&buy_book.symbol.to_string()) {
+            // snap down to nearest step
+            let step_scaled = FixedQuantity::from_f64(step, trade_qty.scale());
+            let steps = (trade_qty.raw_value() / step_scaled.raw_value()).max(1);
+            trade_qty = FixedQuantity::from_raw(steps * step_scaled.raw_value(), trade_qty.scale());
         }
 
         // Calculate profits using the real price difference
         // Apply tick snap on prices if available
         let mut buy_px = buy_price.price;
         let mut sell_px = sell_price.price;
-        if let Some(repo) = ctx.fee_precision_repo() {
-            if let Some(tick) = repo.get_fee(&buy_book.symbol.to_string(), "tick_size") {
-                let tick_scaled = FixedPrice::from_f64(tick, buy_px.scale());
-                // snap to tick grid conservatively
-                buy_px = FixedPrice::from_raw((buy_px.raw_value() / tick_scaled.raw_value()) * tick_scaled.raw_value(), buy_px.scale());
-                sell_px = FixedPrice::from_raw((sell_px.raw_value() / tick_scaled.raw_value()) * tick_scaled.raw_value(), sell_px.scale());
-            }
+        if let Some(tick) = ctx.fee_precision_repo.get_tick_size_for_symbol(&buy_book.symbol.to_string()) {
+            let tick_scaled = FixedPrice::from_f64(tick, buy_px.scale());
+            // snap to tick grid conservatively
+            buy_px = FixedPrice::from_raw((buy_px.raw_value() / tick_scaled.raw_value()) * tick_scaled.raw_value(), buy_px.scale());
+            sell_px = FixedPrice::from_raw((sell_px.raw_value() / tick_scaled.raw_value()) * tick_scaled.raw_value(), sell_px.scale());
         }
         let gross_profit_per_unit = sell_px - buy_px;
         let gross_profit = gross_profit_per_unit * trade_qty;
 
         let buy_exchange = buy_book.exchange.as_str();
         let sell_exchange = sell_book.exchange.as_str();
-        // 获取手续费率 - 使用简化的context方法
-        let buy_fee_bps = {
-            if let Some(repo) = ctx.fee_precision_repo() {
-                repo.get_fee(buy_exchange, "rate_bps").unwrap_or_else(|| {
-                    tracing::warn!("交易所 {} 手续费配置缺失，使用默认taker费率", buy_exchange);
-                    ctx.get_taker_fee(buy_exchange) * 10000.0 // 转换为bps
-                })
-            } else {
-                ctx.get_taker_fee(buy_exchange) * 10000.0 // 转换为bps
-            }
-        };
-        
-        let sell_fee_bps = {
-            if let Some(repo) = ctx.fee_precision_repo() {
-                repo.get_fee(sell_exchange, "rate_bps").unwrap_or_else(|| {
-                    tracing::warn!("交易所 {} 手续费配置缺失，使用默认taker费率", sell_exchange);
-                    ctx.get_taker_fee(sell_exchange) * 10000.0 // 转换为bps
-                })
-            } else {
-                ctx.get_taker_fee(sell_exchange) * 10000.0 // 转换为bps
-            }
-        };
+        // 获取手续费率 - 通过context动态获取，移除硬编码
+        let buy_fee_bps = ctx.fee_precision_repo.get_fee_rate_bps_for_exchange(buy_exchange)
+            .unwrap_or_else(|| {
+                tracing::warn!("交易所 {} 手续费配置缺失，使用taker_fee计算", buy_exchange);
+                ctx.get_taker_fee(&buy_book.exchange)
+                    .map(|fee| fee.to_f64() * 10000.0) // 转换为bps
+                    .unwrap_or_else(|| {
+                        tracing::error!("交易所 {} 无任何手续费配置，跳过套利机会", buy_exchange);
+                        f64::MAX // 返回极大值，确保被过滤
+                    })
+            });
+        let sell_fee_bps = ctx.fee_precision_repo.get_fee_rate_bps_for_exchange(sell_exchange)
+            .unwrap_or_else(|| {
+                tracing::warn!("交易所 {} 手续费配置缺失，使用taker_fee计算", sell_exchange);
+                ctx.get_taker_fee(&sell_book.exchange)
+                    .map(|fee| fee.to_f64() * 10000.0) // 转换为bps
+                    .unwrap_or_else(|| {
+                        tracing::error!("交易所 {} 无任何手续费配置，跳过套利机会", sell_exchange);
+                        f64::MAX // 返回极大值，确保被过滤
+                    })
+            });
         // 安全检查：如果手续费异常，跳过此套利机会
         if buy_fee_bps >= f64::MAX || sell_fee_bps >= f64::MAX {
             return None;
@@ -214,7 +182,7 @@ impl InterExchangeStrategy {
         let net_profit_pct = FixedPrice::from_f64(net_profit.to_f64() / buy_cost.to_f64(), 6);
 
         // Apply slippage budget per leg: reduce expected proceeds and increase expected cost
-        let slip = ctx.inter_exchange_slippage_per_leg_pct();
+        let slip = ctx.inter_exchange_slippage_per_leg_pct;
         let _ = slip; // used in required below to avoid unused warnings if cfg changes
         // approximate: require additional margin equal to 2*slippage (buy worse, sell worse)
         let required = FixedPrice::from_f64(min_profit_pct.to_f64() + 2.0 * slip, 6);
@@ -228,7 +196,7 @@ impl InterExchangeStrategy {
         }
 
         // Create arbitrage legs with realistic cost calculations
-        let _buy_leg = ArbitrageLeg {
+        let buy_leg = ArbitrageLeg {
             exchange: buy_book.exchange.clone(),
             symbol: buy_book.symbol.clone(),
             side: Side::Buy,
@@ -237,7 +205,7 @@ impl InterExchangeStrategy {
             cost: buy_cost,
         };
 
-        let _sell_leg = ArbitrageLeg {
+        let sell_leg = ArbitrageLeg {
             exchange: sell_book.exchange.clone(),
             symbol: sell_book.symbol.clone(),
             side: Side::Sell,
@@ -246,72 +214,42 @@ impl InterExchangeStrategy {
             cost: sell_proceeds,
         };
 
-        // Create the opportunity using the unified API
-        // 使用原有算法的真实数据：buy_book, sell_book, buy_price, sell_price, trade_qty
-        let opportunity = ArbitrageOpportunity::new(
-            format!("inter_exchange_{}", Uuid::new_v4()),
-            buy_book.symbol.to_string(),
-            buy_book.exchange.to_string(),
-            sell_book.exchange.to_string(),
-            buy_price.price.to_f64(), // buy_price (ask price from buy exchange)
-            sell_price.price.to_f64(), // sell_price (bid price from sell exchange)
-            trade_qty.to_f64(),
-            150_000, // 150 seconds TTL
+        // Create the opportunity with current timestamp
+        let opportunity = ArbitrageOpportunity::new_inter_exchange(
+            "inter_exchange",
+            buy_leg,
+            sell_leg,
+            net_profit,
+            net_profit_pct,
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64,
         );
 
         Some(opportunity)
-    }
-    
-    /// 创建套利机会 - 适配统一的ArbitrageOpportunity结构
-    fn create_opportunity(
-        &self,
-        symbol: &str,
-        buy_exchange: &str,
-        sell_exchange: &str,
-        buy_price: f64,
-        sell_price: f64,
-        profit_pct: f64,
-    ) -> ArbitrageOpportunity {
-        ArbitrageOpportunity {
-            id: uuid::Uuid::new_v4().to_string(),
-            strategy_type: common_types::StrategyType::InterExchangeArbitrage,
-            exchange_pair: Some((buy_exchange.to_string(), sell_exchange.to_string())),
-            triangle_path: None,
-            symbol: symbol.to_string(),
-            estimated_profit: sell_price - buy_price,
-            net_profit: (sell_price - buy_price) * 0.95, // 预扣5%手续费和滑点
-            profit_bps: profit_pct * 10000.0, // 转换为基点
-            liquidity_score: 0.8, // 默认流动性评分
-            confidence_score: 0.9, // 默认置信度
-            estimated_latency_ms: 100,
-            risk_score: 0.3, // 相对低风险
-            required_funds: std::collections::HashMap::new(),
-            market_impact: 0.001,
-            slippage_estimate: 0.002,
-            timestamp: chrono::Utc::now().to_rfc3339(),
-            expires_at: (chrono::Utc::now() + chrono::Duration::seconds(150)).to_rfc3339(),
-            priority: 128,
-            tags: vec!["inter-exchange".to_string()],
-            status: common_types::OpportunityStatus::Active,
-            metadata: std::collections::HashMap::new(),
-        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{context::StrategyContext, market_state::MarketState};
+    use crate::{context::StrategyContext, market_state::{AtomicMarketState, MarketState}, min_profit::MinProfitModel};
     use common::{NormalizedSnapshot, Symbol, Exchange, OrderBook};
     use common::precision::{FixedPrice, FixedQuantity};
     use std::sync::Arc;
     use crate::context::FeePrecisionRepoImpl;
 
     fn create_test_context() -> StrategyContext {
+        let min_profit_model = Arc::new(MinProfitModel::new(50, 1.4, 2.5));
+        let market_state = Arc::new(AtomicMarketState::new(MarketState::Regular));
         // 创建策略上下文 - 简化版本，避免不存在的模块
         let fee_repo = Arc::new(FeePrecisionRepoImpl::default());
-        let strategy_config = StrategyConfig::default();
-        StrategyContext::new(fee_repo, strategy_config, None, None, None, None)
+        let strategy_metrics = Arc::new(adapters::metrics::AdapterMetrics::new());
+        let ctx = StrategyContext::new(fee_repo, strategy_metrics);
+        let paths: Arc<Vec<String>> = Arc::new(vec![]);
+        // let health_snapshot = Arc::new(adapters::health::HealthSnapshot::new()); // 暂时注释
+        ctx
     }
 
     #[tokio::test]

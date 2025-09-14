@@ -8,9 +8,6 @@ use notify::{Watcher, RecursiveMode, Event, EventKind};
 use config::{Config, File, ConfigError};
 
 use crate::strategy::core::StrategyError;
-use crate::strategy::approval_workflow::{
-    ApprovalWorkflowEngine, WorkflowConfig, ApprovalDecision, ApprovalLevel
-};
 
 /// 配置版本信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -544,6 +541,76 @@ use config::{Config, File, ConfigError};
 use crate::strategy::core::StrategyError;
 
 /// 配置版本信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigVersion {
+    pub version_id: String,
+    pub created_at: DateTime<Utc>,
+    pub created_by: String,
+    pub description: String,
+    pub config_data: HashMap<String, serde_json::Value>,
+    pub checksum: String,
+}
+
+/// 配置变更记录
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigChangeRecord {
+    pub change_id: String,
+    pub timestamp: DateTime<Utc>,
+    pub operator: String,
+    pub change_type: ConfigChangeType,
+    pub old_version: Option<String>,
+    pub new_version: String,
+    pub approval_status: ApprovalStatus,
+    pub approver: Option<String>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub rollback_to: Option<String>,
+}
+
+/// 配置变更类型
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ConfigChangeType {
+    Create,
+    Update,
+    Delete,
+    Rollback,
+}
+
+/// 审批状态
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ApprovalStatus {
+    Pending,
+    Approved,
+    Rejected,
+    Emergency, // 紧急情况下的自动审批
+}
+
+/// 策略配置管理器
+pub struct StrategyConfigManager {
+    /// 配置文件路径
+    config_path: PathBuf,
+    /// 当前配置
+    current_config: Arc<RwLock<HashMap<String, serde_json::Value>>>,
+    /// 配置版本历史
+    version_history: Arc<RwLock<Vec<ConfigVersion>>>,
+    /// 变更记录
+    change_history: Arc<RwLock<Vec<ConfigChangeRecord>>>,
+    /// 文件监听器
+    _watcher: Option<notify::RecommendedWatcher>,
+    /// 热加载回调
+    reload_callbacks: Arc<RwLock<Vec<Box<dyn Fn(&HashMap<String, serde_json::Value>) + Send + Sync>>>>,
+    /// 审批配置
+    approval_config: ApprovalConfig,
+}
+
+/// 审批配置
+#[derive(Debug, Clone)]
+pub struct ApprovalConfig {
+    pub require_approval: bool,
+    pub emergency_auto_approve: bool,
+    pub max_rollback_versions: usize,
+    pub config_backup_path: PathBuf,
+}
+
 impl Default for ApprovalConfig {
     fn default() -> Self {
         Self {

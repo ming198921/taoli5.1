@@ -1,0 +1,14 @@
+
+> arbitrage-frontend-v5.1@2.1.0 dev
+> vite --host 0.0.0.0 --port 80
+
+
+  VITE v4.5.14  ready in 174 ms
+
+  ➜  Local:   http://localhost:80/
+  ➜  Network: http://172.31.26.146:80/
+2:25:09 PM [vite] hmr update /src/App.tsx
+2:25:15 PM [vite] hmr update /src/App.tsx
+2:25:21 PM [vite] hmr update /src/App.tsx
+2:29:25 PM [vite] hmr update /src/App.tsx
+2:29:33 PM [vite] hmr update /src/App.tsx

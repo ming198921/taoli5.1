@@ -1,0 +1,79 @@
+// src/main.rs
+use qingxi_market_data::{
+    adapters::{binance::BinanceAdapter, okx::OkxAdapter, huobi::HuobiAdapter},
+    api_server,
+    central_manager::{CentralManager, CentralManagerApi, CentralManagerHandle},
+    errors::MarketDataError,
+    observability,
+    settings::Settings,
+};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::broadcast;
+use tracing::{error, info};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let settings = Settings::load()?;
+
+    observability::init_subscriber(&settings.general.log_level, "qingxi-market-data");
+    let metrics_addr = format!("{}:{}", settings.api_server.host, settings.api_server.port + 1);
+    if settings.general.metrics_enabled {
+        observability::start_metrics_server(metrics_addr.parse()?)?;
+    }
+
+    let (readiness_tx, readiness_rx) = tokio::sync::watch::channel(false);
+    let health_probe_addr = format!("{}:{}", settings.api_server.host, settings.api_server.port + 2).parse()?;
+    observability::start_health_probe_server(health_probe_addr, Arc::new(readiness_rx.clone()));
+
+    let (shutdown_tx, _) = broadcast::channel(1);
+
+    let (manager, manager_handle) = CentralManager::new(&settings, shutdown_tx.subscribe());
+
+    manager.register_adapter(Arc::new(BinanceAdapter::new()));
+    manager.register_adapter(Arc::new(OkxAdapter::new()));
+    manager.register_adapter(Arc::new(HuobiAdapter::new()));
+
+    let mut tasks = tokio::task::JoinSet::new();
+    let api_manager_handle: Arc<dyn CentralManagerApi> = Arc::new(manager_handle.clone());
+
+    let manager_shutdown_rx = shutdown_tx.subscribe();
+    tasks.spawn(async move {
+        manager.run(readiness_tx, manager_shutdown_rx).await
+    });
+
+    let shutdown_signal_handle = shutdown_tx.clone();
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
+        info!("Shutdown signal received.");
+        let _ = shutdown_signal_handle.send(());
+    });
+
+    manager_handle.reconfigure(settings.sources.clone()).await?;
+
+    info!("Waiting for system to become ready...");
+    let mut readiness_check_rx = readiness_rx.clone();
+    if tokio::time::timeout(Duration::from_secs(60), readiness_check_rx.wait_for(|ready| *ready)).await.is_err() {
+        error!("System did not become ready within 60 seconds. Shutting down.");
+        let _ = shutdown_tx.send(());
+    } else {
+        info!("System is ready. Starting gRPC API server...");
+        let api_addr = settings.get_api_address().parse()?;
+        tasks.spawn(async move {
+            api_server::run_server(api_addr, api_manager_handle).await
+        });
+    }
+
+    if let Some(res) = tasks.join_next().await {
+        match res {
+            Ok(Ok(_)) => info!("A critical task completed."),
+            Ok(Err(e)) => error!(error = %e, "A critical task failed. Initiating shutdown."),
+            Err(e) => error!(error = %e, "A critical task panicked. Initiating shutdown."),
+        }
+        let _ = shutdown_tx.send(());
+    }
+    
+    tasks.shutdown().await;
+    info!("Application has shut down gracefully.");
+    Ok(())
+}

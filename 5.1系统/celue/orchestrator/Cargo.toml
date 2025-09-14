@@ -10,35 +10,30 @@ name = "celue-orchestrator"
 path = "src/main.rs"
 
 [dependencies]
-# 统一类型定义 (最高优先级)
-common_types = { path = "../../common_types" }
-
-arbitrage-architecture = { path = "../../architecture" }
-strategy = { path = "../strategy" }
+# Workspace dependencies
 common = { path = "../common" }
 adapters = { path = "../adapters" }
-
-# QingXi数据模块用于真实数据获取
-market_data_module = { path = "../../qingxi/qingxi" }
-tokio = { version = "1.0", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-anyhow = "1.0"
-rayon = "1.5"
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.0", features = ["v4", "serde"] }
-dashmap = "5.5"
-toml = "0.8"
-async-nats = "0.32"
-parking_lot = "0.12"
-thiserror = "1.0"
-async-trait = "0.1"
+tokio = { workspace = true }
+async-trait = { workspace = true }
+# futures = { workspace = true }  # 不在workspace中定义
+futures-util = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+config = { workspace = true }
+parking_lot = { workspace = true }
+async-nats = { workspace = true }
+toml = { workspace = true }
 
 # Additional dependencies
 metrics = "0.21"
 notify = "6.1"
+strategy = { path = "../strategy" }
 blake3 = "1.5"
 
 [dev-dependencies]

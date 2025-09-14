@@ -1,56 +1,26 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use anyhow::Result;
+use async_trait::async_trait;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use parking_lot::Mutex;
-use std::future::Future;
-use std::pin::Pin;
 
-/// 重新设计的MessageProcessor trait - 支持动态分发
+#[async_trait]
 pub trait MessageProcessor: Send + Sync {
-    type Input: Send + Sync + Clone;
+    type Input: Send + Sync;
     type Output: Send + Sync;
     
-    /// 使用Box<dyn Future>来支持动态分发
-    fn process(&self, input: Self::Input) -> Pin<Box<dyn Future<Output = Result<Self::Output>> + Send + '_>>;
+    async fn process(&self, input: Self::Input) -> Result<Self::Output>;
     fn name(&self) -> &str;
 }
 
-/// 类型擦除的处理器包装器
-pub struct DynMessageProcessor<T, U> {
-    inner: Arc<dyn MessageProcessor<Input = T, Output = U>>,
-}
-
-impl<T, U> DynMessageProcessor<T, U> 
-where 
-    T: Send + Sync + Clone + 'static,
-    U: Send + Sync + 'static,
-{
-    pub fn new<P>(processor: P) -> Self 
-    where 
-        P: MessageProcessor<Input = T, Output = U> + 'static,
-    {
-        Self {
-            inner: Arc::new(processor),
-        }
-    }
-
-    pub async fn process(&self, input: T) -> Result<U> {
-        self.inner.process(input).await
-    }
-
-    pub fn name(&self) -> &str {
-        self.inner.name()
-    }
-}
-
 pub struct ProcessorPipeline<T, U> {
-    processors: Vec<DynMessageProcessor<T, U>>,
+    processors: Vec<Arc<dyn MessageProcessor<Input = T, Output = U>>>,
     metrics: Arc<Mutex<ProcessorMetrics>>,
 }
 
-impl<T: Send + Sync + Clone + 'static, U: Send + Sync + 'static> ProcessorPipeline<T, U> {
+impl<T: Send + Sync + Clone, U: Send + Sync> ProcessorPipeline<T, U> {
     pub fn new() -> Self {
         Self {
             processors: Vec::new(),
@@ -58,11 +28,8 @@ impl<T: Send + Sync + Clone + 'static, U: Send + Sync + 'static> ProcessorPipeli
         }
     }
     
-    pub fn add_processor<P>(&mut self, processor: P) 
-    where 
-        P: MessageProcessor<Input = T, Output = U> + 'static,
-    {
-        self.processors.push(DynMessageProcessor::new(processor));
+    pub fn add_processor(&mut self, processor: Arc<dyn MessageProcessor<Input = T, Output = U>>) {
+        self.processors.push(processor);
     }
     
     pub async fn process(&self, input: T) -> Result<Vec<U>> {
@@ -124,22 +91,6 @@ impl ProcessorMetrics {
         *self.failure_count.entry(processor_name.to_string()).or_insert(0) += 1;
         self.total_processed += 1;
     }
-
-    pub fn get_success_count(&self, processor_name: &str) -> u64 {
-        self.success_count.get(processor_name).copied().unwrap_or(0)
-    }
-
-    pub fn get_failure_count(&self, processor_name: &str) -> u64 {
-        self.failure_count.get(processor_name).copied().unwrap_or(0)
-    }
-
-    pub fn get_avg_latency_ms(&self, processor_name: &str) -> f64 {
-        self.avg_latency_ms.get(processor_name).copied().unwrap_or(0.0)
-    }
-
-    pub fn get_total_processed(&self) -> u64 {
-        self.total_processed
-    }
 }
 
 // 具体的处理器实现
@@ -155,17 +106,21 @@ impl MarketDataProcessor {
     }
 }
 
+#[async_trait]
 impl MessageProcessor for MarketDataProcessor {
     type Input = RawMarketData;
     type Output = ProcessedMarketData;
     
-    fn process(&self, input: Self::Input) -> Pin<Box<dyn Future<Output = Result<Self::Output>> + Send + '_>> {
-        Box::pin(async move {
-            // 处理市场数据 - 使用统一的MarketData结构
-            Ok(ProcessedMarketData {
-                market_data: input, // RawMarketData现在就是MarketData类型
-                processed_at: chrono::Utc::now(),
-            })
+    async fn process(&self, input: Self::Input) -> Result<Self::Output> {
+        // 处理市场数据
+        Ok(ProcessedMarketData {
+            symbol: input.symbol,
+            exchange: input.exchange,
+            timestamp: input.timestamp,
+            bid_price: input.bids.first().map(|b| b.0).unwrap_or(0.0),
+            ask_price: input.asks.first().map(|a| a.0).unwrap_or(0.0),
+            volume: input.volume,
+            processed_at: chrono::Utc::now(),
         })
     }
     
@@ -188,51 +143,44 @@ impl ArbitrageDetectionProcessor {
     }
 }
 
+#[async_trait]
 impl MessageProcessor for ArbitrageDetectionProcessor {
     type Input = Vec<ProcessedMarketData>;
     type Output = ArbitrageOpportunity;
     
-    fn process(&self, input: Self::Input) -> Pin<Box<dyn Future<Output = Result<Self::Output>> + Send + '_>> {
-        let min_profit_threshold = self.min_profit_threshold;
-        Box::pin(async move {
-            // 简单的套利检测逻辑
-            if input.len() < 2 {
-                return Err(anyhow::anyhow!("Need at least 2 markets for arbitrage"));
+    async fn process(&self, input: Self::Input) -> Result<Self::Output> {
+        // 简单的套利检测逻辑
+        if input.len() < 2 {
+            return Err(anyhow::anyhow!("Need at least 2 markets for arbitrage"));
+        }
+        
+        let mut best_buy = &input[0];
+        let mut best_sell = &input[0];
+        
+        for market in &input {
+            if market.ask_price < best_buy.ask_price {
+                best_buy = market;
             }
-            
-            let mut best_buy = &input[0];
-            let mut best_sell = &input[0];
-            
-            for market in &input {
-                if market.market_data.ask_price < best_buy.market_data.ask_price {
-                    best_buy = market;
-                }
-                if market.market_data.bid_price > best_sell.market_data.bid_price {
-                    best_sell = market;
-                }
+            if market.bid_price > best_sell.bid_price {
+                best_sell = market;
             }
-            
-            let profit = best_sell.market_data.bid_price - best_buy.market_data.ask_price;
-            let profit_pct = (profit / best_buy.market_data.ask_price) * 100.0;
-            
-            // 使用统一的ArbitrageOpportunity::new方法
-            let volume = best_buy.market_data.bid_volume.min(best_sell.market_data.ask_volume);
-            let mut opportunity = ArbitrageOpportunity::new(
-                uuid::Uuid::new_v4().to_string(),
-                best_buy.market_data.symbol.clone(),
-                best_buy.market_data.exchange.clone(),
-                best_sell.market_data.exchange.clone(),
-                best_buy.market_data.ask_price,
-                best_sell.market_data.bid_price,
-                volume,
-                150_000, // 150秒TTL
-            );
-            
-            // 添加额外的元数据
-            opportunity.metadata.insert("detection_threshold".to_string(), serde_json::json!(min_profit_threshold));
-            opportunity.metadata.insert("is_viable".to_string(), serde_json::json!(profit_pct >= min_profit_threshold));
-            
-            Ok(opportunity)
+        }
+        
+        let profit = best_sell.bid_price - best_buy.ask_price;
+        let profit_pct = (profit / best_buy.ask_price) * 100.0;
+        
+        Ok(ArbitrageOpportunity {
+            id: uuid::Uuid::new_v4().to_string(),
+            buy_exchange: best_buy.exchange.clone(),
+            sell_exchange: best_sell.exchange.clone(),
+            symbol: best_buy.symbol.clone(),
+            buy_price: best_buy.ask_price,
+            sell_price: best_sell.bid_price,
+            profit,
+            profit_pct,
+            volume: best_buy.volume.min(best_sell.volume),
+            timestamp: chrono::Utc::now(),
+            is_viable: profit_pct >= self.min_profit_threshold,
         })
     }
     
@@ -241,23 +189,45 @@ impl MessageProcessor for ArbitrageDetectionProcessor {
     }
 }
 
-// 使用统一的MarketData定义替代重复的数据结构
-pub use common_types::{MarketData as RawMarketData};
+// 数据结构定义
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RawMarketData {
+    pub symbol: String,
+    pub exchange: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub bids: Vec<(f64, f64)>, // (price, quantity)
+    pub asks: Vec<(f64, f64)>,
+    pub volume: f64,
+}
 
-// ProcessedMarketData 保留为专门的处理结果结构体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessedMarketData {
-    // 基础数据使用统一的MarketData
-    pub market_data: common_types::MarketData,
-    // 处理相关的特殊字段
+    pub symbol: String,
+    pub exchange: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub bid_price: f64,
+    pub ask_price: f64,
+    pub volume: f64,
     pub processed_at: chrono::DateTime<chrono::Utc>,
 }
 
-// 使用统一的ArbitrageOpportunity定义
-pub use common_types::ArbitrageOpportunity;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArbitrageOpportunity {
+    pub id: String,
+    pub buy_exchange: String,
+    pub sell_exchange: String,
+    pub symbol: String,
+    pub buy_price: f64,
+    pub sell_price: f64,
+    pub profit: f64,
+    pub profit_pct: f64,
+    pub volume: f64,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub is_viable: bool,
+}
 
 // 批处理器
-pub struct BatchProcessor<T> {
+pub struct BatchProcessor<T: Send + Sync> {
     batch_size: usize,
     timeout: std::time::Duration,
     processor: Arc<dyn Fn(Vec<T>) -> Result<()> + Send + Sync>,

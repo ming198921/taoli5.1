@@ -1,0 +1,22 @@
+
+> arbitrage-frontend-v5.1@2.1.0 dev
+> vite
+
+
+  VITE v4.5.14  ready in 168 ms
+
+  ➜  Local:   http://localhost:80/
+  ➜  Network: http://172.31.26.146:80/
+3:25:55 PM [vite] hmr update /src/App.tsx, /src/store/index.ts, /src/pages/dashboard/DashboardPage.tsx, /src/components/layout/MainLayout.tsx
+3:26:13 PM [vite] hmr update /src/App.tsx, /src/store/index.ts, /src/pages/dashboard/DashboardPage.tsx, /src/components/layout/MainLayout.tsx
+(node:27095) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+3:34:31 PM [vite] hmr update /src/pages/dashboard/DashboardPage.tsx
+3:34:39 PM [vite] hmr update /src/pages/dashboard/DashboardPage.tsx
+3:34:57 PM [vite] hmr update /src/pages/dashboard/DashboardPage.tsx
+3:35:05 PM [vite] page reload src/api/client.ts
+3:35:11 PM [vite] page reload src/api/client.ts
+3:37:44 PM [vite] hmr update /src/App.tsx, /src/store/index.ts, /src/pages/dashboard/DashboardPage.tsx, /src/components/layout/MainLayout.tsx
+3:42:10 PM [vite] .env.local.tmp.18550.1757000530267 changed, restarting server...
+3:42:10 PM [vite] .env.local changed, restarting server...
+3:42:10 PM [vite] server restarted.

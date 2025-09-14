@@ -31,7 +31,7 @@ pub enum ConfigError {
     Validation(String),
     
     #[error("File watcher error: {0}")]
-    FileWatcher(String),
+    WatcherError(String),
 }
 
 /// Configuration hot reload notification
@@ -91,15 +91,15 @@ impl HotReloadConfigManager {
                     let _ = tx.send(event).unwrap(); // Unwrap is safe here as we are in a tokio::spawn
                 }
             }
-        }).map_err(|e| ConfigError::FileWatcher(format!("Failed to create watcher: {}", e)))?;
+        }).map_err(|e| ConfigError::WatcherError(format!("Failed to create watcher: {}", e)))?;
         
         // Watch the config file directory
         let config_dir = Path::new(&config_path)
             .parent()
-            .ok_or_else(|| ConfigError::FileWatcher("Invalid config path".to_string()))?;
+            .ok_or_else(|| ConfigError::WatcherError("Invalid config path".to_string()))?;
             
         watcher.watch(config_dir, notify::RecursiveMode::NonRecursive)
-            .map_err(|e| ConfigError::FileWatcher(format!("Failed to watch directory: {}", e)))?;
+            .map_err(|e| ConfigError::WatcherError(format!("Failed to watch directory: {}", e)))?;
         
         self._watcher = Some(watcher);
         
@@ -448,31 +448,12 @@ impl SystemConfig {
     #[allow(dead_code)]
     pub fn to_strategy_config(&self) -> StrategyConfig {
         StrategyConfig {
-            id: "default_strategy".to_string(),
-            name: "default_strategy".to_string(), 
-            version: "1.0.0".to_string(),
-            enabled: true,
+            enabled: true, // 默认启用
+            name: "default_strategy".to_string(), // 默认策略名
+            max_positions: 10, // 默认最大持仓数
             min_profit_threshold: self.strategy.min_profit_threshold,
-            max_profit_threshold: None,
-            max_position_size: 10.0,
-            max_capital_allocation: 100000.0,
-            max_risk_exposure: 0.1,
-            priority: 1,
-            monitoring_enabled: true,
-            auto_recovery: true,
-            symbols: vec![],
-            exchanges: vec![],
-            risk_level: "medium".to_string(),
-            risk_parameters: HashMap::new(),
-            execution_parameters: HashMap::new(),
-            parameters: {
-                let mut params = HashMap::new();
-                params.insert("max_slippage_pct".to_string(), serde_json::Value::Number(
-                    serde_json::Number::from_f64(self.strategy.inter_exchange.max_slippage_pct)
-                        .unwrap_or_else(|| serde_json::Number::from_f64(0.1).unwrap())
-                ));
-                params
-            }
+            max_slippage_pct: self.strategy.inter_exchange.max_slippage_pct,
+            parameters: HashMap::new(), // 空参数映射
         }
     }
 }
@@ -573,18 +554,28 @@ impl SystemConfig {
     }
 }
 
-/// Strategy configuration - using unified definition
-/// This eliminates the duplicate StrategyConfig and provides better type safety
-/// The unified BaseStrategyConfig provides:
-/// - name, enabled, min_profit_threshold, parameters (direct mapping)
-/// - max_positions can be stored in parameters["max_positions"]
-/// - max_slippage_pct can be stored in parameters["max_slippage_pct"]
-pub use common_types::{BaseStrategyConfig as StrategyConfig, BaseConfig};
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StrategyConfig {
+    pub enabled: bool,
+    pub name: String,
+    pub max_positions: usize,
+    pub min_profit_threshold: f64,
+    pub max_slippage_pct: f64,
+    pub parameters: HashMap<String, serde_json::Value>,
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     
+    #[test]
+    fn test_invalid_config_values() {
+        let mut config = SystemConfig::default();
+        config.strategy.min_profit_threshold = -0.1;
+        assert!(config.validate().is_err());
+    }
+}
+
     #[test]
     fn test_invalid_config_values() {
         let mut config = SystemConfig::default();

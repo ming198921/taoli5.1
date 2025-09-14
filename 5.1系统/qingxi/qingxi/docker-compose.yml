@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  qingxi-market-data:
+    build: .
+    container_name: qingxi-market-data
+    ports:
+      - "50051:50051"    # gRPC API
+      - "50061:50061"    # HTTP REST API  
+      - "50052:50052"    # Metrics
+      - "50053:50053"    # Health probes
+    environment:
+      - RUST_LOG=info
+      - QINGXI_CONFIG_PATH=/app/configs/qingxi.toml
+      - QINGXI_DISABLE_CPU_AFFINITY=true
+    volumes:
+      - ./configs:/app/configs:ro
+    networks:
+      - qingxi-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50053/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  qingxi-network:
+    driver: bridge

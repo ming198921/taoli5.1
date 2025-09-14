@@ -44,10 +44,6 @@ impl Symbol {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-    
-    pub fn name(&self) -> &str {
-        &self.0
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

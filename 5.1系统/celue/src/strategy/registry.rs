@@ -400,70 +400,6 @@ impl StrategyRegistry {
 
         results
     }
-    
-    /// 计算失败策略数量
-    async fn count_failed_strategies(&self, registrations: &HashMap<String, StrategyRegistration>) -> usize {
-        registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Failed))
-            .count()
-    }
-    
-    /// 计算暂停策略数量
-    async fn count_paused_strategies(&self, registrations: &HashMap<String, StrategyRegistration>) -> usize {
-        registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Paused))
-            .count()
-    }
-    
-    /// 计算平均运行时间（小时）
-    async fn calculate_average_uptime_hours(&self, registrations: &HashMap<String, StrategyRegistration>) -> f64 {
-        if registrations.is_empty() {
-            return 0.0;
-        }
-        
-        let now = Utc::now();
-        let total_hours: f64 = registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Active))
-            .map(|reg| {
-                let duration = now.signed_duration_since(reg.registered_at);
-                duration.num_milliseconds() as f64 / (1000.0 * 3600.0)
-            })
-            .sum();
-        
-        let active_count = registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Active))
-            .count();
-        
-        if active_count > 0 {
-            total_hours / active_count as f64
-        } else {
-            0.0
-        }
-    }
-    
-    /// 计算内存使用量（MB）
-    async fn calculate_memory_usage_mb(&self) -> f64 {
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(contents) = std::fs::read_to_string("/proc/self/status") {
-                for line in contents.lines() {
-                    if line.starts_with("VmRSS:") {
-                        if let Some(kb_str) = line.split_whitespace().nth(1) {
-                            if let Ok(kb) = kb_str.parse::<f64>() {
-                                return kb / 1024.0;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 回退到基于注册策略数量的估算
-        let registrations = self.registrations.read().await;
-        let strategy_count = registrations.len() as f64;
-        let estimated_mb = strategy_count * 5.0 + 20.0; // 每个策略约5MB，基础20MB
-        estimated_mb
-    }
 }
 
 impl Default for StrategyRegistry {
@@ -799,11 +735,11 @@ impl StrategyRegistry {
         RegistryStats {
             total_strategies,
             active_strategies,
-            failed_strategies: self.count_failed_strategies(&registrations).await,
-            paused_strategies: self.count_paused_strategies(&registrations).await,
+            failed_strategies: 0, // TODO: 计算实际的失败策略数
+            paused_strategies: 0, // TODO: 计算实际的暂停策略数
             strategies_by_type,
-            average_uptime_hours: self.calculate_average_uptime_hours(&registrations).await,
-            memory_usage_mb: self.calculate_memory_usage_mb().await,
+            average_uptime_hours: 0.0, // TODO: 计算实际的平均运行时间
+            memory_usage_mb: 0.0, // TODO: 计算实际的内存使用
             last_updated: Utc::now(),
         }
     }
@@ -851,70 +787,6 @@ impl StrategyRegistry {
 
         results
     }
-    
-    /// 计算失败策略数量
-    async fn count_failed_strategies(&self, registrations: &HashMap<String, StrategyRegistration>) -> usize {
-        registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Failed))
-            .count()
-    }
-    
-    /// 计算暂停策略数量
-    async fn count_paused_strategies(&self, registrations: &HashMap<String, StrategyRegistration>) -> usize {
-        registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Paused))
-            .count()
-    }
-    
-    /// 计算平均运行时间（小时）
-    async fn calculate_average_uptime_hours(&self, registrations: &HashMap<String, StrategyRegistration>) -> f64 {
-        if registrations.is_empty() {
-            return 0.0;
-        }
-        
-        let now = Utc::now();
-        let total_hours: f64 = registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Active))
-            .map(|reg| {
-                let duration = now.signed_duration_since(reg.registered_at);
-                duration.num_milliseconds() as f64 / (1000.0 * 3600.0)
-            })
-            .sum();
-        
-        let active_count = registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Active))
-            .count();
-        
-        if active_count > 0 {
-            total_hours / active_count as f64
-        } else {
-            0.0
-        }
-    }
-    
-    /// 计算内存使用量（MB）
-    async fn calculate_memory_usage_mb(&self) -> f64 {
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(contents) = std::fs::read_to_string("/proc/self/status") {
-                for line in contents.lines() {
-                    if line.starts_with("VmRSS:") {
-                        if let Some(kb_str) = line.split_whitespace().nth(1) {
-                            if let Ok(kb) = kb_str.parse::<f64>() {
-                                return kb / 1024.0;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 回退到基于注册策略数量的估算
-        let registrations = self.registrations.read().await;
-        let strategy_count = registrations.len() as f64;
-        let estimated_mb = strategy_count * 5.0 + 20.0; // 每个策略约5MB，基础20MB
-        estimated_mb
-    }
 }
 
 impl Default for StrategyRegistry {
@@ -940,70 +812,6 @@ impl Default for StrategyRegistry {
         }
 
         results
-    }
-    
-    /// 计算失败策略数量
-    async fn count_failed_strategies(&self, registrations: &HashMap<String, StrategyRegistration>) -> usize {
-        registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Failed))
-            .count()
-    }
-    
-    /// 计算暂停策略数量
-    async fn count_paused_strategies(&self, registrations: &HashMap<String, StrategyRegistration>) -> usize {
-        registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Paused))
-            .count()
-    }
-    
-    /// 计算平均运行时间（小时）
-    async fn calculate_average_uptime_hours(&self, registrations: &HashMap<String, StrategyRegistration>) -> f64 {
-        if registrations.is_empty() {
-            return 0.0;
-        }
-        
-        let now = Utc::now();
-        let total_hours: f64 = registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Active))
-            .map(|reg| {
-                let duration = now.signed_duration_since(reg.registered_at);
-                duration.num_milliseconds() as f64 / (1000.0 * 3600.0)
-            })
-            .sum();
-        
-        let active_count = registrations.values()
-            .filter(|reg| matches!(reg.status, StrategyStatus::Active))
-            .count();
-        
-        if active_count > 0 {
-            total_hours / active_count as f64
-        } else {
-            0.0
-        }
-    }
-    
-    /// 计算内存使用量（MB）
-    async fn calculate_memory_usage_mb(&self) -> f64 {
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(contents) = std::fs::read_to_string("/proc/self/status") {
-                for line in contents.lines() {
-                    if line.starts_with("VmRSS:") {
-                        if let Some(kb_str) = line.split_whitespace().nth(1) {
-                            if let Ok(kb) = kb_str.parse::<f64>() {
-                                return kb / 1024.0;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 回退到基于注册策略数量的估算
-        let registrations = self.registrations.read().await;
-        let strategy_count = registrations.len() as f64;
-        let estimated_mb = strategy_count * 5.0 + 20.0; // 每个策略约5MB，基础20MB
-        estimated_mb
     }
 }
 

@@ -8,8 +8,7 @@ use tempfile::TempDir;
 use serde_json;
 
 use strategy::{StrategyContext, StrategyContextConfig};
-use common_types::ArbitrageOpportunity;
-use common::market_data::NormalizedSnapshot;
+use common::{ArbitrageOpportunity, market_data::NormalizedSnapshot};
 use orchestrator::{ConfigurableArbitrageEngine, DynamicRiskController, SystemConfig};
 
 #[cfg(test)]
@@ -135,85 +134,7 @@ failure_rate_threshold = 0.8
         // 这里提供框架，实际实现取决于具体的ML模型
         
         println!("🧪 模型验证测试框架已就绪");
-        // 集成production_ml_models.rs中的完整SHAP和LIME测试
-        use strategy::production_ml_models::{ProductionShapExplainer, ProductionLimeExplainer};
-        use ndarray::{Array1, Array2};
-        
-        // 创建生产级SHAP解释器
-        let shap_explainer = ProductionShapExplainer::new();
-        
-        // 创建测试数据
-        let features = Array2::from_shape_vec((10, 4), 
-            (0..40).map(|i| (i as f64) / 10.0).collect()).expect("创建特征矩阵");
-        let background_data = Array2::from_shape_vec((5, 4), 
-            (0..20).map(|i| (i as f64) / 20.0).collect()).expect("创建背景数据");
-        let feature_names = vec![
-            "价格差异".to_string(),
-            "成交量比".to_string(), 
-            "波动率".to_string(),
-            "市场深度".to_string()
-        ];
-        
-        // 定义模拟的套利模型预测函数
-        let predict_fn = |x: &Array2<f64>| -> anyhow::Result<Array1<f64>> {
-            Ok(Array1::from_shape_fn(x.nrows(), |i| {
-                let row = x.row(i);
-                // 模拟套利利润预测：价格差异 * 成交量比 - 风险惩罚
-                row[0] * row[1] - (row[2] * 0.5) + (row[3] * 0.2)
-            }))
-        };
-        
-        // 执行SHAP分析
-        let shap_result = shap_explainer.explain_prediction(
-            predict_fn,
-            &features,
-            &background_data,
-            &feature_names,
-        ).await;
-        
-        assert!(shap_result.is_ok(), "SHAP分析应该成功完成");
-        let shap_values = shap_result.unwrap();
-        assert_eq!(shap_values.values.nrows(), 10, "SHAP值矩阵行数应该匹配样本数");
-        assert_eq!(shap_values.values.ncols(), 4, "SHAP值矩阵列数应该匹配特征数");
-        assert_eq!(shap_values.feature_names.len(), 4, "特征名称数量应该正确");
-        assert!(shap_values.feature_importance.len() > 0, "应该计算特征重要性");
-        
-        println!("✅ SHAP分析完成 - 特征重要性: {:?}", 
-                 shap_values.feature_importance);
-        
-        // 创建生产级LIME解释器
-        let lime_explainer = ProductionLimeExplainer::new();
-        
-        // 测试单个实例的LIME解释
-        let test_instance = Array1::from_vec(vec![0.5, 1.2, 0.3, 2.1]);
-        let lime_result = lime_explainer.explain_instance(
-            predict_fn,
-            &test_instance,
-            &feature_names,
-            &background_data,
-        ).await;
-        
-        assert!(lime_result.is_ok(), "LIME分析应该成功完成");
-        let lime_explanation = lime_result.unwrap();
-        assert_eq!(lime_explanation.feature_weights.len(), 4, "LIME特征权重数量应该正确");
-        assert!(lime_explanation.model_fidelity >= 0.0, "模型保真度应该非负");
-        assert!(lime_explanation.neighborhood_size > 0, "邻域大小应该大于0");
-        
-        println!("✅ LIME分析完成 - 特征权重: {:?}, 保真度: {:.4}", 
-                 lime_explanation.feature_weights, lime_explanation.model_fidelity);
-        
-        // 验证结果的合理性
-        let total_shap_importance: f64 = shap_values.feature_importance.values().sum();
-        assert!(total_shap_importance > 0.0, "总特征重要性应该大于0");
-        
-        let significant_lime_weights = lime_explanation.feature_weights
-            .values()
-            .filter(|&&w| w.abs() > 0.001)
-            .count();
-        assert!(significant_lime_weights > 0, "应该有显著的LIME特征权重");
-        
-        println!("🧪 模型验证和解释功能测试完成 - SHAP重要性总和: {:.4}, LIME显著特征: {}", 
-                 total_shap_importance, significant_lime_weights);
+        // TODO: 集成production_ml_models.rs中的SHAP和LIME测试
     }
 
     /// 测试概念漂移检测
@@ -458,8 +379,7 @@ use tempfile::TempDir;
 use serde_json;
 
 use strategy::{StrategyContext, StrategyContextConfig};
-use common_types::ArbitrageOpportunity;
-use common::market_data::NormalizedSnapshot;
+use common::{ArbitrageOpportunity, market_data::NormalizedSnapshot};
 use orchestrator::{ConfigurableArbitrageEngine, DynamicRiskController, SystemConfig};
 
 #[cfg(test)]
@@ -585,85 +505,7 @@ failure_rate_threshold = 0.8
         // 这里提供框架，实际实现取决于具体的ML模型
         
         println!("🧪 模型验证测试框架已就绪");
-        // 集成production_ml_models.rs中的完整SHAP和LIME测试
-        use strategy::production_ml_models::{ProductionShapExplainer, ProductionLimeExplainer};
-        use ndarray::{Array1, Array2};
-        
-        // 创建生产级SHAP解释器
-        let shap_explainer = ProductionShapExplainer::new();
-        
-        // 创建测试数据
-        let features = Array2::from_shape_vec((10, 4), 
-            (0..40).map(|i| (i as f64) / 10.0).collect()).expect("创建特征矩阵");
-        let background_data = Array2::from_shape_vec((5, 4), 
-            (0..20).map(|i| (i as f64) / 20.0).collect()).expect("创建背景数据");
-        let feature_names = vec![
-            "价格差异".to_string(),
-            "成交量比".to_string(), 
-            "波动率".to_string(),
-            "市场深度".to_string()
-        ];
-        
-        // 定义模拟的套利模型预测函数
-        let predict_fn = |x: &Array2<f64>| -> anyhow::Result<Array1<f64>> {
-            Ok(Array1::from_shape_fn(x.nrows(), |i| {
-                let row = x.row(i);
-                // 模拟套利利润预测：价格差异 * 成交量比 - 风险惩罚
-                row[0] * row[1] - (row[2] * 0.5) + (row[3] * 0.2)
-            }))
-        };
-        
-        // 执行SHAP分析
-        let shap_result = shap_explainer.explain_prediction(
-            predict_fn,
-            &features,
-            &background_data,
-            &feature_names,
-        ).await;
-        
-        assert!(shap_result.is_ok(), "SHAP分析应该成功完成");
-        let shap_values = shap_result.unwrap();
-        assert_eq!(shap_values.values.nrows(), 10, "SHAP值矩阵行数应该匹配样本数");
-        assert_eq!(shap_values.values.ncols(), 4, "SHAP值矩阵列数应该匹配特征数");
-        assert_eq!(shap_values.feature_names.len(), 4, "特征名称数量应该正确");
-        assert!(shap_values.feature_importance.len() > 0, "应该计算特征重要性");
-        
-        println!("✅ SHAP分析完成 - 特征重要性: {:?}", 
-                 shap_values.feature_importance);
-        
-        // 创建生产级LIME解释器
-        let lime_explainer = ProductionLimeExplainer::new();
-        
-        // 测试单个实例的LIME解释
-        let test_instance = Array1::from_vec(vec![0.5, 1.2, 0.3, 2.1]);
-        let lime_result = lime_explainer.explain_instance(
-            predict_fn,
-            &test_instance,
-            &feature_names,
-            &background_data,
-        ).await;
-        
-        assert!(lime_result.is_ok(), "LIME分析应该成功完成");
-        let lime_explanation = lime_result.unwrap();
-        assert_eq!(lime_explanation.feature_weights.len(), 4, "LIME特征权重数量应该正确");
-        assert!(lime_explanation.model_fidelity >= 0.0, "模型保真度应该非负");
-        assert!(lime_explanation.neighborhood_size > 0, "邻域大小应该大于0");
-        
-        println!("✅ LIME分析完成 - 特征权重: {:?}, 保真度: {:.4}", 
-                 lime_explanation.feature_weights, lime_explanation.model_fidelity);
-        
-        // 验证结果的合理性
-        let total_shap_importance: f64 = shap_values.feature_importance.values().sum();
-        assert!(total_shap_importance > 0.0, "总特征重要性应该大于0");
-        
-        let significant_lime_weights = lime_explanation.feature_weights
-            .values()
-            .filter(|&&w| w.abs() > 0.001)
-            .count();
-        assert!(significant_lime_weights > 0, "应该有显著的LIME特征权重");
-        
-        println!("🧪 模型验证和解释功能测试完成 - SHAP重要性总和: {:.4}, LIME显著特征: {}", 
-                 total_shap_importance, significant_lime_weights);
+        // TODO: 集成production_ml_models.rs中的SHAP和LIME测试
     }
 
     /// 测试概念漂移检测

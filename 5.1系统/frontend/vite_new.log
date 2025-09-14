@@ -1,0 +1,16 @@
+
+> arbitrage-frontend-v5.1@2.1.0 dev
+> vite
+
+
+  VITE v5.4.20  ready in 159 ms
+
+  ➜  Local:   http://localhost:3003/
+  ➜  Network: http://172.31.26.146:3003/
+7:22:14 AM [vite] hmr update /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/TradingModule.tsx, /src/pages/SystemControl.tsx, /src/pages/PerformanceModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/Dashboard.tsx, /src/pages/ConfigModule.tsx, /src/pages/StrategyModule.tsx
+7:22:20 AM [vite] hmr update /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/TradingModule.tsx, /src/pages/SystemControl.tsx, /src/pages/PerformanceModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/Dashboard.tsx, /src/pages/ConfigModule.tsx, /src/pages/StrategyModule.tsx
+7:22:28 AM [vite] hmr update /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/TradingModule.tsx, /src/pages/SystemControl.tsx, /src/pages/PerformanceModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/Dashboard.tsx, /src/pages/ConfigModule.tsx, /src/pages/StrategyModule.tsx
+7:22:46 AM [vite] hmr update /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/TradingModule.tsx, /src/pages/SystemControl.tsx, /src/pages/PerformanceModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/Dashboard.tsx, /src/pages/ConfigModule.tsx, /src/pages/StrategyModule.tsx
+7:26:42 AM [vite] hmr update /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/TradingModule.tsx, /src/pages/SystemControl.tsx, /src/pages/PerformanceModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/Dashboard.tsx, /src/pages/ConfigModule.tsx, /src/pages/StrategyModule.tsx
+7:26:51 AM [vite] hmr update /src/pages/LoggingModule.tsx, /src/pages/CleaningModule.tsx, /src/pages/TradingModule.tsx, /src/pages/SystemControl.tsx, /src/pages/PerformanceModule.tsx, /src/pages/AIModelModule.tsx, /src/pages/Dashboard.tsx, /src/pages/ConfigModule.tsx, /src/pages/StrategyModule.tsx
+Killed

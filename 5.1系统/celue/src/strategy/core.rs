@@ -6,7 +6,6 @@ use std::pin::Pin;
 use std::future::Future;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use common_types::ArbitrageOpportunity;
 
 /// 策略执行结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -152,10 +151,47 @@ impl std::fmt::Display for StrategyError {
 
 impl std::error::Error for StrategyError {}
 
-// 使用统一的MarketData定义替代重复的MarketDataSnapshot
-pub use common_types::{MarketData, MarketDataSnapshot, AlignedMarketData};
+/// 市场数据快照
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketDataSnapshot {
+    pub symbol: String,
+    pub exchange: String,
+    pub bid_price: f64,
+    pub ask_price: f64,
+    pub bid_quantity: f64,
+    pub ask_quantity: f64,
+    pub mid_price: f64,
+    pub spread: f64,
+    pub volume_24h: f64,
+    pub timestamp: DateTime<Utc>,
+    pub api_latency_ms: u64,
+}
 
-impl ArbitrageOpportunity {
+/// 套利机会定义
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArbitrageOpportunityCore {
+    pub id: String,
+    pub strategy_type: StrategyType,
+    pub symbol: String,
+    pub buy_exchange: String,
+    pub sell_exchange: String,
+    pub buy_price: f64,
+    pub sell_price: f64,
+    pub quantity: f64,
+    pub profit_estimate: f64,
+    pub profit_percentage: f64,
+    pub fees_estimate: f64,
+    pub slippage_estimate: f64,
+    pub execution_path: Vec<String>,
+    pub capital_requirement: f64,
+    pub risk_score: f64,
+    pub confidence_score: f64,
+    pub valid_until: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub market_data: Vec<MarketDataSnapshot>,
+}
+
+impl ArbitrageOpportunityCore {
     pub fn new(strategy_type: StrategyType, symbol: String) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -189,8 +225,51 @@ impl ArbitrageOpportunity {
     }
 }
 
-// The unified ArbitrageStrategy trait is now defined in common_types
-// Use common_types::ArbitrageStrategy instead of defining it here
+/// 核心策略Trait
+pub trait ArbitrageStrategy: Send + Sync {
+    /// 策略唯一标识
+    fn strategy_id(&self) -> &str;
+    
+    /// 策略类型
+    fn strategy_type(&self) -> StrategyType;
+    
+    /// 策略描述
+    fn description(&self) -> &str;
+    
+    /// 检测套利机会
+    fn detect_opportunities(
+        &self,
+        market_data: &HashMap<String, HashMap<String, MarketDataSnapshot>>,
+        min_profit: f64,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<ArbitrageOpportunityCore>, StrategyError>> + Send + '_>>;
+    
+    /// 评估机会质量
+    fn evaluate_opportunity(
+        &self,
+        opportunity: &ArbitrageOpportunityCore,
+    ) -> Pin<Box<dyn Future<Output = Result<OpportunityEvaluation, StrategyError>> + Send + '_>>;
+    
+    /// 执行套利
+    fn execute_opportunity(
+        &self,
+        opportunity: &ArbitrageOpportunityCore,
+    ) -> Pin<Box<dyn Future<Output = Result<StrategyExecutionResult, StrategyError>> + Send + '_>>;
+    
+    /// 获取策略配置
+    fn get_config(&self) -> HashMap<String, serde_json::Value>;
+    
+    /// 更新策略配置
+    fn update_config(
+        &mut self, 
+        config: HashMap<String, serde_json::Value>
+    ) -> Pin<Box<dyn Future<Output = Result<(), StrategyError>> + Send + '_>>;
+    
+    /// 策略健康检查
+    fn health_check(&self) -> Pin<Box<dyn Future<Output = Result<(), StrategyError>> + Send + '_>>;
+    
+    /// 获取资源需求
+    fn resource_requirements(&self) -> ResourceRequirements;
+}
 
 /// 资源需求定义
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -214,18 +293,32 @@ pub enum StrategyStatus {
 }
 
 /// 策略配置
-/// Strategy configuration - using unified definition to eliminate duplication
-/// The unified BaseStrategyConfig includes all the fields we need:
-/// - id (maps to strategy_id)
-/// - enabled 
-/// - priority
-/// - max_capital_allocation
-/// - risk_parameters
-/// - execution_parameters
-/// - monitoring_enabled
-/// - auto_recovery
-/// And provides additional standardized fields for better consistency
-pub use common_types::{BaseStrategyConfig as StrategyConfig, BaseConfig}; 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StrategyConfig {
+    pub strategy_id: String,
+    pub enabled: bool,
+    pub priority: u32,
+    pub max_capital_allocation: f64,
+    pub risk_parameters: HashMap<String, f64>,
+    pub execution_parameters: HashMap<String, serde_json::Value>,
+    pub monitoring_enabled: bool,
+    pub auto_recovery: bool,
+}
+
+impl Default for StrategyConfig {
+    fn default() -> Self {
+        Self {
+            strategy_id: String::new(),
+            enabled: true,
+            priority: 1,
+            max_capital_allocation: 10000.0,
+            risk_parameters: HashMap::new(),
+            execution_parameters: HashMap::new(),
+            monitoring_enabled: true,
+            auto_recovery: true,
+        }
+    }
+} 
  
  
 

@@ -16,14 +16,9 @@ use chrono::{DateTime, Utc};
 use celue::performance::simd_fixed_point::{SIMDFixedPointProcessor, FixedPrice};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use colored::*;
-use common_types::{ArbitrageOpportunity, StrategyType, ArbitrageType};
 
 const OPTIMAL_BATCH_SIZE: usize = 2048;
 
-/// 直接使用统一的MarketData定义 - 不再重复定义
-pub use common_types::{MarketData, ExchangeMarketData};
-
-/// 高频原始数据输入格式 - 仅用于数据接收，直接转换为统一格式
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CelueMarketData {
     pub symbol: String,
@@ -31,41 +26,6 @@ pub struct CelueMarketData {
     pub bids: Vec<[f64; 2]>,
     pub asks: Vec<[f64; 2]>,
     pub timestamp: DateTime<Utc>,
-}
-
-impl From<CelueMarketData> for ExchangeMarketData {
-    fn from(data: CelueMarketData) -> Self {
-        let best_bid = data.bids.first().map(|b| b[0]).unwrap_or(0.0);
-        let best_ask = data.asks.first().map(|a| a[0]).unwrap_or(0.0);
-        let bid_volume = data.bids.first().map(|b| b[1]).unwrap_or(0.0);
-        let ask_volume = data.asks.first().map(|a| a[1]).unwrap_or(0.0);
-        
-        // 创建订单簿数据
-        let order_book = Some(common_types::OrderBookData {
-            bids: data.bids.into_iter().map(|b| (b[0], b[1])).collect(),
-            asks: data.asks.into_iter().map(|a| (a[0], a[1])).collect(),
-            timestamp: data.timestamp.timestamp_millis() as u64,
-        });
-        
-        ExchangeMarketData {
-            market_data: MarketData {
-                symbol: data.symbol,
-                exchange: data.exchange,
-                timestamp: data.timestamp.timestamp_millis() as u64,
-                bid_price: best_bid,
-                ask_price: best_ask,
-                bid_volume,
-                ask_volume,
-                last_price: (best_bid + best_ask) / 2.0,
-                volume_24h: 0.0, // 高频数据不包含24小时数据
-                change_24h: 0.0,
-                metadata: std::collections::HashMap::new(),
-            },
-            order_book,
-            recent_trades: Vec::new(),
-            latency_ms: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -78,7 +38,18 @@ pub struct PricePoint {
     pub exchange: String,
 }
 
-// ArbitrageOpportunity 从 common_types 导入，移除本地重复定义
+#[derive(Debug, Clone)]
+pub struct ArbitrageOpportunity {
+    pub symbol: String,
+    pub buy_exchange: String,
+    pub sell_exchange: String,
+    pub buy_price: f64,
+    pub sell_price: f64,
+    pub profit_percentage: f64,
+    pub opportunity_type: ArbitrageType,
+    pub timestamp: DateTime<Utc>,
+    pub volume: f64,
+}
 
 #[derive(Debug, Clone)]
 pub enum ArbitrageType {
@@ -384,57 +355,9 @@ impl ArbitrageMonitor {
     // 预留接口：将来集成完整策略模块
     #[allow(dead_code)]
     async fn use_full_triangular_strategy(&self) -> bool {
-        // 集成完整的三角套利策略
-        // 使用生产级的DynamicTriangularStrategy进行真实策略处理
-        use crate::strategy::plugins::triangular::DynamicTriangularStrategy;
-        
-        // 检查系统负载决定是否使用完整策略
-        let system_load = self.get_current_system_load().await;
-        system_load < 80.0 // 系统负载低于80%时使用完整策略
-    }
-    
-    /// 获取当前系统负载
-    async fn get_current_system_load(&self) -> f64 {
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(contents) = tokio::fs::read_to_string("/proc/loadavg").await {
-                if let Some(first_value) = contents.split_whitespace().next() {
-                    if let Ok(load) = first_value.parse::<f64>() {
-                        // 假设系统有4核，将负载转换为百分比
-                        return (load / 4.0) * 100.0;
-                    }
-                }
-            }
-        }
-        
-        // 回退到基于内存使用的估算
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(contents) = tokio::fs::read_to_string("/proc/meminfo").await {
-                let mut total_kb = 0u64;
-                let mut available_kb = 0u64;
-                
-                for line in contents.lines() {
-                    if line.starts_with("MemTotal:") {
-                        if let Some(kb_str) = line.split_whitespace().nth(1) {
-                            total_kb = kb_str.parse().unwrap_or(0);
-                        }
-                    } else if line.starts_with("MemAvailable:") {
-                        if let Some(kb_str) = line.split_whitespace().nth(1) {
-                            available_kb = kb_str.parse().unwrap_or(0);
-                        }
-                    }
-                }
-                
-                if total_kb > 0 && available_kb > 0 {
-                    let used_pct = ((total_kb - available_kb) as f64 / total_kb as f64) * 100.0;
-                    return used_pct;
-                }
-            }
-        }
-        
-        // 默认返回中等负载
-        50.0
+        // TODO: 集成 strategy::plugins::triangular::TriangularStrategy
+        // 当前使用简化版本进行高频处理优化
+        false
     }
 }
 

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: qingxi-market-data
+  labels:
+    app.kubernetes.io/name: qingxi-market-data
+    app.kubernetes.io/component: core

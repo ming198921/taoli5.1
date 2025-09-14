@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API测试页面</title>
+</head>
+<body>
+    <h1>5.1套利系统 API 连接测试</h1>
+    <button onclick="testGetStatus()">测试获取系统状态</button>
+    <button onclick="testStartSystem()">测试启动系统</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        
+        async function testGetStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/system/status`);
+                const data = await response.json();
+                document.getElementById('results').innerHTML = 
+                    '<h3>获取状态结果:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('results').innerHTML = 
+                    '<h3>获取状态错误:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+        
+        async function testStartSystem() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/system/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                document.getElementById('results').innerHTML = 
+                    '<h3>启动系统结果:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('results').innerHTML = 
+                    '<h3>启动系统错误:</h3><pre>' + error.message + '</pre>';
+                console.error('启动系统失败:', error);
+            }
+        }
+    </script>
+</body>
+</html>

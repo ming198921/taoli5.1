@@ -1,0 +1,33 @@
+[package]
+name = "ultra-latency-system"
+version = "5.1.0"
+edition = "2021"
+authors = ["5.1 Arbitrage Team"]
+
+[dependencies]
+tokio = { version = "1.35", features = ["full", "rt-multi-thread"] }
+tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+socket2 = { version = "0.5", features = ["all"] }
+crossbeam = "0.8"
+parking_lot = "0.12"
+nohash-hasher = "0.2"
+bytemuck = "1.14"
+
+[features]
+default = ["socket2", "tcp_quickack"]
+socket2 = []
+tcp_quickack = []
+full_optimization = ["socket2", "tcp_quickack"]
+minimal = []
+
+[[bin]]
+name = "ultra-latency-server"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"

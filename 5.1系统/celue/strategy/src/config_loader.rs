@@ -318,11 +318,107 @@ impl ConfigLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_default_config_validation() {
         let config = StrategyConfigFile::default();
         assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_file_io() -> Result<()> {
+        let config = StrategyConfigFile::default();
+        
+        // 创建临时文件
+        let temp_file = NamedTempFile::new()?;
+        let path = temp_file.path();
+        
+        // 保存和加载
+        config.save_to_file(path)?;
+        let loaded_config = StrategyConfigFile::load_from_file(path)?;
+        
+        // 验证配置一致性
+        assert_eq!(config.inter_exchange.slippage_per_leg_pct, 
+                  loaded_config.inter_exchange.slippage_per_leg_pct);
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_invalid_config_validation() {
+        let mut config = StrategyConfigFile::default();
+        
+        // 设置无效滑点
+        config.inter_exchange.slippage_per_leg_pct = -0.1;
+        assert!(config.validate().is_err());
+        
+        // 设置无效权重
+        config.inter_exchange.slippage_per_leg_pct = 0.001;
+        config.min_profit.market_state_weights.regular = -1.0;
+        assert!(config.validate().is_err());
+    }
+} 
+
+    /// 获取当前配置
+    pub fn get_config(&self) -> &StrategyConfigFile {
+        &self.current_config
+    }
+
+    /// 重新加载配置
+    pub fn reload(&mut self) -> Result<()> {
+        tracing::info!("🔄 重新加载策略配置: {}", self.config_file_path);
+        let new_config = StrategyConfigFile::load_from_file(&self.config_file_path)?;
+        new_config.validate()?;
+        self.current_config = new_config;
+        tracing::info!("✅ 策略配置重新加载完成");
+        Ok(())
+    }
+
+    /// 获取策略上下文配置
+    pub fn get_context_config(&self) -> StrategyContextConfig {
+        self.current_config.to_context_config()
+    }
+
+    /// 获取最小利润配置
+    pub fn get_min_profit_config(&self) -> &MinProfitConfig {
+        &self.current_config.min_profit
+    }
+
+    /// 获取风险配置
+    pub fn get_risk_config(&self) -> &RiskConfig {
+        &self.current_config.risk
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_default_config_validation() {
+        let config = StrategyConfigFile::default();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_file_io() -> Result<()> {
+        let config = StrategyConfigFile::default();
+        
+        // 创建临时文件
+        let temp_file = NamedTempFile::new()?;
+        let path = temp_file.path();
+        
+        // 保存和加载
+        config.save_to_file(path)?;
+        let loaded_config = StrategyConfigFile::load_from_file(path)?;
+        
+        // 验证配置一致性
+        assert_eq!(config.inter_exchange.slippage_per_leg_pct, 
+                  loaded_config.inter_exchange.slippage_per_leg_pct);
+        
+        Ok(())
     }
 
     #[test]

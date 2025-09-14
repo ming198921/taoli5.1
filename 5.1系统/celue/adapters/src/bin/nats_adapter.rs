@@ -3,7 +3,7 @@
 //! This binary runs the NATS adapter as a separate service.
 
 use std::env;
-use tracing::{info, warn};
+use tracing::{info, warn, error};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use std::time::Duration;
 use tokio::signal;

@@ -1,0 +1,1 @@
+with open("src/types.rs", "r") as f: content = f.read(); content = content.replace("    LatencySpike,", "    LatencySpike,\\n    /// 价差异常\\n    SpreadAnomaly,\\n    /// 交易量异常\\n    VolumeAnomaly,"); with open("src/types.rs", "w") as f: f.write(content); print("Updated")

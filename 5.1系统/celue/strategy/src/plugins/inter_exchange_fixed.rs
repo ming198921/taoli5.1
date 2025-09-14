@@ -1,12 +1,11 @@
 use crate::{
+    context::StrategyContext,
     traits::{ArbitrageStrategy, ExecutionResult, StrategyError, StrategyKind},
 };
-use common_types::StrategyContext;
 use async_trait::async_trait;
-use common_types::{ArbitrageOpportunity, NormalizedSnapshot};
 use common::{
-    arbitrage::{ArbitrageLeg, Side},
-    market_data::OrderBook,
+    arbitrage::{ArbitrageLeg, ArbitrageOpportunity, Side},
+    market_data::{NormalizedSnapshot, OrderBook},
     precision::{FixedPrice, FixedQuantity},
 };
 use itertools::Itertools;
@@ -14,8 +13,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::time::{sleep, Duration};
 use uuid::Uuid;
-
-use crate::production_api::{ProductionApiManager, TradeResult, ArbitrageLeg};
 
 /// 执行模式配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -122,7 +119,7 @@ impl ArbitrageStrategy for ConfigurableInterExchangeStrategy {
 
     fn detect(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         input: &NormalizedSnapshot,
     ) -> Option<ArbitrageOpportunity> {
         if input.exchanges.len() < 2 {
@@ -153,7 +150,7 @@ impl ArbitrageStrategy for ConfigurableInterExchangeStrategy {
 
     async fn execute(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         opportunity: &ArbitrageOpportunity,
     ) -> Result<ExecutionResult, StrategyError> {
         match &self.execution_mode {
@@ -260,85 +257,74 @@ impl ConfigurableInterExchangeStrategy {
         }
     }
     
-    /// 生产执行 - 使用真实API
+    /// 生产执行
     async fn execute_production(
         &self,
-        ctx: &dyn StrategyContext,
+        _ctx: &StrategyContext,
         opportunity: &ArbitrageOpportunity,
     ) -> Result<ExecutionResult, StrategyError> {
-        info!("🚀 开始生产级跨交易所套利执行");
-
-        // 获取生产API管理器
-        let api_manager = ctx.get_production_api_manager()
-            .ok_or_else(|| StrategyError::ExecutionError("生产API管理器未初始化".to_string()))?;
-
-        // 转换套利腿格式
-        let mut legs = Vec::new();
-        for opp_leg in &opportunity.legs {
-            legs.push(ArbitrageLeg {
-                exchange: opp_leg.exchange.to_string(),
-                symbol: opp_leg.symbol.to_string(),
-                side: opp_leg.side,
-                quantity: opp_leg.quantity,
-                price: opp_leg.price,
+        let mut order_ids = Vec::new();
+        let mut execution_errors = Vec::new();
+        
+        // 分两个阶段执行：
+        // 1. 并行提交所有订单
+        // 2. 监控执行状态
+        
+        // 阶段1：提交订单
+        let mut pending_orders = Vec::new();
+        
+        for leg in &opportunity.legs {
+            let exchange = leg.exchange.to_string();
+            
+            // 获取交易所客户端
+            let client = match self.exchange_clients.get(&exchange) {
+                Some(client) => client,
+                None => {
+                    execution_errors.push(format!("No client for exchange: {}", exchange));
+                    continue;
+                }
+            };
+            
+            // 提交订单
+            match client.place_order(
+                &leg.symbol.to_string(),
+                leg.side,
+                leg.quantity,
+                leg.price,
+            ).await {
+                Ok(order_id) => {
+                    order_ids.push(order_id.clone());
+                    pending_orders.push((exchange.clone(), order_id));
+                }
+                Err(e) => {
+                    execution_errors.push(format!("Order placement failed on {}: {}", exchange, e));
+                }
+            }
+        }
+        
+        // 如果有订单失败，取消所有成功的订单
+        if !execution_errors.is_empty() && !pending_orders.is_empty() {
+            self.cancel_all_orders(&pending_orders).await;
+            
+            return Ok(ExecutionResult {
+                accepted: false,
+                reason: Some(format!("Execution failed: {}", execution_errors.join(", "))),
+                order_ids: Vec::new(),
             });
         }
-
-        // 执行原子性套利
-        match api_manager.execute_arbitrage(legs).await {
-            Ok(trade_results) => {
-                let mut order_ids = Vec::new();
-                let mut total_filled = 0;
-                let mut total_failed = 0;
-
-                for result in trade_results {
-                    if result.success {
-                        if let Some(order_id) = result.order_id {
-                            order_ids.push(order_id);
-                        }
-                        total_filled += 1;
-                    } else {
-                        total_failed += 1;
-                        if let Some(error) = result.error_message {
-                            error!("交易腿执行失败: {}", error);
-                        }
-                    }
-                }
-
-                let success_rate = total_filled as f64 / (total_filled + total_failed) as f64;
-                
-                if success_rate >= 1.0 {
-                    info!("✅ 套利执行完全成功: {} 订单", total_filled);
-                    Ok(ExecutionResult {
-                        accepted: true,
-                        reason: Some(format!("生产执行成功: {} 订单", total_filled)),
-                        order_ids,
-                    })
-                } else if success_rate >= 0.5 {
-                    warn!("⚠️ 套利部分成功: {}/{} 订单", total_filled, total_filled + total_failed);
-                    Ok(ExecutionResult {
-                        accepted: true,
-                        reason: Some(format!("部分执行成功: {}/{}", total_filled, total_filled + total_failed)),
-                        order_ids,
-                    })
-                } else {
-                    error!("❌ 套利执行失败: {}/{} 订单", total_filled, total_filled + total_failed);
-                    Ok(ExecutionResult {
-                        accepted: false,
-                        reason: Some(format!("执行失败率过高: {}/{}", total_failed, total_filled + total_failed)),
-                        order_ids,
-                    })
-                }
-            }
-            Err(e) => {
-                error!("套利执行异常: {}", e);
-                Ok(ExecutionResult {
-                    accepted: false,
-                    reason: Some(format!("执行异常: {}", e)),
-                    order_ids: Vec::new(),
-                })
-            }
-        }
+        
+        // 阶段2：监控订单执行
+        let execution_success = self.monitor_order_execution(&pending_orders).await?;
+        
+        Ok(ExecutionResult {
+            accepted: execution_success,
+            reason: if execution_success {
+                Some("Production execution completed successfully".to_string())
+            } else {
+                Some("Production execution failed during monitoring".to_string())
+            },
+            order_ids,
+        })
     }
     
     /// 取消所有订单
@@ -403,7 +389,7 @@ impl ConfigurableInterExchangeStrategy {
     /// 寻找套利机会（保持原有逻辑）
     fn find_opportunity(
         &self,
-        ctx: &dyn StrategyContext,
+        ctx: &StrategyContext,
         buy_book: &OrderBook,
         sell_book: &OrderBook,
         min_profit_pct: FixedPrice,

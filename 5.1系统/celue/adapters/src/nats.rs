@@ -6,8 +6,7 @@
 use crate::{Adapter, AdapterError, AdapterResult};
 use async_nats::{jetstream, Client, ConnectOptions};
 use futures_util::stream::StreamExt;
-use common_types::{ArbitrageOpportunity, ExecutionResult};
-use common::{NormalizedSnapshot, TraceId};
+use common::{ArbitrageOpportunity, ExecutionResult, NormalizedSnapshot, TraceId};
 use parking_lot::RwLock;
 use serde::{Serialize, Deserialize};
 use zstd::stream::encode_all as zstd_encode_all;

@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qingxi-real-data-config
+  namespace: qingxi-market-data
+  labels:
+    app.kubernetes.io/component: config
+    app.kubernetes.io/name: qingxi-market-data
+data:
+  qingxi.toml: |
+    [general]
+    log_level = "info"
+    metrics_enabled = true
+    real_data_mode = true
+    mock_mode = false
+
+    [api_server]
+    host = "0.0.0.0"
+    port = 50051
+
+    [central_manager]
+    event_buffer_size = 16384
+
+    [reasoner]
+    api_endpoint = "http://mcp-reasoner-service.your-reasoner-namespace.svc.cluster.local:8080/api/v1/reason"
+
+    [consistency_thresholds]
+    price_diff_percentage = 0.01
+    timestamp_diff_ms = 100
+    sequence_gap_threshold = 1
+    spread_threshold_percentage = 0.5
+
+    [anomaly_detection]
+    spread_threshold = 0.5
+    volume_threshold = 1000.0
+    price_change_threshold = 1.0
+    spread_threshold_percentage = 0.5
+
+    [[sources]]
+    exchange_id = "binance"
+    symbols = [
+        { base = "BTC", quote = "USDT" }, { base = "ETH", quote = "USDT" }, { base = "BNB", quote = "USDT" },
+        { base = "ADA", quote = "USDT" }, { base = "XRP", quote = "USDT" }, { base = "SOL", quote = "USDT" },
+        { base = "DOT", quote = "USDT" }, { base = "DOGE", quote = "USDT" }, { base = "AVAX", quote = "USDT" },
+        { base = "SHIB", quote = "USDT" }, { base = "MATIC", quote = "USDT" }, { base = "LTC", quote = "USDT" },
+        { base = "UNI", quote = "USDT" }, { base = "LINK", quote = "USDT" }, { base = "ATOM", quote = "USDT" },
+        { base = "ETC", quote = "USDT" }, { base = "XLM", quote = "USDT" }, { base = "BCH", quote = "USDT" },
+        { base = "FIL", quote = "USDT" }, { base = "TRX", quote = "USDT" }, { base = "VET", quote = "USDT" },
+        { base = "ICP", quote = "USDT" }, { base = "FTT", quote = "USDT" }, { base = "NEAR", quote = "USDT" },
+        { base = "HBAR", quote = "USDT" }, { base = "ALGO", quote = "USDT" }, { base = "FLOW", quote = "USDT" },
+        { base = "MANA", quote = "USDT" }, { base = "SAND", quote = "USDT" }, { base = "AXS", quote = "USDT" },
+        { base = "THETA", quote = "USDT" }, { base = "XTZ", quote = "USDT" }, { base = "EGLD", quote = "USDT" },
+        { base = "AAVE", quote = "USDT" }, { base = "CAKE", quote = "USDT" }, { base = "KSM", quote = "USDT" },
+        { base = "MKR", quote = "USDT" }, { base = "COMP", quote = "USDT" }, { base = "SUSHI", quote = "USDT" },
+        { base = "YFI", quote = "USDT" }, { base = "SNX", quote = "USDT" }, { base = "CRV", quote = "USDT" },
+        { base = "1INCH", quote = "USDT" }, { base = "BAT", quote = "USDT" }, { base = "ZEC", quote = "USDT" },
+        { base = "DASH", quote = "USDT" }, { base = "ENJ", quote = "USDT" }, { base = "CHZ", quote = "USDT" },
+        { base = "HOT", quote = "USDT" }, { base = "ZIL", quote = "USDT" }
+    ]
+    ws_endpoint = "wss://stream.binance.com:9443/ws"
+    rest_endpoint = "https://api.binance.com/api/v3"
+    channel = "depth@100ms"
+
+    [[sources]]
+    exchange_id = "okx"
+    symbols = [
+        { base = "BTC", quote = "USDT" }, { base = "ETH", quote = "USDT" }, { base = "BNB", quote = "USDT" },
+        { base = "ADA", quote = "USDT" }, { base = "XRP", quote = "USDT" }, { base = "SOL", quote = "USDT" },
+        { base = "DOT", quote = "USDT" }, { base = "DOGE", quote = "USDT" }, { base = "AVAX", quote = "USDT" },
+        { base = "SHIB", quote = "USDT" }, { base = "MATIC", quote = "USDT" }, { base = "LTC", quote = "USDT" },
+        { base = "UNI", quote = "USDT" }, { base = "LINK", quote = "USDT" }, { base = "ATOM", quote = "USDT" },
+        { base = "ETC", quote = "USDT" }, { base = "XLM", quote = "USDT" }, { base = "BCH", quote = "USDT" },
+        { base = "FIL", quote = "USDT" }, { base = "TRX", quote = "USDT" }, { base = "VET", quote = "USDT" },
+        { base = "ICP", quote = "USDT" }, { base = "FTT", quote = "USDT" }, { base = "NEAR", quote = "USDT" },
+        { base = "HBAR", quote = "USDT" }, { base = "ALGO", quote = "USDT" }, { base = "FLOW", quote = "USDT" },
+        { base = "MANA", quote = "USDT" }, { base = "SAND", quote = "USDT" }, { base = "AXS", quote = "USDT" },
+        { base = "THETA", quote = "USDT" }, { base = "XTZ", quote = "USDT" }, { base = "EGLD", quote = "USDT" },
+        { base = "AAVE", quote = "USDT" }, { base = "CAKE", quote = "USDT" }, { base = "KSM", quote = "USDT" },
+        { base = "MKR", quote = "USDT" }, { base = "COMP", quote = "USDT" }, { base = "SUSHI", quote = "USDT" },
+        { base = "YFI", quote = "USDT" }, { base = "SNX", quote = "USDT" }, { base = "CRV", quote = "USDT" },
+        { base = "1INCH", quote = "USDT" }, { base = "BAT", quote = "USDT" }, { base = "ZEC", quote = "USDT" },
+        { base = "DASH", quote = "USDT" }, { base = "ENJ", quote = "USDT" }, { base = "CHZ", quote = "USDT" },
+        { base = "HOT", quote = "USDT" }, { base = "ZIL", quote = "USDT" }
+    ]
+    ws_endpoint = "wss://ws.okx.com:8443/ws/v5/public"
+    rest_endpoint = "https://www.okx.com/api/v5"
+    channel = "books"
+
+    [[sources]]
+    exchange_id = "huobi"
+    symbols = [
+        { base = "BTC", quote = "USDT" }, { base = "ETH", quote = "USDT" }, { base = "BNB", quote = "USDT" },
+        { base = "ADA", quote = "USDT" }, { base = "XRP", quote = "USDT" }, { base = "SOL", quote = "USDT" },
+        { base = "DOT", quote = "USDT" }, { base = "DOGE", quote = "USDT" }, { base = "AVAX", quote = "USDT" },
+        { base = "SHIB", quote = "USDT" }, { base = "MATIC", quote = "USDT" }, { base = "LTC", quote = "USDT" },
+        { base = "UNI", quote = "USDT" }, { base = "LINK", quote = "USDT" }, { base = "ATOM", quote = "USDT" },
+        { base = "ETC", quote = "USDT" }, { base = "XLM", quote = "USDT" }, { base = "BCH", quote = "USDT" },
+        { base = "FIL", quote = "USDT" }, { base = "TRX", quote = "USDT" }, { base = "VET", quote = "USDT" },
+        { base = "ICP", quote = "USDT" }, { base = "FTT", quote = "USDT" }, { base = "NEAR", quote = "USDT" },
+        { base = "HBAR", quote = "USDT" }, { base = "ALGO", quote = "USDT" }, { base = "FLOW", quote = "USDT" },
+        { base = "MANA", quote = "USDT" }, { base = "SAND", quote = "USDT" }, { base = "AXS", quote = "USDT" },
+        { base = "THETA", quote = "USDT" }, { base = "XTZ", quote = "USDT" }, { base = "EGLD", quote = "USDT" },
+        { base = "AAVE", quote = "USDT" }, { base = "CAKE", quote = "USDT" }, { base = "KSM", quote = "USDT" },
+        { base = "MKR", quote = "USDT" }, { base = "COMP", quote = "USDT" }, { base = "SUSHI", quote = "USDT" },
+        { base = "YFI", quote = "USDT" }, { base = "SNX", quote = "USDT" }, { base = "CRV", quote = "USDT" },
+        { base = "1INCH", quote = "USDT" }, { base = "BAT", quote = "USDT" }, { base = "ZEC", quote = "USDT" },
+        { base = "DASH", quote = "USDT" }, { base = "ENJ", quote = "USDT" }, { base = "CHZ", quote = "USDT" },
+        { base = "HOT", quote = "USDT" }, { base = "ZIL", quote = "USDT" }
+    ]
+    ws_endpoint = "wss://api.huobi.pro/ws"
+    rest_endpoint = "https://api.huobi.pro"
+    channel = "mbp"

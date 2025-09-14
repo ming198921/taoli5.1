@@ -1,0 +1,119 @@
+// proto/market_data.proto
+syntax = "proto3";
+
+package market_data;
+
+service MarketDataFeed {
+  rpc SubscribeSnapshots(SubscriptionRequest) returns (stream MarketDataSnapshot);
+  rpc GetLatestOrderbook(OrderbookRequest) returns (OrderBook);
+  rpc GetConsistencyStatus(ConsistencyRequest) returns (ConsistencyResponse);
+  rpc GetAnomalies(AnomalyRequest) returns (AnomalyResponse);
+  rpc GetHealthStatus(HealthRequest) returns (HealthResponse);
+}
+
+message SubscriptionRequest {
+  Symbol symbol = 1;
+}
+
+message OrderbookRequest {
+  string exchange_id = 1;
+  Symbol symbol = 2;
+}
+
+message ConsistencyRequest {
+  Symbol symbol = 1;
+}
+
+message AnomalyRequest {
+  int64 since_timestamp = 1;
+  uint32 limit = 2;
+  string exchange_id = 3;
+  Symbol symbol = 4;
+}
+
+message HealthRequest {
+  string component = 1;
+}
+
+message Symbol {
+  string base = 1;
+  string quote = 2;
+}
+
+message MarketDataSnapshot {
+  Symbol symbol = 1;
+  string source = 2;
+  int64 timestamp_ms = 3;
+  optional OrderBook orderbook = 4;
+  repeated TradeUpdate trades = 5;
+}
+
+message OrderBook {
+  Symbol symbol = 1;
+  repeated OrderBookEntry bids = 2;
+  repeated OrderBookEntry asks = 3;
+  int64 timestamp_ms = 4;
+  string source = 5;
+}
+
+message OrderBookEntry {
+  double price = 1;
+  double quantity = 2;
+}
+
+message TradeUpdate {
+  string trade_id = 1;
+  double price = 2;
+  double quantity = 3;
+  int64 timestamp_ms = 4;
+  TradeSide side = 5;
+}
+
+enum TradeSide {
+  UNKNOWN = 0;
+  BUY = 1;
+  SELL = 2;
+}
+
+message ConsistencyResponse {
+  Symbol symbol = 1;
+  bool is_consistent = 2;
+  repeated string exchanges = 3;
+  double max_price_diff_pct = 4;
+  int64 max_timestamp_diff_ms = 5;
+  int64 timestamp = 6;
+}
+
+message AnomalyResponse {
+  repeated AnomalyEvent events = 1;
+  uint32 total_count = 2;
+}
+
+message AnomalyEvent {
+  Symbol symbol = 1;
+  string source = 2;
+  string anomaly_type = 3;
+  string severity = 4;
+  string description = 5;
+  int64 timestamp = 6;
+  map<string, string> metadata = 7;
+}
+
+message HealthResponse {
+  bool overall_healthy = 1;
+  uint32 total_sources = 2;
+  uint32 healthy_sources = 3; 
+  uint32 unhealthy_sources = 4;
+  repeated HealthStatus statuses = 5;
+  int64 timestamp = 6;
+}
+
+message HealthStatus {
+  string source_id = 1;
+  int64 last_message_at = 2;
+  uint64 latency_us = 3;
+  uint64 message_count = 4;
+  bool is_connected = 5;
+  string last_error = 6;
+  int64 last_error_at = 7;
+}

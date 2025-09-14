@@ -154,10 +154,6 @@ adapters = { path = "adapters" }
 common = { path = "common" }
 strategy = { path = "strategy" }
 
-# 统一类型系统
-arbitrage-architecture = { path = "../architecture" }
-common_types = { path = "../common_types" }
-
 [[bin]]
 name = "arbitrage_monitor"
 path = "src/bin/arbitrage_monitor.rs"
@@ -186,6 +182,12 @@ opt-level = 3
 lto = "fat"
 codegen-units = 1
 panic = "abort"
+strip = true
+# 启用特定CPU特性优化
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+# AVX-512支持将通过cfg特性检测
+safe_arch = { version = "0.7", features = ["bytemuck"] }
+
 strip = true
 # 启用特定CPU特性优化
 [target.'cfg(target_arch = "x86_64")'.dependencies]

@@ -1,0 +1,161 @@
+# 🚀 QINGXI生产环境配置
+# 生产就绪配置 - 无硬编码，完全外部化
+
+[general]
+log_level = "info"
+metrics_enabled = true
+
+[api_server]
+host = "0.0.0.0"  # 生产环境监听所有接口
+port = 50051
+metrics_port_offset = 1
+health_port_offset = 2
+http_port_offset = 10
+orderbook_depth_limit = 50
+symbols_list_limit = 200
+
+[central_manager]
+event_buffer_size = 2000  # 生产环境加大缓冲区
+
+[[sources]]
+id = "binance_spot"
+adapter_type = "binance"
+enabled = true
+exchange_id = "binance"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT", "XRPUSDT"]
+ws_endpoint = "wss://stream.binance.com:9443/ws/btcusdt@depth@100ms"
+rest_url = "https://api.binance.com"
+
+[[sources]]
+id = "bybit_spot"
+adapter_type = "bybit"
+enabled = true
+exchange_id = "bybit"
+symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"]
+ws_endpoint = "wss://stream.bybit.com/v5/public/spot"
+rest_url = "https://api.bybit.com"
+
+[[sources]]
+id = "okx_spot"
+adapter_type = "okx"
+enabled = true
+exchange_id = "okx"
+symbols = ["BTC-USDT", "ETH-USDT", "SOL-USDT", "XRP-USDT"]
+ws_endpoint = "wss://ws.okx.com:8443/ws/v5/public"
+rest_url = "https://www.okx.com"
+
+[consistency_thresholds]
+price_diff_percentage = 0.3  # 生产环境更严格
+timestamp_diff_ms = 3000
+sequence_gap_threshold = 5
+spread_threshold_percentage = 0.8
+critical_spread_threshold_percentage = 1.5
+max_time_diff_ms = 8000.0
+volume_consistency_threshold = 0.7
+
+[reasoner]
+api_endpoint = "http://reasoner-service:8081"
+
+[anomaly_detection]
+spread_threshold = 1.5  # 生产环境更敏感
+volume_threshold = 200.0
+price_change_threshold = 3.0
+spread_threshold_percentage = 0.8
+
+[performance]
+enable_batch_processing = true
+batch_size = 2000  # 生产环境优化
+batch_timeout_ms = 50
+enable_simd = true
+enable_parallel_processing = true
+max_concurrent_tasks = 16  # 生产环境更多并发
+memory_pool_size = 2097152  # 2MB
+enable_zero_copy = true
+performance_stats_interval_sec = 60  # 1分钟报告
+system_readiness_timeout_sec = 120
+
+[threading]
+num_worker_threads = 8  # 生产环境更多线程
+enable_cpu_affinity = true
+preferred_cores = [0, 1, 2, 3, 4, 5, 6, 7]
+enable_numa_awareness = true
+network_worker_threads = 4
+processing_worker_threads = 2
+main_worker_threads = 2
+
+[quality_thresholds]
+minimum_data_freshness_ms = 500  # 生产环境更严格
+maximum_latency_ms = 50
+minimum_completeness_ratio = 0.98
+maximum_error_rate = 0.005
+cache_hit_rate_threshold = 0.85
+buffer_usage_threshold = 0.75
+compression_ratio_threshold = 2.5
+
+[cache]
+enable_caching = true
+max_cache_size = 10000
+cache_ttl_secs = 300
+enable_compression = true
+
+[exchanges]
+bybit_orderbook_depth = 100  # 生产环境增加深度
+binance_orderbook_depth = 100
+okx_orderbook_depth = 100
+event_buffer_size = 10000  # 生产环境大缓冲区
+
+[memory_pools]
+orderbook_entry_pool_size = 5000  # 生产环境增大
+trade_update_pool_size = 5000
+snapshot_pool_size = 2000
+f64_buffer_pool_size = 5000
+usize_buffer_pool_size = 5000
+default_vec_capacity = 200
+
+[algorithm_scoring]
+liquidity_score_baseline = 2000.0  # 生产环境调整
+liquidity_score_max = 40.0
+spread_score_max = 35.0
+spread_ratio_threshold = 0.5
+balance_score_max = 30.0
+
+[benchmark]
+iterations = 100  # 基准测试轮数
+orderbook_depth = 20  # 订单簿深度
+trade_count = 10  # 交易数量
+warmup_iterations = 10  # 预热轮数
+verbose_output = false  # 生产环境关闭详细输出
+
+# 内存分配器详细配置
+[memory_allocator]
+zero_allocation_buffer_size = 131072
+large_buffer_size = 262144
+huge_buffer_size = 1048576
+small_chunks_capacity = 1024
+chunk_sizes = [64, 128, 256, 512, 1024]
+large_buffer_sizes = [131072, 262144, 524288, 1048576]
+size_threshold = 1024
+test_iterations = 100000  # 生产环境减少测试
+test_allocation_sizes = [128, 1024, 4096]
+
+# 清理器详细配置
+[cleaner]
+memory_pool_size = 65536
+batch_size = 10000
+orderbook_capacity = 1000
+zero_alloc_buffer_count = 65536
+thread_count = 4
+target_latency_ns = 100000
+orderbook_bid_capacity = 1000
+orderbook_ask_capacity = 1000
+reserved_bid_capacity = 1000
+reserved_ask_capacity = 1000
+volume_top_count = 10
+
+# 批处理详细配置
+[batch]
+max_batch_size = 1000
+max_wait_time_ms = 10
+concurrency = 4
+enable_compression = false
+buffer_multiplier = 10

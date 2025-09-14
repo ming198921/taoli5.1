@@ -514,7 +514,7 @@ impl StrategyFailureDetector {
             } else {
                 0.0
             },
-            average_recovery_time_ms: self.calculate_average_recovery_time().await,
+            average_recovery_time_ms: 0.0, // TODO: 计算实际的平均恢复时间
         }
     }
 
@@ -758,7 +758,6 @@ impl StrategyFailureDetector {
     }
 }
 
-
 impl Default for StrategyFailureDetector {
     fn default() -> Self {
         Self::new(None)
@@ -792,6 +791,106 @@ pub struct FailureStatistics {
 
 /// 失效检测配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FailureDetectionConfig {
+    /// 连续亏损阈值
+    pub consecutive_loss_threshold: u32,
+    
+    /// 最大回撤阈值 (百分比)
+    pub max_drawdown_threshold: f64,
+    
+    /// 夏普比率阈值
+    pub sharpe_ratio_threshold: f64,
+    
+    /// 动态调整参数
+    pub dynamic_adjustment: DynamicAdjustmentConfig,
+    
+    /// 自动恢复配置
+    pub auto_recovery: AutoRecoveryConfig,
+    
+    /// 人工复核配置
+    pub manual_review: ManualReviewConfig,
+}
+
+/// 动态调整配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DynamicAdjustmentConfig {
+    /// 是否启用动态调整
+    pub enabled: bool,
+    
+    /// 市场波动率影响因子
+    pub volatility_factor: f64,
+    
+    /// 流动性影响因子
+    pub liquidity_factor: f64,
+    
+    /// 调整频率 (小时)
+    pub adjustment_frequency_hours: u32,
+    
+    /// 最大调整倍数
+    pub max_adjustment_multiplier: f64,
+}
+
+/// 自动恢复配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoRecoveryConfig {
+    /// 是否启用自动恢复
+    pub enabled: bool,
+    
+    /// 恢复检查间隔 (分钟)
+    pub check_interval_minutes: u32,
+    
+    /// 成功率恢复阈值
+    pub success_rate_threshold: f64,
+    
+    /// 连续成功次数要求
+    pub consecutive_success_required: u32,
+    
+    /// 恢复后观察期 (小时)
+    pub observation_period_hours: u32,
+}
+
+/// 人工复核配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ManualReviewConfig {
+    /// 是否需要人工复核
+    pub required: bool,
+    
+    /// 复核超时时间 (小时)
+    pub review_timeout_hours: u32,
+    
+    /// 紧急情况自动通过
+    pub emergency_auto_approve: bool,
+    
+    /// 复核人员列表
+    pub reviewers: Vec<String>,
+}
+
+impl Default for FailureDetectionConfig {
+    fn default() -> Self {
+        Self {
+            consecutive_loss_threshold: 10,
+            max_drawdown_threshold: 0.1, // 10%
+            sharpe_ratio_threshold: 0.5,
+            dynamic_adjustment: DynamicAdjustmentConfig {
+                enabled: true,
+                volatility_factor: 1.5,
+                liquidity_factor: 1.2,
+                adjustment_frequency_hours: 6,
+                max_adjustment_multiplier: 2.0,
+            },
+            auto_recovery: AutoRecoveryConfig {
+                enabled: true,
+                check_interval_minutes: 30,
+                success_rate_threshold: 0.8,
+                consecutive_success_required: 5,
+                observation_period_hours: 24,
+            },
+            manual_review: ManualReviewConfig {
+                required: true,
+                review_timeout_hours: 2,
+                emergency_auto_approve: true,
+                reviewers: vec!["admin".to_string(), "risk_manager".to_string()],
+            },
         }
     }
 }
@@ -1185,7 +1284,7 @@ impl StrategyFailureDetector {
             } else {
                 0.0
             },
-            average_recovery_time_ms: self.calculate_average_recovery_time().await,
+            average_recovery_time_ms: 0.0, // TODO: 计算实际的平均恢复时间
         }
     }
 
@@ -1428,7 +1527,6 @@ impl StrategyFailureDetector {
         }
     }
 }
-
 
 impl Default for StrategyFailureDetector {
     fn default() -> Self {
