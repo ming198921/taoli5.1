@@ -1,0 +1,138 @@
+{
+  "执行摘要": {
+    "总执行次数": 2,
+    "总利润": 0.0,
+    "平均利润": 0,
+    "成功率": 0.0
+  },
+  "性能指标": {
+    "平均数据获取时间": 60.112833976745605,
+    "平均清洗时间": 0.010848045349121094,
+    "平均策略分析时间": 0.010013580322265625,
+    "平均风控检查时间": 0.00035762786865234375,
+    "平均订单执行时间": 0,
+    "平均总执行时间": 60.6158971786499
+  },
+  "详细执行记录": [
+    {
+      "execution_number": 1,
+      "timestamp": "2025-09-11T05:05:31.407513",
+      "data_fetch_time_ms": 60.128211975097656,
+      "cleaning_time_ms": 0.010967254638671875,
+      "analysis_time_ms": 0.0095367431640625,
+      "risk_check_time_ms": 0.0002384185791015625,
+      "opportunities_found": 0,
+      "approved_opportunities": 0,
+      "orders_executed": 0,
+      "total_profit": 0.0,
+      "execution_results": [],
+      "total_cycle_time_ms": 60.567617416381836
+    },
+    {
+      "execution_number": 2,
+      "timestamp": "2025-09-11T05:05:34.471276",
+      "data_fetch_time_ms": 60.097455978393555,
+      "cleaning_time_ms": 0.010728836059570312,
+      "analysis_time_ms": 0.01049041748046875,
+      "risk_check_time_ms": 0.000476837158203125,
+      "opportunities_found": 0,
+      "approved_opportunities": 0,
+      "orders_executed": 0,
+      "total_profit": 0.0,
+      "execution_results": [],
+      "total_cycle_time_ms": 60.66417694091797
+    }
+  ],
+  "性能日志": [
+    {
+      "timestamp": "2025-09-11T05:05:31.407170",
+      "stage": "数据获取",
+      "duration_ms": 60.128211975097656,
+      "execution_count": 1,
+      "symbols_count": 43
+    },
+    {
+      "timestamp": "2025-09-11T05:05:31.407420",
+      "stage": "数据清洗",
+      "duration_ms": 0.010967254638671875,
+      "execution_count": 1,
+      "cleaned_symbols": 43
+    },
+    {
+      "timestamp": "2025-09-11T05:05:31.407474",
+      "stage": "策略分析",
+      "duration_ms": 0.0095367431640625,
+      "execution_count": 1,
+      "opportunities_found": 0
+    },
+    {
+      "timestamp": "2025-09-11T05:05:31.407496",
+      "stage": "风控检查",
+      "duration_ms": 0.0002384185791015625,
+      "execution_count": 1,
+      "approved_opportunities": 0
+    },
+    {
+      "timestamp": "2025-09-11T05:05:31.407513",
+      "stage": "完整周期",
+      "duration_ms": 60.567617416381836,
+      "execution_count": 1,
+      "execution_number": 1,
+      "data_fetch_time_ms": 60.128211975097656,
+      "cleaning_time_ms": 0.010967254638671875,
+      "analysis_time_ms": 0.0095367431640625,
+      "risk_check_time_ms": 0.0002384185791015625,
+      "opportunities_found": 0,
+      "approved_opportunities": 0,
+      "orders_executed": 0,
+      "total_profit": 0.0,
+      "execution_results": [],
+      "total_cycle_time_ms": 60.567617416381836
+    },
+    {
+      "timestamp": "2025-09-11T05:05:34.470906",
+      "stage": "数据获取",
+      "duration_ms": 60.097455978393555,
+      "execution_count": 2,
+      "symbols_count": 43
+    },
+    {
+      "timestamp": "2025-09-11T05:05:34.471178",
+      "stage": "数据清洗",
+      "duration_ms": 0.010728836059570312,
+      "execution_count": 2,
+      "cleaned_symbols": 43
+    },
+    {
+      "timestamp": "2025-09-11T05:05:34.471232",
+      "stage": "策略分析",
+      "duration_ms": 0.01049041748046875,
+      "execution_count": 2,
+      "opportunities_found": 0
+    },
+    {
+      "timestamp": "2025-09-11T05:05:34.471257",
+      "stage": "风控检查",
+      "duration_ms": 0.000476837158203125,
+      "execution_count": 2,
+      "approved_opportunities": 0
+    },
+    {
+      "timestamp": "2025-09-11T05:05:34.471276",
+      "stage": "完整周期",
+      "duration_ms": 60.66417694091797,
+      "execution_count": 2,
+      "execution_number": 2,
+      "data_fetch_time_ms": 60.097455978393555,
+      "cleaning_time_ms": 0.010728836059570312,
+      "analysis_time_ms": 0.01049041748046875,
+      "risk_check_time_ms": 0.000476837158203125,
+      "opportunities_found": 0,
+      "approved_opportunities": 0,
+      "orders_executed": 0,
+      "total_profit": 0.0,
+      "execution_results": [],
+      "total_cycle_time_ms": 60.66417694091797
+    }
+  ]
+}
