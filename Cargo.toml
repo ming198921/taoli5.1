@@ -26,6 +26,14 @@ tracing-subscriber = "0.3"
 # 性能优化依赖
 mimalloc = { version = "0.1", default-features = false }
 
+# 特性配置 - 用于控制socket优化的启用
+[features]
+default = ["socket2", "tcp_quickack"]
+socket2 = []
+tcp_quickack = []
+full_optimization = ["socket2", "tcp_quickack"]
+minimal = []
+
 [profile.release]
 lto = true
 codegen-units = 1

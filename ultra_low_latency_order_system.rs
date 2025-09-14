@@ -5,11 +5,17 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::net::TcpStream;
 use tokio::io::{AsyncWriteExt, BufWriter};
-use bytes::{BytesMut, BufMut};
+use bytes::BytesMut;
 use crossbeam::channel::{bounded, Sender, Receiver};
 use parking_lot::RwLock;
-use ahash::AHashMap;
-use once_cell::sync::Lazy;
+use futures::SinkExt;
+use tokio_tungstenite::{connect_async, tungstenite::Message};
+
+// 条件编译: 仅在Linux且有socket2特性时启用高级socket优化
+#[cfg(all(target_os = "linux", feature = "socket2"))]
+use std::os::unix::io::AsRawFd;
+#[cfg(all(target_os = "linux", feature = "socket2"))]
+use socket2::Socket;
 
 // ==================== 配置常量 ====================
 const MAX_CONNECTIONS_PER_EXCHANGE: usize = 32;
@@ -115,27 +121,31 @@ impl UltraLowLatencyConnectionPool {
         for _ in 0..pool_size {
             let stream = TcpStream::connect(exchange_url).await?;
             
-            // 关键的TCP优化
-            let socket = socket2::Socket::from(stream.as_raw_fd());
-            socket.set_nodelay(TCP_NODELAY)?;
-            socket.set_tcp_quickack(TCP_QUICKACK)?;
-            
-            // Linux特定优化
-            #[cfg(target_os = "linux")]
+            // 兼容性TCP优化 - 条件编译确保跨平台兼容性
+            #[cfg(all(target_os = "linux", feature = "socket2"))]
             {
+                // 高级socket优化 (仅在支持的平台启用)
+                use std::os::unix::io::FromRawFd;
+                let socket = unsafe { Socket::from_raw_fd(stream.as_raw_fd()) };
+                let _ = socket.set_nodelay(TCP_NODELAY);
+
+                // TCP_QUICKACK可能不可用，安全忽略错误
+                #[cfg(feature = "tcp_quickack")]
+                let _ = socket.set_tcp_quickack(TCP_QUICKACK);
+
                 unsafe {
                     // SO_BUSY_POLL: 让网卡驱动忙等，减少中断延迟
-                    libc::setsockopt(
+                    let _ = libc::setsockopt(
                         stream.as_raw_fd(),
                         libc::SOL_SOCKET,
                         libc::SO_BUSY_POLL,
                         &SO_BUSY_POLL as *const _ as *const libc::c_void,
                         std::mem::size_of::<u32>() as u32,
                     );
-                    
+
                     // TCP_USER_TIMEOUT: 快速检测连接失败
                     let timeout_ms: u32 = 5000;
-                    libc::setsockopt(
+                    let _ = libc::setsockopt(
                         stream.as_raw_fd(),
                         libc::IPPROTO_TCP,
                         libc::TCP_USER_TIMEOUT,
@@ -143,6 +153,11 @@ impl UltraLowLatencyConnectionPool {
                         std::mem::size_of::<u32>() as u32,
                     );
                 }
+            }
+            #[cfg(not(all(target_os = "linux", feature = "socket2")))]
+            {
+                // 基础TCP优化作为后备方案
+                stream.set_nodelay(true)?;
             }
             
             connections.push(OptimizedConnection {
@@ -241,13 +256,13 @@ impl BatchOrderProcessor {
 
 // ==================== WebSocket二进制协议 ====================
 pub struct BinaryWebSocketClient {
-    ws_stream: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
+    ws_stream: tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
     write_buffer: BytesMut,
 }
 
 impl BinaryWebSocketClient {
     pub async fn connect(url: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let (ws_stream, _) = tokio_tungstenite::connect_async(url).await?;
+        let (ws_stream, _) = connect_async(url).await?;
         
         Ok(Self {
             ws_stream,
@@ -378,7 +393,7 @@ impl LatencyBenchmark {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Ultra Low Latency Order System - Target: <1ms");
-    println!("=" .repeat(50));
+    println!("{}", "=".repeat(50));
     
     // 创建连接池
     let pool = Arc::new(
